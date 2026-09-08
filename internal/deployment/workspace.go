@@ -120,6 +120,23 @@ func (s *Store) SetVariable(ctx context.Context, id, name, value string) error {
 	if err != nil {
 		return err
 	}
+	if _, err = tx.Exec(ctx, `DELETE FROM service_references WHERE source_service_id=$1 AND variable_name=$2`, id, name); err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
+}
+func (s *Store) DeleteVariable(ctx context.Context, id, name string) error {
+	tx, err := s.DB.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+	if _, err = tx.Exec(ctx, `DELETE FROM service_variables WHERE service_id=$1 AND name=$2`, id, name); err != nil {
+		return err
+	}
+	if _, err = tx.Exec(ctx, `DELETE FROM service_references WHERE source_service_id=$1 AND variable_name=$2`, id, name); err != nil {
+		return err
+	}
 	return tx.Commit(ctx)
 }
 func (s *Store) CreateEnvironment(ctx context.Context, project, name string) (Environment, error) {

@@ -27,6 +27,10 @@ func PrivateNetwork(project, environment string) string {
 	h := md5.Sum([]byte(project + "/" + environment))
 	return "cloudrail-env-" + hex.EncodeToString(h[:8])
 }
+func VolumeID(service string) string {
+	h := md5.Sum([]byte("volume:" + service))
+	return hex.EncodeToString(h[:])
+}
 func (c Settings) Validate() error {
 	if c.Kind != "http" && c.Kind != "postgres" {
 		return errors.New("invalid service kind")
@@ -93,6 +97,17 @@ func (s *Store) SaveSettings(ctx context.Context, id string, memory, cpu int, mo
 	if e != nil {
 		return e
 	}
+	if old.VolumeName != "" {
+		volumeID := VolumeID(id)
+		if _, e = tx.Exec(ctx, `INSERT INTO volumes(id,project_id,environment,name) VALUES($1,$2,$3,$4)
+		 ON CONFLICT(id) DO UPDATE SET name=EXCLUDED.name`, volumeID, project, environment, old.VolumeName); e != nil {
+			return e
+		}
+		if _, e = tx.Exec(ctx, `INSERT INTO volume_attachments(volume_id,service_id,mount_path) VALUES($1,$2,$3)
+		 ON CONFLICT(volume_id) DO UPDATE SET service_id=EXCLUDED.service_id,mount_path=EXCLUDED.mount_path`, volumeID, id, old.MountPath); e != nil {
+			return e
+		}
+	}
 	return tx.Commit(ctx)
 }
 
@@ -128,8 +143,15 @@ func (s *Store) CreateDatabase(ctx context.Context, project, name, environment s
 		return v, e
 	}
 	defer tx.Rollback(ctx)
-	e = tx.QueryRow(ctx, `INSERT INTO services(id,project_id,name,environment,host,settings) VALUES($1,$2,$3,$4,$5,$6) RETURNING created_at`, v.ID, project, name, environment, v.Host, raw).Scan(&v.CreatedAt)
+	e = tx.QueryRow(ctx, `INSERT INTO services(id,project_id,name,environment,host,settings,resource_kind,template_key) VALUES($1,$2,$3,$4,$5,$6,'database','postgres') RETURNING created_at`, v.ID, project, name, environment, v.Host, raw).Scan(&v.CreatedAt)
 	if e != nil {
+		return v, e
+	}
+	volumeID := VolumeID(v.ID)
+	if _, e = tx.Exec(ctx, `INSERT INTO volumes(id,project_id,environment,name) VALUES($1,$2,$3,$4)`, volumeID, project, environment, v.Settings.VolumeName); e != nil {
+		return v, e
+	}
+	if _, e = tx.Exec(ctx, `INSERT INTO volume_attachments(volume_id,service_id,mount_path) VALUES($1,$2,$3)`, volumeID, v.ID, v.Settings.MountPath); e != nil {
 		return v, e
 	}
 	for k, value := range map[string]string{"POSTGRES_USER": "app", "POSTGRES_DB": "app", "POSTGRES_PASSWORD": ID() + ID()} {
@@ -173,5 +195,10 @@ func (s *Store) BindDatabase(ctx context.Context, database, target, name string)
 	if password == "" {
 		return errors.New("database credentials unavailable")
 	}
-	return s.SetVariable(ctx, target, name, "postgres://app:"+password+"@db-"+database+":5432/app?sslmode=disable")
+	if e = s.SetVariable(ctx, target, name, "postgres://app:"+password+"@db-"+database+":5432/app?sslmode=disable"); e != nil {
+		return e
+	}
+	_, e = s.DB.Exec(ctx, `INSERT INTO service_references(source_service_id,variable_name,target_service_id,target_variable) VALUES($1,$2,$3,'DATABASE_URL')
+	 ON CONFLICT(source_service_id,variable_name) DO UPDATE SET target_service_id=EXCLUDED.target_service_id,target_variable=EXCLUDED.target_variable,created_at=now()`, target, name, database)
+	return e
 }

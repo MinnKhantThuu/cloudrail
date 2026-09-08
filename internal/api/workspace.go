@@ -167,7 +167,7 @@ func (a *API) workspaceRoutes(public, admin, agent *http.ServeMux) {
 			problem(w, 400, "Database template variables are managed by Cloudrail")
 			return
 		}
-		_, err := a.Store.DB.Exec(r.Context(), `DELETE FROM service_variables WHERE service_id=$1 AND name=$2`, r.PathValue("id"), r.PathValue("name"))
+		err := a.Store.DeleteVariable(r.Context(), r.PathValue("id"), r.PathValue("name"))
 		if err != nil {
 			dbError(w, err)
 			return

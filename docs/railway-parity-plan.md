@@ -1,7 +1,7 @@
 # Cloudrail — Railway-inspired product and delivery plan
 
 Updated: 2026-09-09  
-Status: **Product inventory and implementation order defined; implementation has not started for this track.**
+Status: **UX-0 product contract and UX-1 resource model/canvas API implemented and locally verified; UX-2 canvas UI is next.**
 
 ဒီစာတမ်းက Cloudrail ကို “service card နှစ်မျိုးပါတဲ့ dashboard” အဖြစ်မတည်ဆောက်ဘဲ Railway လို **project canvas ကနေ application stack တစ်ခုလုံးဆောက်၊ ချိတ်၊ deploy နဲ့ operate လုပ်နိုင်တဲ့ self-hosted PaaS** အဖြစ်ပြောင်းရန် canonical feature plan ဖြစ်သည်။ Phase အစဉ်နဲ့ overall progress ကို `ROADMAP.md` ကပဲ ဆက်ထိန်းမည်။
 
@@ -172,6 +172,8 @@ flowchart LR
 
 ### UX-0 — Product contract and gap map — current
 
+**Status:** Complete.
+
 **Scope:** Railway feature inventory, Cloudrail target, resource model, user flow, phase order, exclusions ကို freeze လုပ်ခြင်း။
 
 **Visible result:** ဒီစာတမ်းနှင့် updated roadmap။ Runtime/UI behavior မပြောင်းသေး။
@@ -180,6 +182,8 @@ flowchart LR
 
 ### UX-1 — Resource model and canvas API
 
+**Status:** Implemented; migration preservation, graph contract and persisted-layout integration tests passed on a disposable PostgreSQL instance. Hosted race/CI evidence remains separate.
+
 **Scope:** Backward-compatible migrations; generic service metadata; volumes/links/layout tables; environment canvas read API; existing HTTP/Postgres records migration။
 
 **Visible result:** UI မပြောင်းသေးပေမယ့် API က service/database/volume/link/layout ကို unified canvas graph အဖြစ်ပြန်ပေးနိုင်မည်။
@@ -187,6 +191,8 @@ flowchart LR
 **Completion:** Existing live records မပျောက်ရ၊ migration rollback/restore proof ရ၊ API contract tests အောင်ရမည်။
 
 ### UX-2 — Real project canvas shell
+
+**Status:** Not started.
 
 **Scope:** Pan/zoom/fit, node drag, persisted layout, selection URL, close/back behavior, create palette, command palette, context menu, desktop/mobile drawer shell။
 

@@ -1,0 +1,146 @@
+package api
+
+import (
+	"bytes"
+	"cloudrail/internal/auth"
+	"cloudrail/internal/deployment"
+	"cloudrail/internal/secrets"
+	"context"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
+	"os"
+	"testing"
+
+	"github.com/jackc/pgx/v5/pgxpool"
+)
+
+func TestCanvasGraphAndPersistedLayout(t *testing.T) {
+	if os.Getenv("CLOUDRAIL_INTEGRATION") != "1" {
+		t.Skip("requires PostgreSQL integration environment")
+	}
+	ctx := context.Background()
+	base := os.Getenv("DATABASE_URL")
+	db, err := pgxpool.New(ctx, base)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	schema := "canvas_verify_" + deployment.ID()
+	if _, err = db.Exec(ctx, "CREATE SCHEMA "+schema); err != nil {
+		t.Fatal(err)
+	}
+	defer db.Exec(ctx, "DROP SCHEMA "+schema+" CASCADE")
+	u, err := url.Parse(base)
+	if err != nil {
+		t.Fatal(err)
+	}
+	query := u.Query()
+	query.Set("search_path", schema)
+	u.RawQuery = query.Encode()
+	store, err := deployment.Open(ctx, u.String())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer store.DB.Close()
+	store.Cipher, err = secrets.New(os.Getenv("CLOUDRAIL_ENCRYPTION_KEY"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	project, err := store.CreateProject(ctx, "canvas contract")
+	if err != nil {
+		t.Fatal(err)
+	}
+	application, err := store.CreateService(ctx, project.ID, "api")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = store.SaveSettings(ctx, application.ID, 256, 1000, "/data"); err != nil {
+		t.Fatal(err)
+	}
+	database, err := store.CreateDatabase(ctx, project.ID, "postgres", "production")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = store.BindDatabase(ctx, database.ID, application.ID, "DATABASE_URL"); err != nil {
+		t.Fatal(err)
+	}
+
+	sessions := &auth.Auth{DB: store.DB}
+	if err = sessions.Setup(ctx, "canvas@example.com", "canvas-test-password"); err != nil {
+		t.Fatal(err)
+	}
+	token, err := sessions.Login(ctx, "canvas@example.com", "canvas-test-password")
+	if err != nil {
+		t.Fatal(err)
+	}
+	handler := (&API{Sessions: sessions, Store: store}).Handler(t.TempDir())
+	request := func(method, path string, body any) *httptest.ResponseRecorder {
+		var raw []byte
+		if body != nil {
+			raw, _ = json.Marshal(body)
+		}
+		r := httptest.NewRequest(method, path, bytes.NewReader(raw))
+		r.AddCookie(&http.Cookie{Name: "cloudrail_session", Value: token})
+		if method != http.MethodGet {
+			r.Header.Set("Content-Type", "application/json")
+			r.Header.Set("X-Cloudrail-Request", "1")
+		}
+		w := httptest.NewRecorder()
+		handler.ServeHTTP(w, r)
+		return w
+	}
+
+	canvasPath := "/api/projects/" + project.ID + "/environments/production/canvas"
+	w := request(http.MethodGet, canvasPath, nil)
+	if w.Code != http.StatusOK {
+		t.Fatalf("canvas response: %d %s", w.Code, w.Body.String())
+	}
+	var graph deployment.CanvasGraph
+	if err = json.Unmarshal(w.Body.Bytes(), &graph); err != nil {
+		t.Fatal(err)
+	}
+	if len(graph.Resources) != 4 {
+		t.Fatalf("expected app, database and two volumes; got %#v", graph.Resources)
+	}
+	if len(graph.Links) != 3 {
+		t.Fatalf("expected two attachments and one reference; got %#v", graph.Links)
+	}
+	var appResource, databaseResource *deployment.CanvasResource
+	for index := range graph.Resources {
+		resource := &graph.Resources[index]
+		switch resource.ID {
+		case application.ID:
+			appResource = resource
+		case database.ID:
+			databaseResource = resource
+		}
+	}
+	if appResource == nil || appResource.Kind != "service" || appResource.WorkloadMode != "web" || appResource.SourceType != "empty" {
+		t.Fatalf("application projection is wrong: %#v", appResource)
+	}
+	if databaseResource == nil || databaseResource.Kind != "database" || databaseResource.Template != "postgres" || databaseResource.SourceType != "template" {
+		t.Fatalf("database projection is wrong: %#v", databaseResource)
+	}
+
+	position := deployment.CanvasPositionUpdate{ResourceKey: "service:" + application.ID, X: 444, Y: 222}
+	w = request(http.MethodPut, canvasPath+"/layout", map[string]any{"positions": []deployment.CanvasPositionUpdate{position}})
+	if w.Code != http.StatusOK {
+		t.Fatalf("layout response: %d %s", w.Code, w.Body.String())
+	}
+	w = request(http.MethodGet, canvasPath, nil)
+	if err = json.Unmarshal(w.Body.Bytes(), &graph); err != nil {
+		t.Fatal(err)
+	}
+	for _, resource := range graph.Resources {
+		if resource.Key == position.ResourceKey && resource.Position != (deployment.CanvasPosition{X: 444, Y: 222}) {
+			t.Fatalf("layout was not persisted: %#v", resource.Position)
+		}
+	}
+	w = request(http.MethodPut, canvasPath+"/layout", map[string]any{"positions": []deployment.CanvasPositionUpdate{{ResourceKey: "service:missing", X: 1, Y: 1}}})
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("unknown resource layout accepted: %d", w.Code)
+	}
+}

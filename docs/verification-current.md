@@ -20,6 +20,12 @@ This record separates implemented/local behavior from account-bound production c
 | Installer/AWS | Unmodified installer passed on a clean Ubuntu 24.04 Linode amd64 host with real DNS/ACME. AWS remains an optional unverified provider path |
 | Packaging | Source and Linux amd64/arm64 binaries/dashboard/notices generated locally. Archive checksums/notices and repeatability/manifest/credential checks passed (`scripts/verify-release.py`) |
 
+## Railway-inspired resource model — 2026-09-09
+
+UX-1 adds backward-compatible service classification, normalized volume/attachment records, future bucket records, service references, server-persisted canvas positions and an environment-scoped canvas graph API. Existing `001–005` application, PostgreSQL, source and volume records were migrated in an isolated legacy-schema test without loss. A separate authenticated API integration test created an application, PostgreSQL service, two volumes and a database binding, verified four resource nodes and three real links, persisted a layout and rejected an unknown resource key.
+
+Targeted tests and the full non-race Go integration suite plus `go vet ./...` passed against disposable PostgreSQL. A local full race attempt could not create its isolated schemas after the larger Debian Go image filled the Docker VM; this was an environment disk failure before assertions, and hosted race/CI evidence for UX-1 remains pending. The temporary image and test containers were removed. No current dashboard or public Linode update has been made for UX-1.
+
 The final dependency scan found reachable advisories in pgx v5.7.6 and x/text v0.24.0. They were updated to **pgx v5.9.2** and **x/text v0.39.0**. `govulncheck v1.7.0` then reported zero affected code paths and zero vulnerabilities in imported packages; it still lists advisories elsewhere in required modules that the application does not call. This is not an external security audit or a container-image scan. [Go pgx advisory](https://pkg.go.dev/vuln/GO-2026-5004), [Go x/text advisory](https://pkg.go.dev/vuln/GO-2026-5970). `npm audit` reported zero known vulnerabilities in the locked frontend dependency tree.
 
 ## Repeat the checks

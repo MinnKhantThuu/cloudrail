@@ -126,6 +126,31 @@ func (a *API) Handler(webDir string) http.Handler {
 		}
 		write(w, 201, v)
 	})
+	admin.HandleFunc("GET /api/projects/{id}/environments/{environment}/canvas", func(w http.ResponseWriter, r *http.Request) {
+		graph, err := a.Store.Canvas(r.Context(), r.PathValue("id"), r.PathValue("environment"))
+		if err != nil {
+			dbError(w, err)
+			return
+		}
+		write(w, 200, graph)
+	})
+	admin.HandleFunc("PUT /api/projects/{id}/environments/{environment}/canvas/layout", func(w http.ResponseWriter, r *http.Request) {
+		var body struct {
+			Positions []deployment.CanvasPositionUpdate `json:"positions"`
+		}
+		if !decode(w, r, &body) {
+			return
+		}
+		if err := a.Store.SaveCanvasLayout(r.Context(), r.PathValue("id"), r.PathValue("environment"), body.Positions); err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				dbError(w, err)
+			} else {
+				problem(w, 400, err.Error())
+			}
+			return
+		}
+		write(w, 200, map[string]bool{"ok": true})
+	})
 	admin.HandleFunc("POST /api/projects/{id}/services", func(w http.ResponseWriter, r *http.Request) {
 		var body struct {
 			Name        string `json:"name"`
