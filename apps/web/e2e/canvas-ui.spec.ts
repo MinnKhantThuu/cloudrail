@@ -90,11 +90,14 @@ test('canvas exposes resources, connections, creation and saved layout', async (
   const palette = page.getByRole('dialog', { name: 'Add to your canvas' });
   await expect(palette).toBeVisible();
   await expect(palette.getByRole('button', { name: /GitHub Repository/ })).toBeEnabled();
-  await expect(palette.getByRole('button', { name: /Background Worker/ })).toBeDisabled();
+  await expect(palette.getByRole('button', { name: /Background Worker/ })).toBeEnabled();
+  await expect(palette.getByRole('button', { name: /Cron Job/ })).toBeEnabled();
   await expect(palette.getByRole('button', { name: /Redis/ })).toBeDisabled();
-  await palette.getByRole('button', { name: /Empty Service/ }).click();
-  await expect(page.getByRole('dialog', { name: 'Empty Service' })).toBeVisible();
+  await palette.getByRole('button', { name: /Background Worker/ }).click();
+  await expect(page.getByRole('dialog', { name: 'Background Worker' })).toBeVisible();
   await expect(page.getByLabel('Resource name')).toBeVisible();
+  await expect(page.getByLabel('Workload')).toHaveValue('worker');
+  await expect(page.getByLabel('Source', { exact: true })).toHaveValue('empty');
   await page.keyboard.press('Escape');
 
   const node = page.getByRole('button', { name: 'storefront-api resource' });

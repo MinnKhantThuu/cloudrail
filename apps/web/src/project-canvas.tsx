@@ -21,7 +21,7 @@ import {
 
 type Request = <T,>(path: string, body?: unknown, method?: string) => Promise<T>;
 
-export type CreateIntent = 'github' | 'image' | 'empty' | 'postgres';
+export type CreateIntent = 'github' | 'image' | 'empty' | 'worker' | 'cron' | 'postgres';
 
 type Position = { x: number; y: number };
 export type CanvasResource = {
@@ -108,8 +108,8 @@ function CreatePalette({ open, close, create }: { open: boolean; close: () => vo
         <CreateOption icon={<Github size={18} />} title="GitHub Repository" description="Create a service, then select repo and branch" onClick={() => create('github')} />
         <CreateOption icon={<Container size={18} />} title="Docker Image" description="Deploy an immutable container image" onClick={() => create('image')} />
         <CreateOption icon={<Plus size={18} />} title="Empty Service" description="Create now and configure source later" onClick={() => create('empty')} />
-        <CreateOption icon={<ServerCog size={18} />} title="Background Worker" description="Long-running process without a public route" phase="UX-3" />
-        <CreateOption icon={<Timer size={18} />} title="Cron Job" description="Run a command on a UTC schedule" phase="UX-3" />
+        <CreateOption icon={<ServerCog size={18} />} title="Background Worker" description="Long-running process without a public route" onClick={() => create('worker')} />
+        <CreateOption icon={<Timer size={18} />} title="Cron Job" description="Run a command on a UTC schedule" onClick={() => create('cron')} />
       </div>
       <h3>Data</h3>
       <div className="create-option-grid">

@@ -134,7 +134,7 @@ func (s *Store) CreateDatabase(ctx context.Context, project, name, environment s
 	if environment == "" {
 		environment = "production"
 	}
-	v := Service{ID: ID(), ProjectID: project, Name: name, Environment: environment, DesiredState: "running"}
+	v := Service{ID: ID(), ProjectID: project, Name: name, Environment: environment, DesiredState: "running", ResourceKind: "database", WorkloadMode: "web", Template: "postgres"}
 	v.Host = v.ID + ".localhost"
 	v.Settings = Settings{Kind: "postgres", MemoryMB: 256, CPUMillis: 1000, MountPath: "/var/lib/postgresql/data", VolumeName: "cloudrail-volume-" + v.ID, Network: PrivateNetwork(project, environment)}
 	raw, _ := json.Marshal(v.Settings)

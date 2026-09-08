@@ -59,25 +59,43 @@ func (s *Store) CreateService(ctx context.Context, projectID, name string, envir
 	if len(environment) > 0 && environment[0] != "" {
 		env = environment[0]
 	}
-	v := Service{ID: ID(), ProjectID: projectID, Name: name, Environment: env, DesiredState: "running"}
+	return s.CreateCompute(ctx, projectID, ComputeSpec{Name: name, Environment: env, WorkloadMode: "web", SourceType: "empty"})
+}
+func (s *Store) CreateCompute(ctx context.Context, projectID string, spec ComputeSpec) (Service, error) {
+	if err := spec.Validate(); err != nil {
+		return Service{}, err
+	}
+	tx, err := s.DB.Begin(ctx)
+	if err != nil {
+		return Service{}, err
+	}
+	defer tx.Rollback(ctx)
+	v := Service{ID: ID(), ProjectID: projectID, Name: spec.Name, Environment: spec.Environment, DesiredState: "running", ResourceKind: "service", WorkloadMode: spec.WorkloadMode}
 	domain := os.Getenv("APP_DOMAIN")
 	if domain == "" {
 		domain = "localhost"
 	}
 	v.Host = v.ID + "." + domain
-	v.Settings = Settings{Kind: "http", MemoryMB: 256, CPUMillis: 1000, Network: PrivateNetwork(projectID, env)}
+	v.Settings = Settings{Kind: "http", MemoryMB: 256, CPUMillis: 1000, Network: PrivateNetwork(projectID, spec.Environment)}
 	settings, _ := json.Marshal(v.Settings)
-	err := s.DB.QueryRow(ctx, `INSERT INTO services(id,project_id,name,host,environment,settings) VALUES($1,$2,$3,$4,$5,$6) RETURNING created_at`, v.ID, projectID, name, v.Host, env, settings).Scan(&v.CreatedAt)
-	if v.Settings.Kind != "postgres" {
+	err = tx.QueryRow(ctx, `INSERT INTO services(id,project_id,name,host,environment,settings,resource_kind,workload_mode) VALUES($1,$2,$3,$4,$5,$6,'service',$7) RETURNING created_at`, v.ID, projectID, spec.Name, v.Host, spec.Environment, settings, spec.WorkloadMode).Scan(&v.CreatedAt)
+	if err != nil {
+		return v, err
+	}
+	if _, err = tx.Exec(ctx, `INSERT INTO service_sources(service_id,config,source_type) VALUES($1,'{}',$2)`, v.ID, spec.SourceType); err != nil {
+		return v, err
+	}
+	if v.WorkloadMode == "web" {
 		v.URL = "http://" + v.Host + ":8088"
 		if os.Getenv("PUBLIC_MODE") == "true" {
 			v.URL = "https://" + v.Host
 		}
 	}
-	return v, err
+	return v, tx.Commit(ctx)
 }
 
 const depColumns = `id,service_id,image,port,health_path,status,error,logs,created_at,updated_at,settings`
+const svcColumns = `id,project_id,name,environment,host,active_id,created_at,desired_state,settings,resource_kind,workload_mode,template_key`
 
 func scanDep(row pgx.Row) (Deployment, error) {
 	var d Deployment
@@ -91,11 +109,11 @@ func scanDep(row pgx.Row) (Deployment, error) {
 func scanSvc(row pgx.Row) (Service, error) {
 	var v Service
 	var raw []byte
-	err := row.Scan(&v.ID, &v.ProjectID, &v.Name, &v.Environment, &v.Host, &v.ActiveID, &v.CreatedAt, &v.DesiredState, &raw)
+	err := row.Scan(&v.ID, &v.ProjectID, &v.Name, &v.Environment, &v.Host, &v.ActiveID, &v.CreatedAt, &v.DesiredState, &raw, &v.ResourceKind, &v.WorkloadMode, &v.Template)
 	if err == nil {
 		err = json.Unmarshal(raw, &v.Settings)
 	}
-	if v.Settings.Kind != "postgres" {
+	if v.ResourceKind != "database" && v.WorkloadMode == "web" {
 		v.URL = "http://" + v.Host + ":8088"
 		if os.Getenv("PUBLIC_MODE") == "true" {
 			v.URL = "https://" + v.Host
@@ -225,7 +243,7 @@ func (s *Store) Claim(ctx context.Context) (*Work, error) {
 	var action Action
 	actionErr := tx.QueryRow(ctx, `SELECT id,service_id,kind,status,error,created_at,backup_id FROM service_actions WHERE status IN ('queued','running') AND next_attempt<=now() ORDER BY created_at,id LIMIT 1 FOR UPDATE`).Scan(&action.ID, &action.ServiceID, &action.Kind, &action.Status, &action.Error, &action.CreatedAt, &action.BackupID)
 	if actionErr == nil {
-		v, e := scanSvc(tx.QueryRow(ctx, `SELECT id,project_id,name,environment,host,active_id,created_at,desired_state,settings FROM services WHERE id=$1`, action.ServiceID))
+		v, e := scanSvc(tx.QueryRow(ctx, `SELECT `+svcColumns+` FROM services WHERE id=$1`, action.ServiceID))
 		if e != nil {
 			return nil, e
 		}
@@ -257,7 +275,7 @@ func (s *Store) Claim(ctx context.Context) (*Work, error) {
 	if err != nil {
 		return nil, err
 	}
-	v, err := scanSvc(tx.QueryRow(ctx, `SELECT id,project_id,name,environment,host,active_id,created_at,desired_state,settings FROM services WHERE id=$1`, d.ServiceID))
+	v, err := scanSvc(tx.QueryRow(ctx, `SELECT `+svcColumns+` FROM services WHERE id=$1`, d.ServiceID))
 	if err != nil {
 		return nil, err
 	}
@@ -377,7 +395,7 @@ func (s *Store) State(ctx context.Context) (State, error) {
 	if err != nil {
 		return state, err
 	}
-	rows, err = tx.Query(ctx, `SELECT id,project_id,name,environment,host,active_id,created_at,desired_state,settings FROM services ORDER BY created_at`)
+	rows, err = tx.Query(ctx, `SELECT `+svcColumns+` FROM services ORDER BY created_at`)
 	if err != nil {
 		return state, err
 	}

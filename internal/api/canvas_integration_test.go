@@ -94,7 +94,31 @@ func TestCanvasGraphAndPersistedLayout(t *testing.T) {
 	}
 
 	canvasPath := "/api/projects/" + project.ID + "/environments/production/canvas"
-	w := request(http.MethodGet, canvasPath, nil)
+	w := request(http.MethodPost, "/api/projects/"+project.ID+"/resources", deployment.ComputeSpec{Name: "queue", Environment: "production", WorkloadMode: "worker", SourceType: "github"})
+	if w.Code != http.StatusCreated {
+		t.Fatalf("worker create response: %d %s", w.Code, w.Body.String())
+	}
+	var worker deployment.Service
+	if err = json.Unmarshal(w.Body.Bytes(), &worker); err != nil {
+		t.Fatal(err)
+	}
+	if worker.ResourceKind != "service" || worker.WorkloadMode != "worker" || worker.URL != "" {
+		t.Fatalf("worker contract is wrong: %#v", worker)
+	}
+	var workerSource string
+	if err = store.DB.QueryRow(ctx, `SELECT source_type FROM service_sources WHERE service_id=$1`, worker.ID).Scan(&workerSource); err != nil || workerSource != "github" {
+		t.Fatalf("worker source was not recorded: %q %v", workerSource, err)
+	}
+	w = request(http.MethodPost, "/api/projects/"+project.ID+"/resources", deployment.ComputeSpec{Name: "cleanup", Environment: "production", WorkloadMode: "cron", SourceType: "image"})
+	if w.Code != http.StatusCreated {
+		t.Fatalf("cron create response: %d %s", w.Code, w.Body.String())
+	}
+	w = request(http.MethodPost, "/api/projects/"+project.ID+"/resources", deployment.ComputeSpec{Name: "bad", Environment: "production", WorkloadMode: "daemon", SourceType: "image"})
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("invalid workload accepted: %d %s", w.Code, w.Body.String())
+	}
+
+	w = request(http.MethodGet, canvasPath, nil)
 	if w.Code != http.StatusOK {
 		t.Fatalf("canvas response: %d %s", w.Code, w.Body.String())
 	}
@@ -102,8 +126,8 @@ func TestCanvasGraphAndPersistedLayout(t *testing.T) {
 	if err = json.Unmarshal(w.Body.Bytes(), &graph); err != nil {
 		t.Fatal(err)
 	}
-	if len(graph.Resources) != 4 {
-		t.Fatalf("expected app, database and two volumes; got %#v", graph.Resources)
+	if len(graph.Resources) != 6 {
+		t.Fatalf("expected app, worker, cron, database and two volumes; got %#v", graph.Resources)
 	}
 	if len(graph.Links) != 3 {
 		t.Fatalf("expected two attachments and one reference; got %#v", graph.Links)

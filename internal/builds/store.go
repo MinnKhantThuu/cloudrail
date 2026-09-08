@@ -29,7 +29,7 @@ func scan(row pgx.Row) (Build, error) {
 func (s *Store) Source(ctx context.Context, id string) (Config, error) {
 	var c Config
 	var b []byte
-	e := s.DB.QueryRow(ctx, `SELECT config FROM service_sources WHERE service_id=$1`, id).Scan(&b)
+	e := s.DB.QueryRow(ctx, `SELECT config FROM service_sources WHERE service_id=$1 AND source_type='github'`, id).Scan(&b)
 	if e == nil {
 		e = json.Unmarshal(b, &c)
 	}
@@ -40,7 +40,7 @@ func (s *Store) Save(ctx context.Context, id string, c Config) error {
 		return e
 	}
 	b, _ := json.Marshal(c)
-	_, e := s.DB.Exec(ctx, `INSERT INTO service_sources(service_id,config) VALUES($1,$2) ON CONFLICT(service_id) DO UPDATE SET config=$2,updated_at=now()`, id, b)
+	_, e := s.DB.Exec(ctx, `INSERT INTO service_sources(service_id,config,source_type) VALUES($1,$2,'github') ON CONFLICT(service_id) DO UPDATE SET config=$2,source_type='github',updated_at=now()`, id, b)
 	return e
 }
 func enqueue(ctx context.Context, tx pgx.Tx, service, sha, key string, c Config) (Build, error) {

@@ -37,7 +37,16 @@ type Service struct {
 	Host         string    `json:"host"`
 	ActiveID     string    `json:"activeId"`
 	DesiredState string    `json:"desiredState"`
+	ResourceKind string    `json:"resourceKind"`
+	WorkloadMode string    `json:"workloadMode"`
+	Template     string    `json:"template"`
 	CreatedAt    time.Time `json:"createdAt"`
+}
+type ComputeSpec struct {
+	Name         string `json:"name"`
+	Environment  string `json:"environment"`
+	WorkloadMode string `json:"workloadMode"`
+	SourceType   string `json:"sourceType"`
 }
 type Deployment struct {
 	Settings   Settings          `json:"settings"`
@@ -92,6 +101,21 @@ var imagePattern = regexp.MustCompile(`^[a-z0-9][a-z0-9./:_-]*@sha256:[a-f0-9]{6
 var namePattern = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9 _.-]{0,59}$`)
 
 func ValidName(name string) bool { return namePattern.MatchString(name) }
+func (s ComputeSpec) Validate() error {
+	if !ValidName(s.Name) {
+		return errors.New("use a resource name of 1–60 letters, numbers, spaces, dots, underscores or hyphens")
+	}
+	if s.Environment == "" || len(s.Environment) > 60 || !namePattern.MatchString(s.Environment) {
+		return errors.New("choose a valid environment")
+	}
+	if s.WorkloadMode != "web" && s.WorkloadMode != "worker" && s.WorkloadMode != "cron" {
+		return errors.New("choose web, worker or cron workload mode")
+	}
+	if s.SourceType != "github" && s.SourceType != "image" && s.SourceType != "empty" {
+		return errors.New("choose GitHub, Docker image or empty source")
+	}
+	return nil
+}
 func (s Spec) Validate() error {
 	if len(s.Image) > 512 || !imagePattern.MatchString(s.Image) {
 		return errors.New("use a public image pinned by digest: repository@sha256:<64 lowercase hex characters>")

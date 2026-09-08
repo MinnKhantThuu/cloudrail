@@ -171,6 +171,26 @@ func (a *API) Handler(webDir string) http.Handler {
 		}
 		write(w, 201, v)
 	})
+	admin.HandleFunc("POST /api/projects/{id}/resources", func(w http.ResponseWriter, r *http.Request) {
+		var spec deployment.ComputeSpec
+		if !decode(w, r, &spec) {
+			return
+		}
+		spec.Name = strings.TrimSpace(spec.Name)
+		if spec.Environment == "" {
+			spec.Environment = "production"
+		}
+		if err := spec.Validate(); err != nil {
+			problem(w, 400, err.Error())
+			return
+		}
+		v, err := a.Store.CreateCompute(r.Context(), r.PathValue("id"), spec)
+		if err != nil {
+			dbError(w, err)
+			return
+		}
+		write(w, 201, v)
+	})
 	admin.HandleFunc("POST /api/services/{id}/deployments", func(w http.ResponseWriter, r *http.Request) {
 		var spec deployment.Spec
 		if !decode(w, r, &spec) {

@@ -17,6 +17,7 @@ Use the HttpOnly `cloudrail_session` cookie (24 hours, SameSite Strict, Secure o
 | POST | `/api/projects/:id/environments` | `{name}` → 201 environment |
 | GET | `/api/projects/:id/environments/:environment/canvas` | Unified `{projectId,environment,resources,links}` graph; no secret values |
 | PUT | `/api/projects/:id/environments/:environment/canvas/layout` | `{positions:[{resourceKey,x,y}]}`; persist 1–200 known resource positions |
+| POST | `/api/projects/:id/resources` | `{name,environment,sourceType,workloadMode}` → 201 compute resource |
 | POST | `/api/projects/:id/services` | `{name,environment}` → 201 HTTP service; default environment `production` |
 | POST | `/api/services/:id/deployments` | `{image,port,healthPath}` → 202 deployment; optional `Idempotency-Key` |
 | POST | `/api/deployments/:id/cancel` | `{}` → cancellation request |
@@ -28,6 +29,8 @@ Use the HttpOnly `cloudrail_session` cookie (24 hours, SameSite Strict, Secure o
 Images require `repository@sha256:<64 hex>`. Readiness accepts 2xx at an absolute path without query/fragment; redirects do not count. Reusing an idempotency key with the same request returns the original job; different content conflicts. Settings/variables are immutable snapshots per deployment. Redeploy creates a new ID and snapshot.
 
 Canvas resource keys use `service:<id>`, `volume:<id>` and `bucket:<id>`. Service nodes report `kind`, `workloadMode`, `sourceType`, optional `template`, current status and known public/private address. Canvas links are returned only for recorded volume attachments or service variable references. Layout updates reject unknown or duplicate resource keys.
+
+Compute `sourceType` is `github`, `image` or `empty`; `workloadMode` is `web`, `worker` or `cron`. These axes are stored separately, so a GitHub or image source can later run as any workload mode. The legacy `/services` route creates an empty web resource. Worker execution and cron scheduling are enabled in the following UX-3 runtime substeps; creating the resource does not claim those runtime proofs.
 
 States: `queued → pulling → starting → checking → routing → active`; failures/cancellation end in `failed`, retired releases become `superseded`. A running cancellation cleans its candidate and restores the prior route. At most 10 nonterminal deployments per service. Database deployments are restricted to the pinned PostgreSQL template.
 
