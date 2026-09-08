@@ -38,6 +38,7 @@ jobs:
           cache-dependency-path: apps/web/package-lock.json
       - run: go test -race ./...
       - run: go vet ./...
+      - run: go test -race ./.github/scripts/host-envelope && go vet ./.github/scripts/host-envelope
       - run: go run golang.org/x/vuln/cmd/govulncheck@v1.7.0 ./...
       - run: npm ci --prefix apps/web && npm run build --prefix apps/web
       - run: npm audit --prefix apps/web --audit-level=high
@@ -100,24 +101,80 @@ jobs:
       - if: always()
         run: bash scripts/compose.sh logs --tail=80 server agent
 
-  host-recovery:
+  host-backup:
+    if: github.event_name == 'push' && github.repository == 'MinnKhantThuu/cloudrail'
     runs-on: ubuntu-24.04
     timeout-minutes: 35
+    outputs:
+      archive-id: ${{ steps.transfer.outputs.artifact-id }}
     env:
       CLOUDRAIL_DISPOSABLE_TEST: '1'
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.8'
       - run: bash scripts/dev-up.sh
       - run: python3 scripts/phase2_acceptance.py
       - run: python3 scripts/phase5_acceptance.py
       - run: python3 scripts/volume-acceptance.py
-      - name: Cold backup, fence source daemon, restore onto independent Docker storage
-        run: bash scripts/host-recovery-ci.sh
+      - name: Snapshot real application and platform state, then fence the source
+        run: |
+          python3 scripts/host-recovery-acceptance.py prepare
+          python3 scripts/host-recovery.py backup .data/host-backup
+          python3 scripts/host-recovery.py verify .data/host-backup
+          bash scripts/host-recovery-ci.sh
+      - name: Encrypt synthetic private fixtures for the independent runner
+        env:
+          CLOUDRAIL_RECOVERY_TEST_KEY: ${{ secrets.CLOUDRAIL_RECOVERY_TEST_KEY }}
+        run: |
+          tar -czf .data/host-transfer.tar.gz -C .data host-backup test-owner.json host-fixture.json
+          go run ./.github/scripts/host-envelope seal .data/host-transfer.tar.gz .data/host-transfer.enc
+      - uses: actions/upload-artifact@v4
+        id: transfer
+        with:
+          name: host-recovery-transfer-${{ github.run_id }}
+          path: .data/host-transfer.enc
+          retention-days: 1
+          compression-level: 0
       - if: failure()
         run: |
-          if [ -S /run/cloudrail-recovery-test/docker.sock ]; then
-            export DOCKER_HOST=unix:///run/cloudrail-recovery-test/docker.sock
-          fi
-          docker logs --tail=60 cloudrail-server-1 || true
-          docker logs --tail=60 cloudrail-agent-1 || true
-          sudo tail -50 /tmp/cloudrail-recovery-dockerd.log || true
+          docker logs --tail=40 cloudrail-server-1 || true
+          docker logs --tail=40 cloudrail-agent-1 || true
+  host-recovery:
+    needs: host-backup
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      actions: write
+    env:
+      CLOUDRAIL_DISPOSABLE_TEST: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.8'
+      - uses: actions/download-artifact@v4
+        with:
+          name: host-recovery-transfer-${{ github.run_id }}
+          path: .data
+      - name: Authenticate the transfer and recover on the independent Ubuntu host
+        env:
+          CLOUDRAIL_RECOVERY_TEST_KEY: ${{ secrets.CLOUDRAIL_RECOVERY_TEST_KEY }}
+        run: |
+          go run ./.github/scripts/host-envelope open .data/host-transfer.enc .data/host-transfer.tar.gz
+          tar -xzf .data/host-transfer.tar.gz -C .data
+          python3 scripts/host-recovery.py restore "$PWD/.data/host-backup" --source-fenced
+          python3 scripts/host-recovery-acceptance.py verify
+      - if: failure()
+        run: |
+          docker ps -a --format '{{.Names}} {{.Status}}'
+          docker logs --tail=40 cloudrail-server-1 || true
+          docker logs --tail=40 cloudrail-agent-1 || true
+      - name: Remove the encrypted transfer artifact
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TRANSFER_ID: ${{ needs.host-backup.outputs.archive-id }}
+        run: gh api --method DELETE "repos/$GITHUB_REPOSITORY/actions/artifacts/$TRANSFER_ID"

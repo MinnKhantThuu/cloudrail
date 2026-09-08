@@ -203,7 +203,7 @@ Current phase:
 
 ## 7. လက်ရှိ checkpoint
 
-- **Current:** Phase 7.3 — implementing cold host backup/recovery: application and platform persistent volumes, exact platform images, installation identity and public-mode marker. Backup briefly stops owned workloads and resumes them; restore requires a fenced source and an empty, separate Docker host of the same architecture. Exit: disposable Linux recovery preserves owner, app files/PostgreSQL data, registry artifacts and encrypted bindings and accepts a new deployment. Local user workspace is excluded from this rehearsal.
+- **Current:** Phase 7.3 — implementing cold host backup/recovery: application and platform persistent volumes, exact platform images, installation identity and public-mode marker. Backup briefly stops owned workloads and resumes them; restore requires a fenced source and an empty, separate Docker host of the same architecture. Exit: two separate Ubuntu CI runners, with an authenticated encrypted fixture transfer after fencing the source, preserve owner, app files/PostgreSQL data, registry artifacts and encrypted bindings and accept a new deployment. Local user workspace is excluded from this rehearsal.
 - **Phase 0:** User approved sequential continuation through all phases.
 - **Phase 2 evidence:** Go race tests + vet, frontend build, real Docker acceptance, Chrome desktop/mobile journey passed (31.9s). See [Phase 2 flow](phase-2-flow.md).
 - **UX:** Automated browser verification and agent visual inspection; user final UX review pending.
