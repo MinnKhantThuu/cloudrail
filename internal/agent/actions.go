@@ -16,7 +16,7 @@ func (r *Runner) RunAction(ctx context.Context, w deployment.Work, client *Clien
 		return r.RunBackup(ctx, w, client)
 	}
 	operation := func() error {
-		if err := r.Routes.Set(w.Service, nil); err != nil {
+		if err := r.setRoute(w.Service, nil); err != nil {
 			return err
 		}
 		if a.Kind == "stop" || a.Kind == "restart" {
@@ -33,10 +33,10 @@ func (r *Runner) RunAction(ctx context.Context, w deployment.Work, client *Clien
 		if err := r.candidateReady(ctx, d, w.Service); err != nil {
 			return err
 		}
-		if err := r.Routes.Set(w.Service, &d); err != nil {
+		if err := r.setRoute(w.Service, &d); err != nil {
 			return err
 		}
-		if d.Settings.Kind == "postgres" {
+		if !webWorkload(w.Service) {
 			return nil
 		}
 		return r.check(ctx, r.ProxyURL+d.HealthPath, w.Service, d.ID)
@@ -49,7 +49,7 @@ func (r *Runner) RunAction(ctx context.Context, w deployment.Work, client *Clien
 	if err != nil {
 		report.Status = "failed"
 		report.Message = "Service action failed; inspect the current release logs and retry"
-		_ = r.Routes.Set(w.Service, nil)
+		_ = r.setRoute(w.Service, nil)
 	}
 	return client.ReportAction(ctx, a.ID, report)
 }

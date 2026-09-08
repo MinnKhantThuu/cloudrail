@@ -28,7 +28,7 @@ Targeted tests and the full non-race Go integration suite plus `go vet ./...` pa
 
 ## Railway-inspired canvas shell — 2026-09-09
 
-UX-2 replaces the default service card grid with the environment canvas graph. It supports pan, wheel/button zoom, fit, draggable nodes with server-persisted positions, URL-backed selection, real reference/attachment edges, resource drawers and one create palette opened from the header, canvas, right-click or `Cmd/Ctrl + K`. Existing application, PostgreSQL and volume resources are clickable. Future worker, cron, Redis, MySQL, MongoDB, volume and bucket creation is visibly disabled and labeled with its planned phase instead of acting as a dead control.
+UX-2 replaces the default service card grid with the environment canvas graph. It supports pan, wheel/button zoom, fit, draggable nodes with server-persisted positions, URL-backed selection, real reference/attachment edges, resource drawers and one create palette opened from the header, canvas, right-click or `Cmd/Ctrl + K`. Existing application, PostgreSQL and volume resources are clickable. Data/storage types that are not implemented remain visibly disabled and labeled with their planned phase instead of acting as dead controls.
 
 `npm run build` passed. Two Chrome journeys against a mocked control API passed in 2.3 seconds: desktop resource/edge/drawer navigation, keyboard/context creation, layout save and refresh restoration; and a 390×844 full-screen volume drawer with no horizontal overflow. Desktop/mobile screenshots were inspected. Existing real-stack browser selectors were updated for the new canvas flow, but those journeys have not been rerun in this local phase. The public Linode still serves the alpha.4 dashboard; UX-2 is not remotely deployed or user-accepted yet.
 
@@ -37,6 +37,12 @@ UX-2 replaces the default service card grid with the environment canvas graph. I
 The service API now stores `sourceType` (`github`, `image`, `empty`) separately from `workloadMode` (`web`, `worker`, `cron`). The authenticated generic resource endpoint validates both axes, creates the resource atomically and keeps the old `/services` behavior as an empty web-service compatibility path. Service state includes resource/workload/template metadata; GitHub source saves explicitly switch the source record to GitHub.
 
 The isolated authenticated PostgreSQL API test created GitHub worker and image cron resources, rejected an invalid workload and verified their canvas projection/source metadata. Full non-race Go tests, `go vet`, frontend production build and the updated mocked Chrome canvas journeys passed. This proves resource creation and presentation only; worker execution, cron scheduling and their real-container acceptance remain UX-3.2/3.3.
+
+Hosted [CI run 34279315566](https://github.com/MinnKhantThuu/cloudrail/actions/runs/34279315566) passed the complete checks/runtime/maintenance/recovery workflow for UX-3.1 at `07d6791`.
+
+## Route-free worker runtime — UX-3.2 candidate
+
+The agent now checks that a worker process stays running instead of probing HTTP, removes any stale public route, switches to a healthy candidate before stopping the prior worker and preserves that prior process on candidate failure. Start, stop, restart and reconciliation use the same route-free behavior. Unit tests cover worker activation/failure ordering and the proxy refuses to write a worker route. A disposable real-Docker acceptance creates an image worker, verifies route absence, injects a pull failure, exercises lifecycle actions and restarts the agent. Its hosted result is pending; UX-3.2 is not yet marked complete.
 
 The final dependency scan found reachable advisories in pgx v5.7.6 and x/text v0.24.0. They were updated to **pgx v5.9.2** and **x/text v0.39.0**. `govulncheck v1.7.0` then reported zero affected code paths and zero vulnerabilities in imported packages; it still lists advisories elsewhere in required modules that the application does not call. This is not an external security audit or a container-image scan. [Go pgx advisory](https://pkg.go.dev/vuln/GO-2026-5004), [Go x/text advisory](https://pkg.go.dev/vuln/GO-2026-5970). `npm audit` reported zero known vulnerabilities in the locked frontend dependency tree.
 

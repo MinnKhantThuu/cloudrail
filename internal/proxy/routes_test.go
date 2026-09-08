@@ -40,3 +40,19 @@ func TestRouteReplacementAndRemoval(t *testing.T) {
 		t.Fatal("removal is not idempotent")
 	}
 }
+
+func TestWorkerNeverGetsPublicRoute(t *testing.T) {
+	dir := t.TempDir()
+	r := Routes{Directory: dir}
+	s := deployment.Service{ID: "worker", Host: "worker.localhost", WorkloadMode: "worker"}
+	if err := r.Set(s, &deployment.Deployment{ID: "release", Port: 8080}); err != nil {
+		t.Fatal(err)
+	}
+	files, err := os.ReadDir(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(files) != 0 {
+		t.Fatalf("worker route was written: %#v", files)
+	}
+}

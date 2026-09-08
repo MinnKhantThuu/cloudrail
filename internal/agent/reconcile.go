@@ -19,9 +19,9 @@ func (c *Client) Reconcile(ctx context.Context, r *Runner) error {
 		w.Deployment.Env = w.Env
 		var e error
 		if w.Service.ActiveID == "" {
-			e = r.Routes.Set(w.Service, nil)
+			e = r.setRoute(w.Service, nil)
 		} else if w.Service.DesiredState == "stopped" {
-			e = r.Routes.Set(w.Service, nil)
+			e = r.setRoute(w.Service, nil)
 			if e == nil {
 				e = r.Runtime.Stop(op, w.Deployment.ID)
 			}
@@ -31,7 +31,7 @@ func (c *Client) Reconcile(ctx context.Context, r *Runner) error {
 				e = r.candidateReady(op, w.Deployment, w.Service)
 			}
 			if e == nil {
-				e = r.Routes.Set(w.Service, &w.Deployment)
+				e = r.setRoute(w.Service, &w.Deployment)
 			}
 		}
 		cancel()

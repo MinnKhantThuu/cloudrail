@@ -33,6 +33,17 @@ type Runner struct {
 	Redact           func(string) string
 }
 
+func webWorkload(s deployment.Service) bool {
+	return s.Settings.Kind != "postgres" && (s.WorkloadMode == "" || s.WorkloadMode == "web")
+}
+
+func (r *Runner) setRoute(s deployment.Service, d *deployment.Deployment) error {
+	if !webWorkload(s) {
+		return r.Routes.Set(s, nil)
+	}
+	return r.Routes.Set(s, d)
+}
+
 func (r *Runner) report(ctx context.Context, d deployment.Deployment, status, message string) error {
 	logs := r.Runtime.Logs(ctx, d.ID)
 	if r.Redact != nil {
@@ -69,10 +80,10 @@ func (r *Runner) fail(ctx context.Context, w deployment.Work, cause error) error
 		}
 	}
 	// A resumed attempt may already have changed the route. Always restore before removing it.
-	if err := r.Routes.Set(w.Service, w.Previous); err != nil {
+	if err := r.setRoute(w.Service, w.Previous); err != nil {
 		return fmt.Errorf("route recovery pending: %w", err)
 	}
-	if w.Previous != nil && w.Deployment.Settings.Kind != "postgres" {
+	if w.Previous != nil && webWorkload(w.Service) {
 		if err := r.check(ctx, r.ProxyURL+w.Previous.HealthPath, w.Service, w.Previous.ID); err != nil {
 			return fmt.Errorf("previous route verification pending: %w", err)
 		}
@@ -133,13 +144,17 @@ func (r *Runner) Run(ctx context.Context, w deployment.Work) error {
 		}
 		return r.fail(ctx, w, err)
 	}
-	if err = r.report(ctx, d, "routing", "Switching route and verifying through Traefik"); err != nil {
+	activation := "Activating route-free worker release"
+	if webWorkload(w.Service) {
+		activation = "Switching route and verifying through Traefik"
+	}
+	if err = r.report(ctx, d, "routing", activation); err != nil {
 		return err
 	}
-	if err = r.Routes.Set(w.Service, &d); err != nil {
+	if err = r.setRoute(w.Service, &d); err != nil {
 		return r.fail(ctx, w, fmt.Errorf("route update failed: %w", err))
 	}
-	if d.Settings.Kind != "postgres" {
+	if webWorkload(w.Service) {
 		if err = r.check(ctx, r.ProxyURL+d.HealthPath, w.Service, d.ID); err != nil {
 			if ctx.Err() != nil {
 				return ctx.Err()

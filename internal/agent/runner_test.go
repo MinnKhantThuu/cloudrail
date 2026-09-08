@@ -11,8 +11,10 @@ import (
 )
 
 type fakeRuntime struct {
-	calls   *[]string
-	pullErr error
+	calls      *[]string
+	pullErr    error
+	runningErr error
+	runningID  string
 }
 
 func (f fakeRuntime) Pull(context.Context, deployment.Deployment) error {
@@ -33,6 +35,13 @@ func (f fakeRuntime) Remove(_ context.Context, id string) error {
 }
 func (f fakeRuntime) Logs(context.Context, string) string {
 	return "token=very-secret-value\ncontainer output"
+}
+func (f fakeRuntime) Running(_ context.Context, d deployment.Deployment) error {
+	*f.calls = append(*f.calls, "running:"+d.ID)
+	if f.runningID == "" || f.runningID == d.ID {
+		return f.runningErr
+	}
+	return nil
 }
 
 type fakeRoutes struct {
@@ -111,6 +120,29 @@ func TestReplacementActivatesBeforeRetiringOld(t *testing.T) {
 			t.Fatal("secret leaked")
 		}
 	}
+}
+func TestWorkerActivatesWithoutPublicRoute(t *testing.T) {
+	calls := []string{}
+	r, _ := setup(&calls)
+	w := work()
+	w.Service.WorkloadMode = "worker"
+	if err := r.Run(context.Background(), w); err != nil {
+		t.Fatal(err)
+	}
+	requireOrder(t, calls, "ensure", "running:new", "route:none", "report:active", "stop:old")
+	forbidden(t, calls, "route:new", "route:old", "check:", "check:new")
+}
+func TestFailedWorkerCandidateRestoresPreviousProcess(t *testing.T) {
+	calls := []string{}
+	r, _ := setup(&calls)
+	r.Runtime = fakeRuntime{calls: &calls, runningErr: errors.New("process exited"), runningID: "new"}
+	w := work()
+	w.Service.WorkloadMode = "worker"
+	if err := r.Run(context.Background(), w); err != nil {
+		t.Fatal(err)
+	}
+	requireOrder(t, calls, "running:new", "route:none", "remove:new", "report:failed")
+	forbidden(t, calls, "route:new", "route:old", "stop:old", "remove:old", "check:", "check:new")
 }
 func TestFailedReadinessPreservesOldRelease(t *testing.T) {
 	calls := []string{}

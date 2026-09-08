@@ -184,6 +184,37 @@ func (c *Client) Ensure(ctx context.Context, d deployment.Deployment) error {
 	resp.Body.Close()
 	return nil
 }
+func (c *Client) Running(ctx context.Context, d deployment.Deployment) error {
+	stable := time.NewTimer(2 * time.Second)
+	defer stable.Stop()
+	ticker := time.NewTicker(200 * time.Millisecond)
+	defer ticker.Stop()
+	for {
+		resp, err := c.request(ctx, "GET", "/containers/"+deployment.Container(d.ID)+"/json", nil)
+		if err != nil {
+			return err
+		}
+		if resp.StatusCode != http.StatusOK {
+			return responseError(resp)
+		}
+		var state inspection
+		err = json.NewDecoder(resp.Body).Decode(&state)
+		resp.Body.Close()
+		if err != nil {
+			return err
+		}
+		if !state.State.Running {
+			return errors.New("worker process exited during readiness")
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-stable.C:
+			return nil
+		case <-ticker.C:
+		}
+	}
+}
 func (c *Client) Stop(ctx context.Context, id string) error {
 	resp, err := c.request(ctx, "POST", "/containers/"+deployment.Container(id)+"/stop?t=5", nil)
 	if err != nil {

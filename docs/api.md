@@ -28,6 +28,8 @@ Use the HttpOnly `cloudrail_session` cookie (24 hours, SameSite Strict, Secure o
 
 Images require `repository@sha256:<64 hex>`. Readiness accepts 2xx at an absolute path without query/fragment; redirects do not count. Reusing an idempotency key with the same request returns the original job; different content conflicts. Settings/variables are immutable snapshots per deployment. Redeploy creates a new ID and snapshot.
 
+Web deployments require HTTP readiness and receive a Traefik route. Worker deployments require the process to remain running through the readiness window and never receive a public URL or route; healthy replacement activates before the prior worker stops, and failed candidates preserve the prior process. `port` and `healthPath` remain required compatibility fields until the deployment request contract is generalized. Cron resources cannot activate until a schedule is configured in UX-3.3.
+
 Canvas resource keys use `service:<id>`, `volume:<id>` and `bucket:<id>`. Service nodes report `kind`, `workloadMode`, `sourceType`, optional `template`, current status and known public/private address. Canvas links are returned only for recorded volume attachments or service variable references. Layout updates reject unknown or duplicate resource keys.
 
 Compute `sourceType` is `github`, `image` or `empty`; `workloadMode` is `web`, `worker` or `cron`. These axes are stored separately, so a GitHub or image source can later run as any workload mode. The legacy `/services` route creates an empty web resource. Worker execution and cron scheduling are enabled in the following UX-3 runtime substeps; creating the resource does not claim those runtime proofs.

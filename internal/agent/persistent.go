@@ -19,5 +19,19 @@ func (r *Runner) candidateReady(ctx context.Context, d deployment.Deployment, s 
 		defer cancel()
 		return runtime.Ready(op, d)
 	}
+	if s.WorkloadMode == "worker" {
+		runtime, ok := r.Runtime.(interface {
+			Running(context.Context, deployment.Deployment) error
+		})
+		if !ok {
+			return errors.New("runtime does not support worker readiness")
+		}
+		op, cancel := context.WithTimeout(ctx, r.ReadinessTimeout)
+		defer cancel()
+		return runtime.Running(op, d)
+	}
+	if s.WorkloadMode == "cron" {
+		return errors.New("cron schedule must be configured before activation")
+	}
 	return r.check(ctx, fmt.Sprintf("http://%s:%d%s", deployment.Container(d.ID), d.Port, d.HealthPath), s, "")
 }

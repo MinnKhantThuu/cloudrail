@@ -138,8 +138,8 @@ Railway ကိုကြည့်ပြီး canvas ပုံသဏ္ဌာန�
 - [x] **UX-1:** Generic resource model, migrations and canvas graph API။ Legacy schema preservation + fresh graph/layout integration tests passed locally; hosted race/CI pending.
 - [x] **UX-2:** Persisted project canvas, create/command/context palette and resource drawer shell။ Production build + mocked desktop/mobile Chrome interactions passed; public Linode update and user UX acceptance remain separate.
 - [ ] **UX-3:** GitHub/Docker/Empty source + web/worker/cron creation and runtime။
-  - [x] UX-3.1 source/workload axes + generic create API/form; isolated API, full Go/vet, frontend and mocked Chrome checks passed locally.
-  - [ ] UX-3.2 route-free long-running worker runtime.
+  - [x] UX-3.1 source/workload axes + generic create API/form; isolated API, full Go/vet, frontend, mocked Chrome and hosted CI run 34279315566 passed.
+  - [ ] UX-3.2 route-free long-running worker runtime; code/unit coverage and disposable CI acceptance added, hosted real-Docker result pending.
   - [ ] UX-3.3 cron schedule/claim/overlap/history/recovery.
   - [ ] UX-3.4 commands/restart policy + real-container matrix.
 - [ ] **UX-4:** Database templates, first-class volumes/backups and S3-compatible bucket resource။
