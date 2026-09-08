@@ -203,7 +203,7 @@ Current phase:
 
 ## 7. လက်ရှိ checkpoint
 
-- **Current:** Phase 7.3 — [alpha.4](https://github.com/MinnKhantThuu/cloudrail/releases/tag/v0.1.0-alpha.4) published at `302aec491fc33fd8a0ef5216b33856d899e5cb5f`. [All five CI jobs](https://github.com/MinnKhantThuu/cloudrail/actions/runs/34213340630) passed, including separate-host data recovery and the regenerated dashboard route serving owner status/HTML through a trusted fixture TLS certificate. All four asset checksums/provenance, 167 source entries, ELF architectures, anonymous public source download and exact remote tag/digests passed. This corrects the alpha.3 public dashboard-route omission; it does not claim real ACME or a complete public-host installation. Next target-bound gates need AWS profile/region, dashboard/wildcard domain, GitHub App/pilot repository and owner UX acceptance.
+- **Current:** Phase 7.3 alpha delivery is verified; continuation is **blocked on target account/domain/pilot inputs and owner UX acceptance**, not marked complete. Alpha.4 source and four verified release assets are public at `302aec491fc33fd8a0ef5216b33856d899e5cb5f`; both [main CI](https://github.com/MinnKhantThuu/cloudrail/actions/runs/34213340630) and [tag CI](https://github.com/MinnKhantThuu/cloudrail/actions/runs/34213842668) passed all five jobs. Independent-host recovery and fixture-TLS dashboard routing are proven; real public-host installation/ACME and AWS/GitHub pilot gates below remain unproven.
 - **Phase 0:** User approved sequential continuation through all phases.
 - **Phase 2 evidence:** Go race tests + vet, frontend build, real Docker acceptance, Chrome desktop/mobile journey passed (31.9s). See [Phase 2 flow](phase-2-flow.md).
 - **UX:** Automated browser verification and agent visual inspection; user final UX review pending.
@@ -230,3 +230,18 @@ Current phase:
 This queue completes existing Phase 5–7 gates; it does not add multi-tenancy, Kubernetes or unrelated features.
 
 External gate check after alpha.3 publication: AWS CLI is installed but `aws configure list-profiles` returned no configured profiles. No target domain/GitHub App/pilot inputs or owner UX acceptance have been supplied. No AWS infrastructure or real public application was created by this release.
+
+## 9. Completion audit and external block — 2026-09-08
+
+The preceding alpha.3 and alpha.4 goal turns completed release/recovery work while recording the same missing account/domain/pilot inputs. The next continuation revalidated that condition: AWS CLI has zero profiles, STS returns no credentials, no AWS pilot plan exists, the local `github_app` table contains no configuration, and dashboard/app domains plus the public-installation marker are absent. These were read-only checks; owner credentials/data were not changed. Both alpha.4 workflow runs are now terminal and successful.
+
+| Required outcome | Evidence / remaining gap | State |
+| --- | --- | --- |
+| Public source, README/flow/usage and versioned alpha | Public alpha.4 tag/assets, 167 source entries matching Git, checksums/provenance and anonymous download; current docs pushed | Verified |
+| Independent install, update, rollback and recovery | Main/tag CI: clean Ubuntu Compose journey, cross-version maintenance, two-host data recovery and fixture-TLS dashboard routing | Verified within the recorded Linux/fixture scope |
+| Clean public VPS installer, real DNS/HTTPS and reboot recovery | No target public host/domain; fixture certificates do not prove ACME or public secure-cookie login | Pending target access |
+| Real GitHub App push-to-deploy | No configured App/pilot repository supplied; signed local tests/public source builds are narrower evidence | Pending owner App/repository |
+| AWS pilot, real app flow, off-server recovery and 48-hour measured operation/cost | STS has no credentials; no account/region selection or deployed pilot | Pending AWS access and pilot choice |
+| Final owner UX walkthrough | Automated/visual checks exist, but no owner acceptance was supplied | Pending owner review |
+
+Resume with a configured AWS CLI profile and region, dashboard/wildcard app domain, the owner's GitHub App/pilot repository and selected app flow. First produce the read-only account/catalog plan, then proceed through the existing AWS runbook. This blocked state does not claim production/beta readiness or an external security audit.
