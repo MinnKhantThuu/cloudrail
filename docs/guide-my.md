@@ -16,7 +16,9 @@ bash scripts/dev-up.sh
 
 ပထမဆုံး run ချိန်မှာ images တွေ build လုပ်ရလို့ အချိန်ယူနိုင်ပါတယ်။ ပြီးရင် [localhost:8080](http://localhost:8080) ကိုဖွင့်ပါ။
 
-`deploy/local/.env` ထဲက `CLOUDRAIL_ADMIN_TOKEN` ကို local editor နဲ့ကြည့်ပြီး setup form မှာ ဖြည့်ပါ။ ကိုယ့် email နဲ့ password သတ်မှတ်ပြီး owner account ဖန်တီးပါ။ နောက်တစ်ခါဝင်ရင် email/password ပဲသုံးရပါတယ်။ `.env` ထဲမှာ secrets နဲ့ encryption key ပါလို့ GitHub မတင်ပါနဲ့၊ ကိုယ်ပိုင်လုံခြုံတဲ့နေရာမှာ backup ထားပါ။
+**Create your account** မှာ ကိုယ့် email၊ password နဲ့ Confirm password ဖြည့်ပြီး **Create account** နှိပ်ပါ။ Workspace ထဲ တန်းဝင်သွားမယ်။ Token ရှာဖြည့်စရာမလိုပါ။ နောက်တစ်ခါဝင်ရင် email/password နဲ့ **Sign in** ပဲလုပ်ရပါတယ်။ Password ကို အနည်းဆုံး 12 characters သုံးပါ (အများဆုံး 72 bytes)။ မျက်လုံးပုံ **Show** ကိုနှိပ်ပြီး password စစ်ကြည့်နိုင်ပါတယ်။
+
+Public VPS မှာ install ပြီးတာနဲ့ account ကို ချက်ချင်းဖွင့်ပါ။ ပထမဆုံး account ဖွင့်သူက installation owner ဖြစ်ပြီး၊ အဲဒီနောက် account အသစ်ထပ်ဖွင့်လို့ မရတော့ပါ။ `.env` ထဲက server secrets နဲ့ encryption key တွေကို GitHub မတင်ဘဲ ကိုယ်ပိုင်လုံခြုံတဲ့နေရာမှာ backup ထားပါ။
 
 ## ၂။ Project flow ကို နားလည်ထားရန်
 

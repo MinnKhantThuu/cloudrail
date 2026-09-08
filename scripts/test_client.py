@@ -33,7 +33,7 @@ class Client:
             owner = {'email':'owner@cloudrail.local', 'password':secrets.token_urlsafe(24)}
             path.parent.mkdir(exist_ok=True)
             path.write_text(json.dumps(owner)); path.chmod(0o600)
-            self.json('/auth/setup', {'token':ENV['CLOUDRAIL_ADMIN_TOKEN'], **owner}, expected=201)
+            self.json('/auth/setup', {**owner, 'passwordConfirmation': owner['password']}, expected=201)
         else:
             if not path.exists():
                 raise RuntimeError('Owner is configured. Supply local test credentials in .data/test-owner.json without changing the existing owner.')

@@ -4,9 +4,9 @@ Dashboard/API share an origin (local: `http://localhost:8080`). JSON failures re
 
 ## Authentication
 
-`GET /auth/status` returns `{configured,email}`. `POST /auth/setup` takes `{token,email,password}` once; password is 12–72 bytes. `POST /auth/login` takes `{email,password}`; `POST /auth/logout` invalidates the current session. Setup/login have a 20-attempt/15-minute per-IP limit.
+`GET /auth/status` returns `{configured,email}`. `POST /auth/setup` takes `{email,password,passwordConfirmation}` once; password is 12–72 bytes and confirmation must match. It returns 201 with a session cookie; existing-owner or losing concurrent requests return 409. No setup token is used. `POST /auth/login` takes `{email,password}`; `POST /auth/logout` invalidates the current session. Setup/login have a 20-attempt/15-minute per-IP limit.
 
-Use the HttpOnly `cloudrail_session` cookie (24 hours, SameSite Strict, Secure on public installations). Mutations require `X-Cloudrail-Request: 1` and same-origin headers when supplied. The bootstrap Bearer token is not an owner API credential. Never put secrets in query strings.
+Use the HttpOnly `cloudrail_session` cookie (24 hours, SameSite Strict, Secure on public installations). Mutations require `X-Cloudrail-Request: 1` and same-origin headers when supplied. Owner APIs require a session; agent enrollment credentials cannot sign in as the owner. Never put secrets in query strings.
 
 ## Workspace and deployment
 

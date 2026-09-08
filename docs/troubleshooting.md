@@ -11,7 +11,8 @@ Remove credentials and private application output before posting a public issue.
 
 ## Setup or login fails
 
-- First setup needs `CLOUDRAIL_ADMIN_TOKEN` from this installation's `deploy/local/.env`. It cannot log in after an owner is configured; use the owner's email/password.
+- A fresh installation shows **Create your account**: enter email, password and confirmation. No token is required. Once configured, the page shows **Sign in**; use the existing owner email/password.
+- **Passwords do not match** means the two setup password fields differ. **Show** makes both visible so you can correct them.
 - Passwords must be 12–72 bytes. There is no public default password or email-reset flow in this alpha.
 - If local acceptance scripts created the owner, that installation's `.data/test-owner.json` holds the test credentials. It is not part of the repository.
 - Too many failed attempts cause a 15-minute rate limit. Do not repeatedly submit credentials while limited.

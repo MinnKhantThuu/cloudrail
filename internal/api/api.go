@@ -19,12 +19,12 @@ import (
 )
 
 type API struct {
-	Builds                 *builds.Store
-	GitHub                 *githubapp.Client
-	Authority              *node.Authority
-	Sessions               *auth.Auth
-	Store                  *deployment.Store
-	AdminToken, AgentToken string
+	Builds     *builds.Store
+	GitHub     *githubapp.Client
+	Authority  *node.Authority
+	Sessions   *auth.Auth
+	Store      *deployment.Store
+	AgentToken string
 }
 
 func write(w http.ResponseWriter, code int, v any) {

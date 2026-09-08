@@ -4,7 +4,7 @@
 
 ## Screen map
 
-1. **First visit:** setup token + owner email/password → workspace. Setup is available once. The old admin token becomes a bootstrap credential, not a permanent login backdoor.
+1. **First visit:** owner email/password/confirmation → workspace, signed in immediately. Setup is available once; concurrent registrations cannot create a second owner. No setup token is required. Later visits use email/password login.
 2. **Returning owner:** email/password → HttpOnly session → workspace; sign out invalidates the server-side session.
 3. **Workspace:** project list → project overview → environment selector (production/staging/custom). Creating a project creates production. Environment selection filters services and never copies secrets automatically.
 4. **Service:** deployments / runtime logs / variables / settings. Variables display names only, with replace/delete actions. Changed variables apply to the next deployment. Each deployment retains its own encrypted configuration snapshot.

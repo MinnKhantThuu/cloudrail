@@ -25,7 +25,6 @@ services:
       target: server
     environment:
       DATABASE_URL: postgres://cloudrail:${POSTGRES_PASSWORD}@postgres:5432/cloudrail?sslmode=disable
-      CLOUDRAIL_ADMIN_TOKEN: ${CLOUDRAIL_ADMIN_TOKEN:?Run scripts/dev-up.sh first}
       CLOUDRAIL_AGENT_TOKEN: ${CLOUDRAIL_AGENT_TOKEN:?Run scripts/dev-up.sh first}
       CLOUDRAIL_ENCRYPTION_KEY: ${CLOUDRAIL_ENCRYPTION_KEY:?Run scripts/dev-up.sh first}
       WEB_DIR: /web

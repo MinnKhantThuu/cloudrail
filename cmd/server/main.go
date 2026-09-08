@@ -20,9 +20,9 @@ import (
 )
 
 func main() {
-	admin, agent := os.Getenv("CLOUDRAIL_ADMIN_TOKEN"), os.Getenv("CLOUDRAIL_AGENT_TOKEN")
-	if len(admin) < 32 || len(agent) < 32 || admin == agent {
-		slog.Error("Set distinct admin and agent tokens, each at least 32 characters")
+	agent := os.Getenv("CLOUDRAIL_AGENT_TOKEN")
+	if len(agent) < 32 {
+		slog.Error("Set an agent enrollment token of at least 32 characters")
 		os.Exit(1)
 	}
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -76,7 +76,7 @@ func main() {
 			}
 		}
 	}()
-	a := &api.API{Builds: buildStore, GitHub: githubapp.New(store.DB, store.Cipher), Authority: authority, Store: store, AdminToken: admin, AgentToken: agent, Sessions: sessions}
+	a := &api.API{Builds: buildStore, GitHub: githubapp.New(store.DB, store.Cipher), Authority: authority, Store: store, AgentToken: agent, Sessions: sessions}
 	server := &http.Server{Addr: addr, Handler: a.Handler(web), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 30 * time.Second, IdleTimeout: 60 * time.Second}
 	private := &http.Server{Addr: ":8443", Handler: a.Handler(web), TLSConfig: tlsConfig, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 30 * time.Second, IdleTimeout: 60 * time.Second}
 	go func() {

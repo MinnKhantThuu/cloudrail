@@ -203,7 +203,7 @@ Current phase:
 
 ## 7. လက်ရှိ checkpoint
 
-- **Current:** Phase 7 — public source, English/Myanmar guides and private vulnerability reporting published. Fresh Ubuntu CI checks and Docker/browser journey passed. Public VPS/AWS pilot, cross-version upgrade and beta gates remain pending.
+- **Current:** User-requested Phase 2.2 UX correction first: token-free owner registration with email/password/confirmation, immediate sign-in and subsequent email/password login. Code and local verification complete: token-free registration, password confirmation, same-origin rejection, concurrent one-owner protection, automatic session and mobile sign-out/sign-in passed. Guides updated; hosted CI and owner UX review pending. Phase 7.3 maintenance work is preserved and resumes afterward; public VPS/AWS, GitHub App delivery and final UX acceptance remain separate gates.
 - **Phase 0:** User approved sequential continuation through all phases.
 - **Phase 2 evidence:** Go race tests + vet, frontend build, real Docker acceptance, Chrome desktop/mobile journey passed (31.9s). See [Phase 2 flow](phase-2-flow.md).
 - **UX:** Automated browser verification and agent visual inspection; user final UX review pending.
@@ -215,3 +215,14 @@ Current phase:
 - **Phase 6 preparation:** Lightsail CloudFormation template + read-only account/catalog planner and cost/runbook complete. CLI response shape checked; authenticated validation/provisioning pending.
 - **Phase 7 preparation:** Versioned source and Linux amd64/arm64 archives, checksums/notices, CI definitions, current quickstart/API/architecture/security/contributing/update/recovery docs. Final Go race/vet + isolated DB tests + real Docker acceptance passed after dependency fixes. All 3 Chrome desktop/mobile journeys passed (42.8s). Archive checksums/notices and deterministic source/credential-exclusion checks passed; [Hosted CI run 34201850332](https://github.com/MinnKhantThuu/cloudrail/actions/runs/34201850332) passed checks and runtime jobs on a fresh Ubuntu 24.04 runner. This verifies the local Compose quickstart on Linux amd64; public installer/ACME and cross-version host upgrade remain pending.
 - **Next external inputs:** AWS profile/region + DNS domain + application GitHub App/repository + selected pilot application. Existing credentials must stay outside chat. See [AWS runbook](aws-pilot.md), [release gates](release.md), [current verification](verification-current.md).
+
+## 8. Completion-goal work queue — 2026-09-08
+
+0. Complete the requested Coolify-like first-owner registration/login flow and verify it on desktop/mobile.
+1. Guard updates against active jobs/concurrent operators, retain verified rollback metadata and reject incompatible image rollback.
+2. Exercise fresh install → deployment → update → rollback → continued operation and backup restore in hosted CI.
+3. Extend recovery/release tooling and publish versioned, verifiable alpha artifacts after checks pass.
+4. Validate supported installer/public networking and complete the AWS/GitHub/domain pilot when account access is supplied.
+5. Record actual evidence and final owner UX acceptance; never count missing external proof as complete.
+
+This queue completes existing Phase 5–7 gates; it does not add multi-tenancy, Kubernetes or unrelated features.

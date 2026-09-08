@@ -3,7 +3,6 @@ package api
 import (
 	"cloudrail/internal/auth"
 	"cloudrail/internal/deployment"
-	"crypto/subtle"
 	"errors"
 	"net/http"
 	"strings"
@@ -37,20 +36,29 @@ func (a *API) workspaceRoutes(public, admin, agent *http.ServeMux) {
 			problem(w, 403, "Same-origin request required")
 			return
 		}
+		configured, err := a.Sessions.Configured(r.Context())
+		if err != nil {
+			dbError(w, err)
+			return
+		}
+		if configured {
+			problem(w, 409, "Owner account already exists. Sign in to continue.")
+			return
+		}
 		if !a.Sessions.AllowAttempt(r.Context(), r) {
 			problem(w, 429, "Too many attempts; retry in 15 minutes")
 			return
 		}
 		var body struct {
-			Token    string `json:"token"`
-			Email    string `json:"email"`
-			Password string `json:"password"`
+			Email                string `json:"email"`
+			Password             string `json:"password"`
+			PasswordConfirmation string `json:"passwordConfirmation"`
 		}
 		if !decode(w, r, &body) {
 			return
 		}
-		if subtle.ConstantTimeCompare([]byte(body.Token), []byte(a.AdminToken)) != 1 {
-			problem(w, 401, "Setup token is incorrect")
+		if body.Password != body.PasswordConfirmation {
+			problem(w, 400, "Passwords do not match")
 			return
 		}
 		if err := a.Sessions.Setup(r.Context(), body.Email, body.Password); err != nil {

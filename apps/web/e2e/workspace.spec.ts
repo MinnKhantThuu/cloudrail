@@ -3,12 +3,12 @@ import { readFileSync, mkdirSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
-const owner = JSON.parse(readFileSync(new URL('../../../.data/test-owner.json', import.meta.url), 'utf8'));
-const image = JSON.parse(execFileSync('docker', ['image', 'inspect', 'traefik/whoami:v1.11.0', '--format', '{{json .RepoDigests}}'], { encoding: 'utf8' }))[0];
 const screenshots = fileURLToPath(new URL('../../../.data/screenshots/', import.meta.url));
 mkdirSync(screenshots, { recursive: true });
 
 test('real dashboard: create, validate, deploy, inspect logs, recover, and use mobile layout', async ({ page }) => {
+  const image = JSON.parse(execFileSync('docker', ['image', 'inspect', 'traefik/whoami:v1.11.0', '--format', '{{json .RepoDigests}}'], { encoding: 'utf8' }))[0];
+  const owner = JSON.parse(readFileSync(new URL('../../../.data/test-owner.json', import.meta.url), 'utf8'));
   const errors: string[] = [];
   page.on('pageerror', err => errors.push(err.message));
   await page.goto('/');

@@ -56,11 +56,12 @@ jobs:
         with:
           node-version: '22.20.0'
       - run: bash scripts/dev-up.sh
-      - run: python3 scripts/phase2_acceptance.py
-      - run: python3 scripts/acceptance.py
       - run: npm ci --prefix apps/web
       - run: npx playwright install --with-deps chrome
         working-directory: apps/web
+      - run: npm run test:browser --prefix apps/web -- owner-setup.spec.ts
+      - run: python3 scripts/phase2_acceptance.py
+      - run: python3 scripts/acceptance.py
       - run: npm run test:browser --prefix apps/web -- workspace.spec.ts
       - if: always()
         run: bash scripts/compose.sh logs --tail=80 server agent

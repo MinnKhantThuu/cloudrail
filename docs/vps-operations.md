@@ -18,7 +18,7 @@ sudo bash scripts/install-vps.sh \
   --email owner@example.com --public-ip YOUR_PUBLIC_IPV4
 ```
 
-The installer validates OS/DNS/resources, installs Docker from its official apt repository when absent, preserves installation secrets and data, and starts the public Compose overlay. It creates no AWS resources. Read the bootstrap token from `/opt/cloudrail/deploy/local/.env` and create the owner account over HTTPS. The bootstrap token cannot log into an already configured workspace.
+The installer validates OS/DNS/resources, installs Docker from its official apt repository when absent, preserves installation secrets and data, and starts the public Compose overlay. It creates no AWS resources. Open the HTTPS dashboard and create the owner account with email, password and confirmation. No setup token is needed. Do this immediately: the first person to register owns the installation, and further registration closes automatically.
 
 The public overlay exposes only 80/443 publicly. API port 8080, local preview port 8088 and image registry 5001 remain on loopback. PostgreSQL and the agent TLS listener are private. BuildKit uses a shared UNIX socket. Traefik issues/renews certificates and stores ACME state in the `cloudrail_certificates` volume.
 

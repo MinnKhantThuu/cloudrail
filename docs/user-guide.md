@@ -20,9 +20,11 @@ Creating staging does not clone production data or services. Create the services
 ## First-time setup
 
 1. Start Cloudrail and open the dashboard. Public installations must use HTTPS.
-2. Enter the bootstrap token from the installation's private `deploy/local/.env`, your email and password.
-3. After setup, sign in with your email/password. There is no default public password.
+2. On **Create your account**, enter your email, password and password confirmation. Use at least 12 characters (maximum 72 bytes); **Show** lets you check your typing. No setup token is required.
+3. Click **Create account** to enter the workspace immediately. Later visits use email/password on **Sign in**. There is no default public password.
 4. Check that the **Node online** indicator appears before deploying. If it does not, use [node troubleshooting](troubleshooting.md#node-offline).
+
+Create the account immediately after installing on a public server: the first registration becomes the installation owner. Registration closes after that account is created, including concurrent attempts.
 
 Acceptance scripts can create a development-only owner if none exists. Their private `.data/test-owner.json` belongs to that local test installation and is not distributed with the project.
 

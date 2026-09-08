@@ -72,3 +72,12 @@ Source and guides are public at [MinnKhantThuu/cloudrail](https://github.com/Min
 The first hosted run exposed two CI fixture issues: PostgreSQL health-command quoting and an assumed cached sample image. Both were corrected. [Run 34201850332](https://github.com/MinnKhantThuu/cloudrail/actions/runs/34201850332), commit `a38a390`, passed the checks and runtime jobs: Go race/vet with isolated PostgreSQL, dependency scan, frontend build/audit, package checks/build, fresh Docker Compose startup, workspace/deployment/recovery acceptance and the Chrome workspace journey.
 
 This is independent Linux amd64 Docker quickstart evidence on Ubuntu 24.04. It does not verify the public VPS installer, real GitHub App delivery, DNS/ACME, AWS billing or cross-version host update/recovery. The deploy-dialog copy was also checked locally against actual PostgreSQL/stateless service resource settings.
+
+## Login UX correction — 2026-09-08
+
+First registration now accepts email/password/confirmation without an installation token and signs the owner in immediately. The existing email/password login and private node enrollment stay separate.
+
+- `go test -race ./...`, `go vet ./...` and the frontend production build passed.
+- `TestOwnerRegistration` passed against an isolated schema in the running PostgreSQL: cross-origin/missing-CSRF rejection, confirmation/password validation, concurrent registration (one 201, one 409), closed registration, secure session flags, logout invalidation and subsequent login.
+- Chrome `owner-setup.spec.ts` passed (3.7s): real fresh registration, desktop/mobile form, show/hide password, mismatch feedback, automatic session, logout, wrong-password feedback, login and reload persistence. Both rendered layouts were inspected. The test skips configured installations; it never resets an owner.
+- Hosted CI now runs fresh browser registration before workspace/deployment acceptance; remote result pending. Public VPS/AWS and final owner UX review remain pending.

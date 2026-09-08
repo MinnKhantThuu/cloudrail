@@ -88,7 +88,6 @@ cd "$task_root"
 if [ ! -f deploy/local/.env ]; then
  cat > deploy/local/.env <<ENV
 POSTGRES_PASSWORD=$(openssl rand -hex 24)
-CLOUDRAIL_ADMIN_TOKEN=$(openssl rand -hex 32)
 CLOUDRAIL_AGENT_TOKEN=$(openssl rand -hex 32)
 CLOUDRAIL_ENCRYPTION_KEY=$(openssl rand -hex 32)
 ENV
@@ -109,5 +108,5 @@ docker cp .data/controlplane.yaml cloudrail-agent-1:/routes/controlplane.yaml
 # This marker makes operational scripts preserve the public overlay on future runs.
 touch .data/public-installation
 echo "Cloudrail started at https://$task_domain"
-echo "Complete owner setup with CLOUDRAIL_ADMIN_TOKEN from $task_root/deploy/local/.env. Keep that file private."
+echo "Open https://$task_domain and create your owner account immediately."
 echo 'Certificate issuance is asynchronous. Verify HTTPS before using the workspace.'

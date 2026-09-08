@@ -62,7 +62,9 @@ The first run builds Cloudrail's images, starts the platform services and genera
 
 ### 3. Create the owner account
 
-Open **[localhost:8080](http://localhost:8080)**. Read `CLOUDRAIL_ADMIN_TOKEN` from `deploy/local/.env` locally, then enter it on the setup screen with your email and a password of 12–72 bytes. Subsequent visits use your email/password. The setup token cannot log in after the owner is configured.
+Open **[localhost:8080](http://localhost:8080)** and choose your email and password on **Create your account**. Confirm the password and you are signed in immediately. Subsequent visits use **Sign in** with email/password. No setup token or default password is needed. Passwords must be 12–72 bytes.
+
+On a public VPS, create the owner account immediately after installation: the first person to register owns the installation. Registration closes automatically after that first account.
 
 Keep `.env` private and backed up: it includes the encryption key required to recover saved variables and GitHub App credentials. Do not commit it.
 

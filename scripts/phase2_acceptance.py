@@ -6,10 +6,10 @@ import urllib.error
 from test_client import Client, ENV
 
 client=Client();owner=client.login()
-client.json('/auth/setup', {'token':ENV['CLOUDRAIL_ADMIN_TOKEN'], **owner}, expected=409)
+client.json('/auth/setup', {**owner, 'passwordConfirmation': owner['password']}, expected=409)
 client.json('/api/projects', {'name':'Forbidden'}, expected=403, headers={'Origin':'https://evil.example'})
 assert client.json('/auth/status')['email']==owner['email']
-print('PASS owner bootstrap is one-time; session and origin protection')
+print('PASS owner registration is one-time; session and origin protection')
 p=client.json('/api/projects',{'name':'Phase 2 '+str(int(time.time()))},expected=201)
 client.json('/api/projects/'+p['id']+'/environments',{'name':'staging'},expected=201)
 services=[client.json('/api/projects/'+p['id']+'/services',{'name':'api','environment':env},expected=201) for env in ('production','staging')]
