@@ -78,7 +78,7 @@ docker image inspect traefik/whoami:v1.11.0 --format '{{index .RepoDigests 0}}'
 In the dashboard:
 
 1. Create a **project** and select its **production** environment.
-2. Choose **New service → HTTP service** and name it `hello`.
+2. Choose **New service → Application** and name it `hello`.
 3. Choose **Deploy**, paste the returned `repository@sha256:...`, set port **80** and readiness path **/**.
 4. Wait for **Active**, then open the service URL: `http://<service-id>.localhost:8088`.
 

@@ -29,7 +29,7 @@ Acceptance scripts can create a development-only owner if none exists. Their pri
 ## Deploy a container image
 
 1. Create a project and choose its environment.
-2. Select **New service → HTTP service**.
+2. Select **New service → Application**.
 3. Click **Deploy**. Supply a full digest reference such as `traefik/whoami@sha256:...`, not a mutable tag.
 4. Set the port the application actually listens on **inside its container** and a readiness path returning HTTP 2xx. For `whoami`, use `80` and `/`.
 5. Submit and follow deployment activity. **Active** means the release passed activation checks; open its URL to verify your app's behavior.
@@ -96,7 +96,7 @@ Persistent services stop the previous container before starting the replacement.
 
 ## Add PostgreSQL and connect an application
 
-1. Select **New service → PostgreSQL** in the same project/environment as your HTTP application.
+1. Select **New service → PostgreSQL database** in the same project/environment as your HTTP application.
 2. Wait for the private database deployment to become active. It has no public URL or published database port.
 3. In its **Settings**, select the HTTP application under **Connect an application**.
 4. Save the connection variable, normally `DATABASE_URL`.

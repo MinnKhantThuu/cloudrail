@@ -50,7 +50,7 @@ docker image inspect traefik/whoami:v1.11.0 --format '{{index .RepoDigests 0}}'
 ```
 
 1. Dashboard မှာ project တစ်ခုဆောက်ပြီး `production` ကိုရွေးပါ။
-2. **New service → HTTP service** ကိုရွေးပြီး `hello` လို့နာမည်ပေးပါ။
+2. **New service → Application** ကိုရွေးပြီး `hello` လို့နာမည်ပေးပါ။
 3. **Deploy** ကိုနှိပ်ပြီး command ကရတဲ့ `repository@sha256:...` ကိုထည့်ပါ။
 4. Port ကို **80**၊ readiness path ကို **/** ထားပါ။
 5. **Active** ဖြစ်ရင် service URL ကိုဖွင့်ပါ။
@@ -76,7 +76,7 @@ Variables နဲ့ resource settings ပြင်ပြီးရင် **deploy
 
 ## ၆။ Database ချိတ်ခြင်း
 
-1. Application နဲ့ project/environment တူတဲ့နေရာမှာ **New service → PostgreSQL** ဖန်တီးပါ။
+1. Application နဲ့ project/environment တူတဲ့နေရာမှာ **New service → PostgreSQL database** ဖန်တီးပါ။
 2. Active ဖြစ်ရင် database ရဲ့ **Settings** ကိုဖွင့်ပါ။
 3. **Connect an application** မှာ app ကိုရွေးပြီး `DATABASE_URL` variable အဖြစ် save လုပ်ပါ။
 4. အဲဒီ app ကို redeploy လုပ်ပါ။
