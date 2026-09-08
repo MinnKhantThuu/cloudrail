@@ -107,6 +107,7 @@ jobs:
     timeout-minutes: 35
     outputs:
       archive-id: ${{ steps.transfer.outputs.artifact-id }}
+      envelope-sha: ${{ steps.envelope.outputs.sha }}
     env:
       CLOUDRAIL_DISPOSABLE_TEST: '1'
     steps:
@@ -125,11 +126,16 @@ jobs:
           python3 scripts/host-recovery.py verify .data/host-backup
           bash scripts/host-recovery-ci.sh
       - name: Encrypt synthetic private fixtures for the independent runner
+        id: envelope
         env:
           CLOUDRAIL_RECOVERY_TEST_KEY: ${{ secrets.CLOUDRAIL_RECOVERY_TEST_KEY }}
         run: |
           tar -czf .data/host-transfer.tar.gz -C .data host-backup test-owner.json host-fixture.json
           go run ./.github/scripts/host-envelope seal .data/host-transfer.tar.gz .data/host-transfer.enc
+          go run ./.github/scripts/host-envelope open .data/host-transfer.enc .data/host-transfer-check.tar.gz
+          cmp .data/host-transfer.tar.gz .data/host-transfer-check.tar.gz
+          rm .data/host-transfer-check.tar.gz
+          echo "sha=$(sha256sum .data/host-transfer.enc | cut -d ' ' -f1)" >> "$GITHUB_OUTPUT"
       - uses: actions/upload-artifact@v4
         id: transfer
         with:
@@ -162,7 +168,9 @@ jobs:
       - name: Authenticate the transfer and recover on the independent Ubuntu host
         env:
           CLOUDRAIL_RECOVERY_TEST_KEY: ${{ secrets.CLOUDRAIL_RECOVERY_TEST_KEY }}
+          ENVELOPE_SHA: ${{ needs.host-backup.outputs.envelope-sha }}
         run: |
+          printf '%s  .data/host-transfer.enc\n' "$ENVELOPE_SHA" | sha256sum --check --strict
           go run ./.github/scripts/host-envelope open .data/host-transfer.enc .data/host-transfer.tar.gz
           tar -xzf .data/host-transfer.tar.gz -C .data
           python3 scripts/host-recovery.py restore "$PWD/.data/host-backup" --source-fenced
