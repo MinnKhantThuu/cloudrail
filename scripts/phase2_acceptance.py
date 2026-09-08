@@ -44,8 +44,18 @@ def get(svc):
  except urllib.error.HTTPError as e:return e.code
 for action in ('stop','start','restart'):
  a=client.json('/api/services/'+services[1]['id']+'/actions',{'kind':action},expected=202);wait('actions',a['id'],'done')
- assert get(services[0])==200
- assert get(services[1])==(404 if action=='stop' else 200)
+ # 'done' confirms container work. Traefik's file watcher applies route deletion asynchronously.
+ expected=404 if action=='stop' else 200
+ if action=='stop':
+  running=subprocess.check_output(['docker','inspect','cloudrail-app-'+services[1]['deployment']['id'],'--format','{{.State.Running}}'],text=True).strip()
+  assert running=='false', 'Stop completed while the container was still running'
+ deadline=time.monotonic()+10
+ while True:
+  assert get(services[0])==200, 'Staging action interrupted production'
+  observed=get(services[1])
+  if observed==expected:break
+  assert time.monotonic()<deadline, (action,'route did not converge',observed,expected)
+  time.sleep(.1)
 print('PASS stop/start/restart change staging only; production remains serving')
 client.json('/auth/logout',{})
 client.json('/api/state',expected=401)

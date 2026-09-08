@@ -14,7 +14,7 @@ Public customer signup၊ billing၊ arbitrary customer code၊ autoscaling၊ K
 
 ## 2. အခု ဘယ်ရောက်နေပြီလဲ
 
-**Local alpha `0.1.0-alpha.1` ကိုရေးပြီး၊ နောက်ဆုံး local release checks အောင်ထားသည်။**
+**Alpha `0.1.0-alpha.2` အတွက် login correction နဲ့ guarded maintenance ရေးပြီး၊ release verification ကို ဆက်လုပ်နေသည်။**
 
 | အပိုင်း | လက်ရှိအခြေအနေ |
 | --- | --- |

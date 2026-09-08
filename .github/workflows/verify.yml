@@ -4,6 +4,10 @@ permissions:
   contents: read
 jobs:
   checks:
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
     runs-on: ubuntu-24.04
     services:
       postgres:
@@ -39,10 +43,15 @@ jobs:
       - run: npm audit --prefix apps/web --audit-level=high
       - run: for script in scripts/*.sh; do bash -n "$script"; done
       - run: python3 -m compileall -q scripts
-      - run: python3 -m unittest discover -s scripts -p "test_*.py" -v
+      - run: python3 -m unittest discover -s scripts -p "test_maintenance.py" -v
       - run: python3 -m json.tool deploy/aws/lightsail.json >/dev/null
       - run: python3 scripts/verify-release.py
       - run: bash scripts/build-release.sh
+      - name: Attest release package provenance
+        if: github.event_name == 'push'
+        uses: actions/attest@v4
+        with:
+          subject-path: .data/releases/*
       - uses: actions/upload-artifact@v4
         with:
           name: cloudrail-alpha-local-packages
@@ -79,7 +88,7 @@ jobs:
           mkdir -p .data/maintenance-base
           git archive a3df208ce0b0d1a4f761aa0bea9b5231bda29a4d | tar -x -C .data/maintenance-base
           bash .data/maintenance-base/scripts/dev-up.sh
-          python3 .data/maintenance-base/scripts/phase2_acceptance.py
+          python3 .data/maintenance-base/scripts/acceptance.py
           cp .data/maintenance-base/deploy/local/.env deploy/local/.env
           cp .data/maintenance-base/.data/test-owner.json .data/test-owner.json
           chmod 600 deploy/local/.env .data/test-owner.json

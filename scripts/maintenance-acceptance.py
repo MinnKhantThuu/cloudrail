@@ -22,6 +22,8 @@ project_ids = {p['id'] for p in state['projects']}
 service_ids = {s['id'] for s in state['services']}
 errors = []
 stop = threading.Event()
+variable = 'maintenance-check-' + uuid.uuid4().hex
+c.json('/api/services/' + service['id'] + '/variables/MAINTENANCE_PROBE', {'value': variable}, method='PUT')
 
 
 def route():
@@ -75,6 +77,8 @@ def verify_operation():
                         {'image': active['image'], 'port': active['port'], 'healthPath': active['healthPath']}, expected=202)
     wait_active(deployment['id'])
     assert c.json('/api/node')['online']
+    environment = json.loads(command('docker', 'inspect', 'cloudrail-app-' + deployment['id'], '--format', '{{json .Config.Env}}').stdout)
+    assert 'MAINTENANCE_PROBE=' + variable in environment, 'Encrypted configuration lost across maintenance'
     route()
 
 

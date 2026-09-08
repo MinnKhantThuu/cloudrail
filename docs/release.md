@@ -14,7 +14,18 @@ bash scripts/build-release.sh
 
 Output: `.data/releases/cloudrail-0.1.0-alpha.2-{source,linux-amd64,linux-arm64}.tar.gz` and `SHA256SUMS`. Source archives include a per-file `SOURCE-MANIFEST.json` and exclude installation data, keys, environment files and dependencies. Runtime archives contain API/agent binaries, dashboard assets and dependency notices. They are developer artifacts, not a replacement for the Compose services, BuildKit tools or installer. Use the **source archive** for a standard VPS install.
 
-Archive metadata is normalized for repeatable packaging. Go builds use trimpath and no VCS/build ID. Identical staged inputs produce identical archives. Docker base tags and OS package repositories are not frozen snapshots, so bit-identical Docker rebuilds are not promised. Verify `SHA256SUMS` before extraction; no signing identity has been selected yet.
+Archive metadata is normalized for repeatable packaging. Go builds use trimpath and no VCS/build ID. Identical staged inputs produce identical archives. Docker base tags and OS package repositories are not frozen snapshots, so bit-identical Docker rebuilds are not promised. Verify `SHA256SUMS` before extraction. Trusted push builds also generate GitHub artifact attestations in the same CI job that builds the packages. Verify the expected repository, workflow and release commit:
+
+```sh
+sha256sum -c SHA256SUMS
+# Substitute the release commit recorded in the release notes.
+gh attestation verify cloudrail-0.1.0-alpha.2-source.tar.gz \
+  --repo MinnKhantThuu/cloudrail \
+  --signer-workflow MinnKhantThuu/cloudrail/.github/workflows/verify.yml \
+  --source-digest RELEASE_COMMIT
+```
+
+Use the same command for each runtime archive. Provenance identifies the CI workflow and source commit; it does not prove production readiness. See [GitHub artifact attestation documentation](https://docs.github.com/en/actions/how-tos/secure-your-work/use-artifact-attestations/use-artifact-attestations).
 
 GitHub Actions definitions run Go race/vet/database checks, npm build/audit, local packaging and a separate Docker/browser journey. See the repository [Actions page](https://github.com/MinnKhantThuu/cloudrail/actions/workflows/verify.yml) for hosted results; local verification is recorded separately. Artifacts are uploaded to CI only when that repository workflow actually runs; there is no release publishing step.
 
