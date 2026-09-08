@@ -24,6 +24,15 @@ def running(identifier):
     return result.returncode == 0 and result.stdout.strip() == 'true'
 
 
+def wait_running(identifier, expected, timeout=10):
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        if running(identifier) == expected:
+            return
+        time.sleep(.2)
+    raise AssertionError(('Container running state did not converge', identifier, expected))
+
+
 def inspection(identifier):
     return json.loads(subprocess.check_output(['docker', 'inspect', 'cloudrail-app-' + identifier]))[0]
 
@@ -81,7 +90,7 @@ wait_deployment(client, second['id'], 'active')
 details = inspection(second['id'])
 assert details['HostConfig']['RestartPolicy']['Name'] == 'on-failure'
 assert details['HostConfig']['RestartPolicy']['MaximumRetryCount'] == 4
-assert not running(first['id'])
+wait_running(first['id'], False)
 
 client.json('/api/services/' + worker['id'] + '/runtime', {
     'startCommand': start, 'preDeployCommand': '', 'preDeployTimeoutSeconds': 0,
@@ -91,5 +100,5 @@ third = client.json('/api/services/' + worker['id'] + '/deployments', {'image': 
 wait_deployment(client, third['id'], 'active')
 details = inspection(third['id'])
 assert details['HostConfig']['RestartPolicy']['Name'] == 'unless-stopped'
-assert not running(second['id'])
+wait_running(second['id'], False)
 print('PASS: On failure retry limit and Always policy map to the Docker runtime', flush=True)
