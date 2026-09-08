@@ -1,0 +1,32 @@
+# Overlay on deploy/local/compose.yaml. Management/registry ports stay on loopback.
+services:
+  server:
+    environment:
+      PUBLIC_MODE: 'true'
+      SECURE_COOKIES: 'true'
+      APP_DOMAIN: ${APP_DOMAIN:?Set APP_DOMAIN}
+      DASHBOARD_DOMAIN: ${DASHBOARD_DOMAIN:?Set DASHBOARD_DOMAIN}
+      PUBLIC_IP: ${PUBLIC_IP:?Set PUBLIC_IP}
+  agent:
+    environment:
+      PUBLIC_MODE: 'true'
+      PROXY_URL: http://proxy:8089
+  proxy:
+    command:
+      - --entrypoints.web.address=:8088
+      - --entrypoints.web.http.redirections.entrypoint.to=websecure
+      - --entrypoints.web.http.redirections.entrypoint.scheme=https
+      - --entrypoints.websecure.address=:443
+      - --entrypoints.probe.address=:8089
+      - --providers.file.directory=/routes
+      - --providers.file.watch=true
+      - --providers.providersthrottleduration=100ms
+      - --certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL:?Set ACME_EMAIL}
+      - --certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json
+      - --certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web
+      - --log.level=WARN
+    ports: ['80:8088', '443:443']
+    networks: [apps, dashboard]
+    volumes: [certificates:/letsencrypt]
+volumes:
+  certificates:

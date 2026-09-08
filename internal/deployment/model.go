@@ -1,0 +1,117 @@
+package deployment
+
+import (
+	"crypto/rand"
+	"encoding/hex"
+	"errors"
+	"regexp"
+	"strings"
+	"time"
+)
+
+type Environment struct {
+	ProjectID string `json:"projectId"`
+	Name      string `json:"name"`
+}
+type Action struct {
+	BackupID  string    `json:"backupId,omitempty"`
+	ID        string    `json:"id"`
+	ServiceID string    `json:"serviceId"`
+	Kind      string    `json:"kind"`
+	Status    string    `json:"status"`
+	Error     string    `json:"error"`
+	CreatedAt time.Time `json:"createdAt"`
+}
+type Project struct {
+	ID        string    `json:"id"`
+	Name      string    `json:"name"`
+	CreatedAt time.Time `json:"createdAt"`
+}
+type Service struct {
+	URL          string    `json:"url"`
+	Settings     Settings  `json:"settings"`
+	ID           string    `json:"id"`
+	ProjectID    string    `json:"projectId"`
+	Name         string    `json:"name"`
+	Environment  string    `json:"environment"`
+	Host         string    `json:"host"`
+	ActiveID     string    `json:"activeId"`
+	DesiredState string    `json:"desiredState"`
+	CreatedAt    time.Time `json:"createdAt"`
+}
+type Deployment struct {
+	Settings   Settings          `json:"settings"`
+	Env        map[string]string `json:"-"`
+	ID         string            `json:"id"`
+	ServiceID  string            `json:"serviceId"`
+	Image      string            `json:"image"`
+	Port       int               `json:"port"`
+	HealthPath string            `json:"healthPath"`
+	Status     string            `json:"status"`
+	Error      string            `json:"error"`
+	Logs       string            `json:"logs"`
+	CreatedAt  time.Time         `json:"createdAt"`
+	UpdatedAt  time.Time         `json:"updatedAt"`
+}
+type Event struct {
+	ID           int64     `json:"id"`
+	DeploymentID string    `json:"deploymentId"`
+	Stage        string    `json:"stage"`
+	Message      string    `json:"message"`
+	CreatedAt    time.Time `json:"createdAt"`
+}
+type State struct {
+	Environments []Environment `json:"environments"`
+	Actions      []Action      `json:"actions"`
+	Projects     []Project     `json:"projects"`
+	Services     []Service     `json:"services"`
+	Deployments  []Deployment  `json:"deployments"`
+	Events       []Event       `json:"events"`
+}
+type Work struct {
+	Attempt    string            `json:"attempt"`
+	Env        map[string]string `json:"environment"`
+	Action     *Action           `json:"action,omitempty"`
+	Deployment Deployment        `json:"deployment"`
+	Service    Service           `json:"service"`
+	Previous   *Deployment       `json:"previous,omitempty"`
+}
+type Report struct {
+	Attempt string `json:"-"`
+	Status  string `json:"status"`
+	Message string `json:"message"`
+	Logs    string `json:"logs"`
+}
+type Spec struct {
+	Image      string `json:"image"`
+	Port       int    `json:"port"`
+	HealthPath string `json:"healthPath"`
+}
+
+var imagePattern = regexp.MustCompile(`^[a-z0-9][a-z0-9./:_-]*@sha256:[a-f0-9]{64}$`)
+var namePattern = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9 _.-]{0,59}$`)
+
+func ValidName(name string) bool { return namePattern.MatchString(name) }
+func (s Spec) Validate() error {
+	if len(s.Image) > 512 || !imagePattern.MatchString(s.Image) {
+		return errors.New("use a public image pinned by digest: repository@sha256:<64 lowercase hex characters>")
+	}
+	if s.Port < 1 || s.Port > 65535 {
+		return errors.New("container port must be between 1 and 65535")
+	}
+	if len(s.HealthPath) > 200 || !strings.HasPrefix(s.HealthPath, "/") || strings.HasPrefix(s.HealthPath, "//") || strings.ContainsAny(s.HealthPath, "\r\n\t #?\\") {
+		return errors.New("readiness path must be an absolute path such as /health, without query or fragment")
+	}
+	return nil
+}
+func ID() string {
+	var b [12]byte
+	if _, err := rand.Read(b[:]); err != nil {
+		panic(err)
+	}
+	return hex.EncodeToString(b[:])
+}
+func Terminal(status string) bool {
+	return status == "active" || status == "failed" || status == "superseded"
+}
+func Container(id string) string { return "cloudrail-app-" + id }

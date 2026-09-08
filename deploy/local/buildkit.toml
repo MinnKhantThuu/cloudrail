@@ -1,0 +1,8 @@
+[registry."127.0.0.1:5001"]
+  http = true
+[worker.oci]
+  max-parallelism = 1
+  gc = true
+  reservedSpace = "256MB"
+  maxUsedSpace = "2GB"
+  minFreeSpace = "1GB"

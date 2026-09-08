@@ -1,0 +1,44 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Cloudrail single-node pilot. Creates a billable Lightsail instance and attached static IPv4; installation follows after DNS is configured.",
+  "Parameters": {
+    "InstanceName": {"Type":"String","AllowedPattern":"[a-zA-Z][a-zA-Z0-9-]{2,49}"},
+    "BundleId": {"Type":"String","Description":"Verified active 4 GB Linux IPv4 bundle from the regional catalog"},
+    "BlueprintId": {"Type":"String","AllowedValues":["ubuntu_24_04"]},
+    "AvailabilityZone": {"Type":"String"},
+    "SSHKeyPair": {"Type":"String","Description":"Existing Lightsail key pair whose private key you hold"},
+    "SSHCidr": {"Type":"String","Description":"Restricted operator IPv4 CIDR"}
+  },
+  "Resources": {
+    "Node": {
+      "Type":"AWS::Lightsail::Instance",
+      "DeletionPolicy":"Retain",
+      "UpdateReplacePolicy":"Retain",
+      "Properties": {
+        "InstanceName":{"Ref":"InstanceName"},
+        "BundleId":{"Ref":"BundleId"},
+        "BlueprintId":{"Ref":"BlueprintId"},
+        "AvailabilityZone":{"Ref":"AvailabilityZone"},
+        "KeyPairName":{"Ref":"SSHKeyPair"},
+        "Networking":{"Ports":[
+          {"FromPort":22,"ToPort":22,"Protocol":"tcp","Cidrs":[{"Ref":"SSHCidr"}]},
+          {"FromPort":80,"ToPort":80,"Protocol":"tcp","Cidrs":["0.0.0.0/0"]},
+          {"FromPort":443,"ToPort":443,"Protocol":"tcp","Cidrs":["0.0.0.0/0"]}
+        ]},
+        "Tags":[{"Key":"Application","Value":"Cloudrail"},{"Key":"Purpose","Value":"pilot"}],
+        "UserData":"#!/bin/bash\nset -eu\napt-get update\napt-get install -y ca-certificates curl python3 openssl\ninstall -d -m 0750 /opt/cloudrail\necho 'OS ready. Configure DNS, copy the reviewed release, then run install-vps.sh.' > /opt/cloudrail/PROVISIONING.txt\n"
+      }
+    },
+    "StaticIP": {
+      "Type":"AWS::Lightsail::StaticIp",
+      "DeletionPolicy":"Retain",
+      "UpdateReplacePolicy":"Retain",
+      "Properties":{"StaticIpName":{"Fn::Sub":"${InstanceName}-ip"},"AttachedTo":{"Ref":"Node"}}
+    }
+  },
+  "Outputs": {
+    "PublicIP":{"Value":{"Fn::GetAtt":["StaticIP","IpAddress"]}},
+    "InstanceName":{"Value":{"Ref":"Node"}},
+    "InstallationDirectory":{"Value":"/opt/cloudrail"}
+  }
+}

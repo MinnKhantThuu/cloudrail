@@ -1,0 +1,11 @@
+.git
+.tools
+.cache
+.data
+**/node_modules
+**/dist
+**/.env
+**/.env.*
+bin
+coverage
+docs

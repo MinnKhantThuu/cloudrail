@@ -1,0 +1,62 @@
+name: Verify alpha
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  checks:
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:17.6-alpine
+        env:
+          POSTGRES_USER: cloudrail
+          POSTGRES_PASSWORD: ci-only-not-a-secret
+          POSTGRES_DB: cloudrail_test
+        ports: ['5432:5432']
+        options: --health-cmd='pg_isready -U cloudrail -d cloudrail_test' --health-interval=3s --health-timeout=3s --health-retries=20
+    env:
+      CLOUDRAIL_INTEGRATION: '1'
+      DATABASE_URL: postgres://cloudrail:ci-only-not-a-secret@127.0.0.1:5432/cloudrail_test?sslmode=disable
+      CLOUDRAIL_ENCRYPTION_KEY: '1111111111111111111111111111111111111111111111111111111111111111'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.8'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.20.0'
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+      - run: go test -race ./...
+      - run: go vet ./...
+      - run: go run golang.org/x/vuln/cmd/govulncheck@v1.7.0 ./...
+      - run: npm ci --prefix apps/web && npm run build --prefix apps/web
+      - run: npm audit --prefix apps/web --audit-level=high
+      - run: for script in scripts/*.sh; do bash -n "$script"; done
+      - run: python3 -m compileall -q scripts
+      - run: python3 -m json.tool deploy/aws/lightsail.json >/dev/null
+      - run: python3 scripts/verify-release.py
+      - run: bash scripts/build-release.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cloudrail-alpha-local-packages
+          path: .data/releases/
+          retention-days: 7
+  runtime:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.20.0'
+      - run: bash scripts/dev-up.sh
+      - run: python3 scripts/phase2_acceptance.py
+      - run: python3 scripts/acceptance.py
+      - run: npm ci --prefix apps/web
+      - run: npx playwright install --with-deps chrome
+        working-directory: apps/web
+      - run: npm run test:browser --prefix apps/web -- workspace.spec.ts
+      - if: always()
+        run: bash scripts/compose.sh logs --tail=80 server agent
