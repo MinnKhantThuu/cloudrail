@@ -39,6 +39,7 @@ jobs:
       - run: npm audit --prefix apps/web --audit-level=high
       - run: for script in scripts/*.sh; do bash -n "$script"; done
       - run: python3 -m compileall -q scripts
+      - run: python3 -m unittest discover -s scripts -p "test_*.py" -v
       - run: python3 -m json.tool deploy/aws/lightsail.json >/dev/null
       - run: python3 scripts/verify-release.py
       - run: bash scripts/build-release.sh
@@ -63,5 +64,28 @@ jobs:
       - run: python3 scripts/phase2_acceptance.py
       - run: python3 scripts/acceptance.py
       - run: npm run test:browser --prefix apps/web -- workspace.spec.ts
+      - if: always()
+        run: bash scripts/compose.sh logs --tail=80 server agent
+
+  maintenance:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install the previously published alpha on a fresh runner
+        run: |
+          mkdir -p .data/maintenance-base
+          git archive a3df208ce0b0d1a4f761aa0bea9b5231bda29a4d | tar -x -C .data/maintenance-base
+          bash .data/maintenance-base/scripts/dev-up.sh
+          python3 .data/maintenance-base/scripts/phase2_acceptance.py
+          cp .data/maintenance-base/deploy/local/.env deploy/local/.env
+          cp .data/maintenance-base/.data/test-owner.json .data/test-owner.json
+          chmod 600 deploy/local/.env .data/test-owner.json
+      - name: Upgrade, reject unsafe rollback, recover and continue deploying
+        env:
+          CLOUDRAIL_DISPOSABLE_TEST: '1'
+        run: python3 scripts/maintenance-acceptance.py
       - if: always()
         run: bash scripts/compose.sh logs --tail=80 server agent

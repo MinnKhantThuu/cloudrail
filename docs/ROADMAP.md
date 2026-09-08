@@ -203,7 +203,7 @@ Current phase:
 
 ## 7. လက်ရှိ checkpoint
 
-- **Current:** User-requested Phase 2.2 UX correction first: token-free owner registration with email/password/confirmation, immediate sign-in and subsequent email/password login. Code and local verification complete: token-free registration, password confirmation, same-origin rejection, concurrent one-owner protection, automatic session and mobile sign-out/sign-in passed. Guides updated; [hosted CI 34204399323](https://github.com/MinnKhantThuu/cloudrail/actions/runs/34204399323) passed both checks and runtime jobs at `a0cd2c2`. Owner UX review pending. Next: resume the preserved Phase 7.3 maintenance work; public VPS/AWS, GitHub App delivery and final UX acceptance remain separate gates.
+- **Current:** Phase 7.3 — guarded runtime update/rollback and a hosted cross-version rehearsal. Scope: reject pending jobs/concurrent operators, back up the frozen control plane, recover from pre-start failure, reject schema-incompatible rollback and keep application traffic serving. Exit: actual old-public-commit → alpha.2 update, exact-image rollback, restore and new deployment pass on disposable Ubuntu CI. Login correction is published and verified; owner UX review and external pilot gates remain pending.
 - **Phase 0:** User approved sequential continuation through all phases.
 - **Phase 2 evidence:** Go race tests + vet, frontend build, real Docker acceptance, Chrome desktop/mobile journey passed (31.9s). See [Phase 2 flow](phase-2-flow.md).
 - **UX:** Automated browser verification and agent visual inspection; user final UX review pending.

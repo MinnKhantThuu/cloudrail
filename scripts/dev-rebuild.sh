@@ -16,6 +16,7 @@ cp -R apps/web/dist .data/runtime/web-next
 rm -rf .data/runtime/web
 mv .data/runtime/web-next .data/runtime/web
 cp deploy/install-build-tools.sh .data/runtime/install-build-tools.sh
+cp VERSION .data/runtime/VERSION
 cat > .data/runtime/Dockerfile <<'DOCKERFILE'
 FROM alpine:3.22 AS base
 RUN apk add --no-cache ca-certificates
@@ -25,6 +26,7 @@ COPY server /usr/local/bin/server
 COPY web /web
 RUN mkdir -p /var/lib/cloudrail && chown 10001:10001 /var/lib/cloudrail
 USER cloudrail
+COPY VERSION /usr/share/cloudrail/VERSION
 ENTRYPOINT ["server"]
 FROM moby/buildkit:v0.33.0 AS build-tools
 FROM base AS agent
@@ -32,6 +34,7 @@ COPY --from=build-tools /usr/bin/buildctl /usr/local/bin/buildctl
 COPY install-build-tools.sh /tmp/install-build-tools.sh
 RUN sh /tmp/install-build-tools.sh && rm /tmp/install-build-tools.sh
 COPY agent /usr/local/bin/agent
+COPY VERSION /usr/share/cloudrail/VERSION
 ENTRYPOINT ["agent"]
 DOCKERFILE
 if ! docker buildx version >/dev/null 2>&1; then export DOCKER_BUILDKIT=0; fi

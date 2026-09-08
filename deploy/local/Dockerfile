@@ -21,6 +21,7 @@ COPY --from=go-build /out/server /usr/local/bin/server
 COPY --from=web /src/apps/web/dist /web
 RUN mkdir -p /var/lib/cloudrail && chown 10001:10001 /var/lib/cloudrail
 USER cloudrail
+COPY VERSION /usr/share/cloudrail/VERSION
 ENTRYPOINT ["server"]
 
 FROM moby/buildkit:v0.33.0 AS build-tools
@@ -31,4 +32,5 @@ COPY --from=build-tools /usr/bin/buildctl /usr/local/bin/buildctl
 COPY deploy/install-build-tools.sh /tmp/install-build-tools.sh
 RUN sh /tmp/install-build-tools.sh && rm /tmp/install-build-tools.sh
 COPY --from=go-build /out/agent /usr/local/bin/agent
+COPY VERSION /usr/share/cloudrail/VERSION
 ENTRYPOINT ["agent"]

@@ -27,6 +27,9 @@ services:
       DATABASE_URL: postgres://cloudrail:${POSTGRES_PASSWORD}@postgres:5432/cloudrail?sslmode=disable
       CLOUDRAIL_AGENT_TOKEN: ${CLOUDRAIL_AGENT_TOKEN:?Run scripts/dev-up.sh first}
       CLOUDRAIL_ENCRYPTION_KEY: ${CLOUDRAIL_ENCRYPTION_KEY:?Run scripts/dev-up.sh first}
+      # Retain an old installation token only for rollback to pre-alpha.2 images.
+      # Current server ignores it; fresh installs never create or require it.
+      CLOUDRAIL_ADMIN_TOKEN: ${CLOUDRAIL_ADMIN_TOKEN:-}
       WEB_DIR: /web
       SERVER_STATE_DIR: /var/lib/cloudrail
     healthcheck:
