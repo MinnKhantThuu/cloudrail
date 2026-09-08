@@ -68,7 +68,7 @@ assert mount['Name'] == cache['settings']['volumeName']
 
 names = client.json('/api/services/' + cache['id'] + '/variables')['names']
 assert names == ['REDISHOST', 'REDISPORT', 'REDISUSER', 'REDIS_PASSWORD', 'REDIS_URL']
-subprocess.run(['docker', 'exec', container, 'sh', '-lc', 'redis-cli -a "$REDIS_PASSWORD" SET cloudrail-proof persistent'], check=True, stdout=subprocess.DEVNULL)
+subprocess.run(['docker', 'exec', container, 'sh', '-lc', 'REDISCLI_AUTH="$REDIS_PASSWORD" redis-cli SET cloudrail-proof persistent'], check=True, stdout=subprocess.DEVNULL)
 
 app = client.json('/api/projects/' + project['id'] + '/services', {'name': 'api'}, expected=201)
 client.json('/api/services/' + cache['id'] + '/bindings', {'targetServiceId': app['id'], 'variableName': 'REDIS_URL'})
@@ -77,7 +77,7 @@ canvas = client.json('/api/projects/' + project['id'] + '/environments/productio
 resource = next(item for item in canvas['resources'] if item['id'] == cache['id'])
 assert resource['template'] == 'redis' and resource['templateVersion'] == '8.2.2'
 assert resource['privateAddress'] == 'db-' + cache['id'] + ':6379'
-assert any(link['kind'] == 'variable-reference' and link['label'] == 'REDIS_URL' for link in canvas['links'])
+assert any(link['kind'] == 'variable-reference' and link['label'] == 'REDIS_URL → REDIS_URL' for link in canvas['links'])
 print('PASS: Redis is a private versioned canvas template with hidden generated credentials', flush=True)
 
 subprocess.run(['docker', 'stop', 'cloudrail-agent-1'], check=True, stdout=subprocess.DEVNULL)
@@ -94,6 +94,6 @@ def recovered():
 
 
 wait(recovered, 'Redis recovery after agent restart')
-value = subprocess.check_output(['docker', 'exec', container, 'sh', '-lc', 'redis-cli -a "$REDIS_PASSWORD" GET cloudrail-proof'], stderr=subprocess.DEVNULL).decode().strip()
+value = subprocess.check_output(['docker', 'exec', container, 'sh', '-lc', 'REDISCLI_AUTH="$REDIS_PASSWORD" redis-cli GET cloudrail-proof']).decode().strip()
 assert value == 'persistent'
 print('PASS: Redis append-only volume data survives container stop and agent recovery', flush=True)
