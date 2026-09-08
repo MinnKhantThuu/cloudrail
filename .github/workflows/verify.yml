@@ -165,13 +165,15 @@ jobs:
         with:
           name: host-recovery-transfer-${{ github.run_id }}
           path: .data
-      - name: Authenticate the transfer and recover on the independent Ubuntu host
+      - name: Authenticate the transfer
         env:
           CLOUDRAIL_RECOVERY_TEST_KEY: ${{ secrets.CLOUDRAIL_RECOVERY_TEST_KEY }}
           ENVELOPE_SHA: ${{ needs.host-backup.outputs.envelope-sha }}
         run: |
           printf '%s  .data/host-transfer.enc\n' "$ENVELOPE_SHA" | sha256sum --check --strict
           go run ./.github/scripts/host-envelope open .data/host-transfer.enc .data/host-transfer.tar.gz
+      - name: Recover on the independent Ubuntu host
+        run: |
           tar -xzf .data/host-transfer.tar.gz -C .data
           python3 scripts/host-recovery.py restore "$PWD/.data/host-backup" --source-fenced
           python3 scripts/host-recovery-acceptance.py verify

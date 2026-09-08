@@ -87,7 +87,7 @@ Public HTTPS installer/config ရှိပြီး local TLS proof ရှိသ
 | **4 — GitHub deployment** | Repo ကနေ app တင်လို့ရအောင်လုပ်ခြင်း | Repo/branch ရွေး၊ push-to-deploy၊ build logs | **Local code + public GitHub build proof ပြီး; live App install/webhook pending** |
 | **5 — VPS operating features** | Public URL နဲ့ persistent app တွေကိုထိန်းနိုင်အောင်လုပ်ခြင်း | Installer၊ domain/HTTPS၊ metrics၊ volumes၊ DB backup/restore | **Code + local verification ပြီး; clean public VPS/ACME pending** |
 | **6 — AWS pilot** | ကိုယ်ပိုင် application တစ်ခုနဲ့တကယ်သုံးစမ်းခြင်း | AWS ပေါ် end-to-end deployed app နဲ့ measured cost | **Preparation ပြီး; real pilot pending account/domain** |
-| **7 — Open-source beta** | တခြားသူ install/update လုပ်လို့ရတဲ့ release ပြင်ခြင်း | Versioned release၊ docs၊ clean install/upgrade proof | **Public source/docs တင်ပြီး; hosted CI evidence ရရှိ; public VPS/full host recovery/beta gates pending** |
+| **7 — Open-source beta** | တခြားသူ install/update လုပ်လို့ရတဲ့ release ပြင်ခြင်း | Versioned release၊ docs၊ clean install/upgrade proof | **Public source/docs တင်ပြီး; hosted CI evidence ရရှိ; public VPS/beta gates pending** |
 
 **လက်ရှိ Phase 7 local alpha packaging/verification ပြီးထားသည်။ Phase 6 real AWS pilot ကို credentials/domain မရှိသေးသဖြင့် pending ထားသည်။**
 
@@ -203,7 +203,7 @@ Current phase:
 
 ## 7. လက်ရှိ checkpoint
 
-- **Current:** Phase 7.3 — implementing cold host backup/recovery: application and platform persistent volumes, exact platform images, installation identity and public-mode marker. Backup briefly stops owned workloads and resumes them; restore requires a fenced source and an empty, separate Docker host of the same architecture. Exit: two separate Ubuntu CI runners, with an authenticated encrypted fixture transfer after fencing the source, preserve owner, app files/PostgreSQL data, registry artifacts and encrypted bindings and accept a new deployment. Local user workspace is excluded from this rehearsal.
+- **Current:** Phase 7.3 — cold host backup/recovery passed between two separate Ubuntu CI runners ([run 34211555644](https://github.com/MinnKhantThuu/cloudrail/actions/runs/34211555644)). Owner, app files/PostgreSQL data, registry images, encrypted bindings, stopped state and a new deployment survived recovery. Finalizing alpha.3 archive-boundary guards, docs and release packages; final candidate CI/provenance remains to verify. The local user workspace is excluded from this rehearsal.
 - **Phase 0:** User approved sequential continuation through all phases.
 - **Phase 2 evidence:** Go race tests + vet, frontend build, real Docker acceptance, Chrome desktop/mobile journey passed (31.9s). See [Phase 2 flow](phase-2-flow.md).
 - **UX:** Automated browser verification and agent visual inspection; user final UX review pending.
@@ -214,7 +214,7 @@ Current phase:
 - **Account gap:** GitHub App installation/delivered webhook and AWS/domain are pending user account details.
 - **Phase 5 evidence:** PostgreSQL and HTTP volume persistence/backup/restore passed, including nonempty restore rejection; actual Docker limits/metrics and domain route passed. Local HTTPS with a trusted test certificate passed. Database UI journey passed (13.1s). Ubuntu installer syntax/public Compose validation passed; clean host + ACME issuance pending.
 - **Phase 6 preparation:** Lightsail CloudFormation template + read-only account/catalog planner and cost/runbook complete. CLI response shape checked; authenticated validation/provisioning pending.
-- **Phase 7 preparation:** Versioned source and Linux amd64/arm64 archives, checksums/notices, CI definitions, current quickstart/API/architecture/security/contributing/update/recovery docs. Final Go race/vet + isolated DB tests + real Docker acceptance passed after dependency fixes. All 3 Chrome desktop/mobile journeys passed (42.8s). Archive checksums/notices and deterministic source/credential-exclusion checks passed; [Hosted CI run 34201850332](https://github.com/MinnKhantThuu/cloudrail/actions/runs/34201850332) passed checks and runtime jobs on a fresh Ubuntu 24.04 runner. This verifies the local Compose quickstart on Linux amd64; public installer/ACME and complete host recovery remain pending. The subsequent [alpha.2 CI run](https://github.com/MinnKhantThuu/cloudrail/actions/runs/34205416387) passed all three jobs, including the old-public-runtime → alpha.2 upgrade/rollback rehearsal with continuous app HTTP traffic and encrypted configuration preservation.
+- **Phase 7 preparation:** Versioned source and Linux amd64/arm64 archives, checksums/notices, CI definitions, current quickstart/API/architecture/security/contributing/update/recovery docs. Final Go race/vet + isolated DB tests + real Docker acceptance passed after dependency fixes. All 3 Chrome desktop/mobile journeys passed (42.8s). Archive checksums/notices and deterministic source/credential-exclusion checks passed; [Hosted CI run 34201850332](https://github.com/MinnKhantThuu/cloudrail/actions/runs/34201850332) passed checks and runtime jobs on a fresh Ubuntu 24.04 runner. This verifies the local Compose quickstart on Linux amd64; public installer/ACME remain pending. Independent-host cold recovery subsequently passed in run 34211555644. The subsequent [alpha.2 CI run](https://github.com/MinnKhantThuu/cloudrail/actions/runs/34205416387) passed all three jobs, including the old-public-runtime → alpha.2 upgrade/rollback rehearsal with continuous app HTTP traffic and encrypted configuration preservation.
 - **Next external inputs:** AWS profile/region + DNS domain + application GitHub App/repository + selected pilot application. Existing credentials must stay outside chat. See [AWS runbook](aws-pilot.md), [release gates](release.md), [current verification](verification-current.md).
 
 ## 8. Completion-goal work queue — 2026-09-08
@@ -223,7 +223,7 @@ Current phase:
 1. [x] Pending-job/concurrent-operator guards, verified rollback metadata and incompatible image-rollback rejection.
 2. [x] Fresh Linux Compose install → deployment → update → rollback → continued operation and backup restore in hosted CI.
 3. [x] Publish versioned alpha artifacts with checksums and verified build provenance.
-4. [ ] Complete host backup/recovery tooling and a disposable independent-host rehearsal, including application state beyond the control database.
+4. [x] Cold host backup/recovery and a disposable independent-host rehearsal passed, including application state beyond the control database. Final alpha.3 release candidate checks remain separate.
 5. [ ] Validate public installer/networking and complete the AWS/GitHub/domain pilot when account access is supplied.
 6. [ ] Record final owner UX acceptance and real pilot evidence; never count missing external proof as complete.
 

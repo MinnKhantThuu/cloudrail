@@ -9,7 +9,7 @@ Cloudrail က ကိုယ်ပိုင် Linux server ပေါ်မှာ 
 Docker Engine API 1.47+၊ Docker Compose၊ Git နဲ့ OpenSSL လိုပါတယ်။ Docker အတွက် RAM အနည်းဆုံး 4 GB၊ disk လွတ်နေရာ အနည်းဆုံး 8 GB ထားပါ။ Source build တွေလုပ်ဖို့ 20 GB လွတ်နေရာရှိရင် ပိုအဆင်ပြေပါတယ်။ Mac သုံးရင် Docker Desktop ဒါမှမဟုတ် Colima ကို အရင်ဖွင့်ပါ။
 
 ```sh
-git clone --branch v0.1.0-alpha.2 --depth 1 https://github.com/MinnKhantThuu/cloudrail.git
+git clone --branch v0.1.0-alpha.3 --depth 1 https://github.com/MinnKhantThuu/cloudrail.git
 cd cloudrail
 bash scripts/dev-up.sh
 ```
@@ -92,6 +92,8 @@ PostgreSQL ရဲ့ **Settings → Create backup** ကနေ dump ထုတ်�
 HTTP service ရဲ့ volume ကို backup လုပ်ဖို့ service ကိုအရင် Stop လုပ်ပါ။ Restore target ကလည်း stopped ဖြစ်ပြီး volume ဗလာဖြစ်ရပါတယ်။ Volume export အရွယ်အစားက 1 GB အထိဖြစ်ပါတယ်။
 
 UI က လက်ရှိ installation ထဲမှာကျန်နေတဲ့ backups ကို restore လုပ်ပေးတာဖြစ်ပါတယ်။ အပြင်က dump တစ်ခု upload လုပ်ပြီး restore လုပ်တဲ့ UI မပါသေးပါဘူး။ Server တစ်ခုလုံး recovery အတွက် database dump အပြင် encryption key၊ node identity၊ registry နဲ့ app volumes တွေပါလိုပါတယ်။ [Operations guide](vps-operations.md#back-up-and-restore) ကိုဖတ်ပါ။
+
+Alpha.3 မှာ server တစ်ခုလုံးအတွက် cold backup / host restore command ပါဝင်ပါတယ်။ Backup ယူနေချိန် apps တွေ ခဏရပ်မယ်။ Backup directory အပြည့်ကို server ပြင်ပမှာ encrypt လုပ်ပြီးသိမ်းပါ။ Restore က မူလ server ကိုရပ်ထားပြီး version/architecture တူတဲ့ Docker host ဗလာတစ်လုံးပေါ်မှာလုပ်ရပါတယ်။ လက်ရှိ server ကို overwrite လုပ်တဲ့ command မဟုတ်ပါဘူး။ [Host recovery အဆင့်ဆင့်](host-recovery.md) ကိုလိုက်ပါ။
 
 ## ၈။ Deploy ပျက်သွားလျှင်
 

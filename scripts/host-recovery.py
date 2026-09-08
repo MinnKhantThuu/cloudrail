@@ -66,10 +66,18 @@ def volume_archive(path):
         if result == '..' or result.startswith('../'):
             raise RuntimeError('Archive path escapes its volume')
         return result
+    def member_path(name):
+        # Normalizing a/../b before extraction can hide traversal through a
+        # symlink at a. Our own tar exports never need parent path components.
+        if '..' in name.split('/'):
+            raise RuntimeError('Archive member contains parent traversal')
+        return clean(name)
     with tarfile.open(path, 'r:') as archive:
         entries, links, total = {}, set(), 0
         for entry in archive:
-            name = clean(entry.name)
+            name = member_path(entry.name)
+            if name == '.' and not entry.isdir():
+                raise RuntimeError('Archive volume root must be a directory')
             if name in entries:
                 raise RuntimeError('Duplicate volume archive path')
             if not (entry.isfile() or entry.isdir() or entry.issym() or entry.islnk()):
@@ -80,7 +88,7 @@ def volume_archive(path):
                 clean(posixpath.join(posixpath.dirname(name), entry.linkname))
                 links.add(name)
             if entry.islnk():
-                clean(entry.linkname)
+                member_path(entry.linkname)
             entries[name] = entry
             total += entry.size
         for name, entry in entries.items():
@@ -91,6 +99,29 @@ def volume_archive(path):
                 target = entries.get(clean(entry.linkname))
                 if target is None or not target.isfile():
                     raise RuntimeError('Hard link must target an archived regular file')
+        for name in links:
+            # Resolve targets in filesystem order, including chains. Lexical
+            # normalization alone misses d/up/.. when d/up points to '..'.
+            resolved = []
+            pending = name.split('/')
+            followed = 0
+            while pending:
+                part, *pending = pending
+                if part in ('', '.'):
+                    continue
+                if part == '..':
+                    if not resolved:
+                        raise RuntimeError('Symlink chain escapes its volume')
+                    resolved.pop()
+                    continue
+                resolved.append(part)
+                candidate = '/'.join(resolved)
+                if candidate in links:
+                    followed += 1
+                    if followed > 40:
+                        raise RuntimeError('Cyclic or excessive volume symlink chain')
+                    resolved.pop()
+                    pending = entries[candidate].linkname.split('/') + pending
         return total
 
 

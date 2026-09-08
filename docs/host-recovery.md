@@ -1,6 +1,6 @@
 # Recover an installation onto a new Docker host
 
-Development target: alpha.3. The tooling is being verified; the published alpha.2 archive does not contain these commands. Use the source matching the installed runtime's VERSION and deployment configuration. This is a cold backup of Cloudrail's persistent application/platform state, not an operating-system disk image.
+Available from alpha.3. A cold backup and recovery between two separate Ubuntu CI runners passed; the alpha.2 archive does not contain these commands. Use the source matching the installed runtime's VERSION and deployment configuration. This is a cold backup of Cloudrail's persistent application/platform state, not an operating-system disk image.
 
 ## What is retained
 
@@ -50,3 +50,5 @@ A failed destination is retained for inspection, with `.data/host-restore.json` 
 The CI rehearsal uses two separate GitHub-hosted Ubuntu runners. The source job creates the fixture workloads, takes the cold backup and fences its workloads before the destination job starts. A dedicated repository CI secret encrypts/authenticates the synthetic fixture transfer with standard-library AES-256-GCM and random nonces; only ciphertext is uploaded, and the destination removes that transfer artifact afterward (one-day retention is the fallback). The key and plaintext private fixtures are never uploaded. The helper refuses transfers above its bounded test-fixture size; it is CI tooling, not a production backup-encryption product.
 
 The destination has its own VM/kernel, Docker daemon and storage, and checks owner/session, identity, PostgreSQL rows, application volumes, registry artifacts, encrypted bindings, backup downloads, certificate-volume bytes, stopped state and a new deployment. This still does not substitute for the public HTTPS installer, real ACME or the AWS pilot. See [verification](verification-current.md) for recorded results.
+
+Recorded independent-host proof: [CI run 34211555644](https://github.com/MinnKhantThuu/cloudrail/actions/runs/34211555644) at `85bbdb3`. All five jobs passed, including the source-side envelope byte comparison, destination encrypted-file checksum/authentication and post-restore application/data checks. The earlier isolated envelope authentication failure has no confirmed root cause; integrity checks remain mandatory.

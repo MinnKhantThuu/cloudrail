@@ -27,7 +27,7 @@ class HostRecoveryBoundaries(unittest.TestCase):
         return target
 
     def test_regular_files_and_internal_links_preserved(self):
-        path = self.archive([('./data',tarfile.REGTYPE,''),('./alias',tarfile.SYMTYPE,'data'),('./hard',tarfile.LNKTYPE,'./data')])
+        path = self.archive([('./data',tarfile.REGTYPE,''),('./alias',tarfile.SYMTYPE,'data'),('./chain',tarfile.SYMTYPE,'alias'),('./hard',tarfile.LNKTYPE,'./data')])
         self.assertEqual(h.volume_archive(path),3)
 
     def test_archive_escape_special_files_and_symlink_writes_rejected(self):
@@ -37,6 +37,11 @@ class HostRecoveryBoundaries(unittest.TestCase):
             [('link',tarfile.SYMTYPE,'folder'),('link/write',tarfile.REGTYPE,'')],
             [('pipe',tarfile.FIFOTYPE,'')], [('hard',tarfile.LNKTYPE,'absent')],
             [('duplicate',tarfile.REGTYPE,''),('duplicate',tarfile.REGTYPE,'')],
+            [('d/up',tarfile.SYMTYPE,'..'),('escape',tarfile.SYMTYPE,'d/up/..')],
+            [('.',tarfile.SYMTYPE,'target')],
+            [('a',tarfile.SYMTYPE,'b'),('b',tarfile.SYMTYPE,'a')],
+            [('d/up',tarfile.SYMTYPE,'..'),('d/up/../write',tarfile.REGTYPE,'')],
+            [('data',tarfile.REGTYPE,''),('hard',tarfile.LNKTYPE,'d/../data')],
         ]:
             with self.subTest(members=members), self.assertRaises(RuntimeError):
                 h.volume_archive(self.archive(members))
