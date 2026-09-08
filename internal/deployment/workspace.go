@@ -164,6 +164,15 @@ func (s *Store) EnqueueAction(ctx context.Context, id, kind string, backup ...st
 	if active == "" {
 		return a, errors.New("service has no deployed release")
 	}
+	if kind == "start" || kind == "restart" {
+		var volumeChanged bool
+		if err = tx.QueryRow(ctx, `SELECT COALESCE(s.settings->>'volumeName','')<>COALESCE(d.settings->>'volumeName','') OR COALESCE(s.settings->>'mountPath','')<>COALESCE(d.settings->>'mountPath','') FROM services s JOIN deployments d ON d.id=s.active_id WHERE s.id=$1`, id).Scan(&volumeChanged); err != nil {
+			return a, err
+		}
+		if volumeChanged {
+			return a, errors.New("volume configuration changed; deploy a new release before starting")
+		}
+	}
 	if kind == "backup" || kind == "restore" {
 		var valid bool
 		if err = tx.QueryRow(ctx, `SELECT (settings->>'kind'='postgres' AND desired_state='running') OR (settings->>'kind'='http' AND settings->>'volumeName'<>'' AND desired_state='stopped') FROM services WHERE id=$1`, id).Scan(&valid); err != nil {

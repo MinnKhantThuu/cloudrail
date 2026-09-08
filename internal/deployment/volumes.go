@@ -105,6 +105,13 @@ func (s *Store) DetachVolume(ctx context.Context, volumeID string) error {
 	if active != "" && desired != "stopped" {
 		return errors.New("stop the application before detaching its volume")
 	}
+	var busy bool
+	if err = tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM deployments WHERE service_id=$1 AND status NOT IN ('active','failed','superseded')) OR EXISTS(SELECT 1 FROM service_actions WHERE service_id=$1 AND status IN ('queued','running')) OR EXISTS(SELECT 1 FROM cron_runs WHERE service_id=$1 AND status IN ('queued','running'))`, serviceID).Scan(&busy); err != nil {
+		return err
+	}
+	if busy {
+		return errors.New("application has unfinished work")
+	}
 	var settings Settings
 	if err = json.Unmarshal(raw, &settings); err != nil {
 		return err

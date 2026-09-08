@@ -52,8 +52,8 @@ func (c *Client) volume(ctx context.Context, name, service string) error {
 		if e = json.NewDecoder(r.Body).Decode(&v); e != nil {
 			return e
 		}
-		if v.Labels["cloudrail.service"] != service {
-			return errors.New("volume belongs to another workload")
+		if v.Labels["cloudrail.managed"] != "true" || (v.Labels["cloudrail.volume"] != "" && v.Labels["cloudrail.volume"] != name) {
+			return errors.New("volume is not owned by Cloudrail")
 		}
 		return nil
 	}
@@ -61,7 +61,7 @@ func (c *Client) volume(ctx context.Context, name, service string) error {
 		return responseError(r)
 	}
 	r.Body.Close()
-	r, e = c.request(ctx, "POST", "/volumes/create", map[string]any{"Name": name, "Labels": map[string]string{"cloudrail.managed": "true", "cloudrail.service": service}})
+	r, e = c.request(ctx, "POST", "/volumes/create", map[string]any{"Name": name, "Labels": map[string]string{"cloudrail.managed": "true", "cloudrail.volume": name, "cloudrail.service": service}})
 	if e != nil {
 		return e
 	}
