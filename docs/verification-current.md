@@ -63,7 +63,7 @@ The local 30 GB Docker VM approached capacity during source builds. Only Cloudra
 
 ## Unverified external gates
 
-Real GitHub App installation/push delivery; ACME renewal; clean public installation on arm64; public-host reboot/disaster recovery; owner final UX review; actual billing observation; and the optional AWS provider path remain unverified. Public DNS, first ACME issuance and clean Ubuntu 24.04 amd64 installation passed on the selected Linode with temporary `sslip.io` DNS. Consult [GitHub Actions](https://github.com/MinnKhantThuu/cloudrail/actions/workflows/verify.yml) for hosted CI results and [release gates](release.md) for the remaining scope.
+Real GitHub App installation/push delivery; ACME renewal; clean public installation on arm64; restore to a separate public host; owner final UX review; actual billing observation; and the optional AWS provider path remain unverified. Public DNS, first ACME issuance, clean Ubuntu 24.04 amd64 installation, owner secure-session use, public workload deployment, reboot recovery and off-server backup verification passed on the selected Linode with temporary `sslip.io` DNS. Consult [GitHub Actions](https://github.com/MinnKhantThuu/cloudrail/actions/workflows/verify.yml) for hosted CI results and [release gates](release.md) for the remaining scope.
 
 ## Public repository and fresh-runner verification
 
@@ -143,4 +143,14 @@ Docker Engine 29.8.0 (API 1.56) and Compose 5.5.1 were installed from Docker's U
 
 The public dashboard returned HTTP/2 200. Its certificate has subject/SAN `console.172-104-38-63.sslip.io`, issuer Let's Encrypt YR1 and validity 2026-09-08 through 2026-12-07. `/auth/status` returned `configured:false`, which proves the one-time owner screen remains available; it is not owner login acceptance. The first no-load container snapshot totaled about 82 MiB (API 4.66, agent 4.06, PostgreSQL 30.59, proxy 17.12, registry 15.02 and BuildKit 10.52 MiB). Docker daemon, kernel cache, applications and build peaks are excluded.
 
-This closes the first-host access, firewall, clean Ubuntu amd64 installer and real ACME issuance gates. Temporary `sslip.io` DNS is suitable for the pilot but is not a user-owned production domain. Owner setup/secure-cookie browser use, GitHub App/webhook delivery, real workload behavior, reboot, off-server restore, renewal and 48-hour cost/resource observation remain pending.
+This closes the first-host access, firewall, clean Ubuntu amd64 installer and real ACME issuance gates. Temporary `sslip.io` DNS is suitable for the pilot but is not a user-owned production domain.
+
+## Linode owner, workload, reboot and backup — 2026-09-08
+
+The owner account was created through the public HTTPS API and the first browser reload showed the returning-owner login state. The session cookie used `HttpOnly`, `Secure` and `SameSite=Strict`; authenticated state was available before and after reboot. Credentials and cookies remain only in ignored mode-restricted local storage.
+
+A public Railpack build of `railwayapp-templates/expressjs` produced project `2433c1a853804a005d28db20`, service `037b9c4141bba7f16d897963` and active deployment `00ce3a973726fcfac2e49c17`. Its public HTTPS endpoint returned HTTP 200, body `{"body":"Hello world!"}` and the matching `X-Cloudrail-Deployment` header. Its Let's Encrypt certificate is valid for the generated application hostname. An intentional build configured with a missing Dockerfile failed, the original source configuration was restored, and the active endpoint continued returning the same body and deployment ID.
+
+A real host reboot changed the kernel boot ID. The six platform containers and active application returned; server/PostgreSQL were healthy, the authenticated state retained the same IDs and both public endpoints returned HTTP 200. This proves retained control/application state and route regeneration for this pilot. It does not prove certificate renewal or destination-host recovery.
+
+The cold host-backup command stopped the platform writers, captured 503 MiB and resumed the original platform. Inventory, checksums and archive boundaries passed on the source and again after SSH-encrypted transfer to ignored off-server storage. Source and destination manifest SHA-256 both equal `b077db3b82402bef058753af1440019eef77947208acf364a6372f1c0a1796c5`. All platform/application containers and both public HTTP endpoints recovered after backup. The backup has not yet been restored to a separate empty host.

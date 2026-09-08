@@ -2,7 +2,7 @@
 
 Status, 2026-09-08: preparation and public control-plane install complete on target `172.104.38.63`. The 4 GB Singapore Linode runs Ubuntu 24.04.4 x86-64 with 2 CPU and a 79 GiB root disk. A dedicated root SSH identity was authorized and verified against the console-published host fingerprint. Cloud Firewall allows TCP 22/80/443 with default inbound drop. Docker 29.8.0/API 1.56 and Compose 5.5.1 are installed.
 
-Exact alpha.4 commit `302aec491fc33fd8a0ef5216b33856d899e5cb5f` passed installer preflight and is live at `https://console.172-104-38-63.sslip.io`. The dashboard returned HTTP/2 200 with a trusted Let's Encrypt YR1 certificate valid for that hostname. All six platform containers started, with PostgreSQL, server and agent healthy. The first idle snapshot totaled about 82 MiB across the six containers; Docker daemon, OS cache and build peaks are excluded. Owner setup, GitHub App delivery, pilot workload, reboot/recovery and the 48-hour observation remain pending.
+Exact alpha.4 commit `302aec491fc33fd8a0ef5216b33856d899e5cb5f` passed installer preflight and is live at `https://console.172-104-38-63.sslip.io`. The dashboard returned HTTP/2 200 with a trusted Let's Encrypt YR1 certificate valid for that hostname. The owner was created over HTTPS and the secure session survived a host reboot. A public Railpack sample is active at `https://037b9c4141bba7f16d897963.apps.172-104-38-63.sslip.io`; an intentional failed Dockerfile build left that deployment serving. A verified 503 MiB cold backup was copied off-server. GitHub App delivery, restore to a separate empty host, certificate renewal and the 48-hour observation remain pending.
 
 ## Access handoff
 
@@ -24,19 +24,26 @@ The supported installer target is Ubuntu 24.04 or 26.04, amd64/arm64, at least 4
 - Both resolve directly to `172.104.38.63`; the installer preflight passed.
 - The contact email came from the repository operator configuration and is retained only in the private installation environment.
 
-`sslip.io` provides temporary IP-based public DNS for this pilot. Move to a user-owned domain before relying on the hostname for wider or long-term use. The remaining external input is the pilot GitHub repository and its expected user flow.
+`sslip.io` provides temporary IP-based public DNS for this pilot. Move to a user-owned domain before relying on the hostname for wider or long-term use. The remaining repository work is a dedicated push-to-deploy fixture scoped to the GitHub App installation.
 
 Both dashboard `A` and wildcard application `A` records must resolve directly to `172.104.38.63`. TCP 80 and 443 must be allowed in the Linode Cloud Firewall and host firewall; SSH should remain restricted to the operator's source network where practical. The installer performs DNS/RAM/disk checks before changing packages.
 
 ## Pilot sequence and exit evidence
 
-1. Read-only host inventory and firewall diagnosis.
-2. DNS records and TCP 80/443 verification.
-3. Install the exact alpha source release and create the owner's account over valid HTTPS.
-4. Install the owner's GitHub App and prove one signed push-to-deploy delivery.
-5. Deploy the selected app; prove its important flow and failed-deploy traffic preservation.
-6. Reboot; verify identity, routes, application and database/volume data.
-7. Export a cold backup off-server, restore to a separate empty host, then deploy again.
-8. Rehearse update/recovery and observe at least 48 hours including a build/update; record resource use, transfer, availability and the actual Linode charge separately from estimates.
+1. [x] Read-only host inventory and firewall diagnosis.
+2. [x] DNS records and TCP 80/443 verification.
+3. [x] Install the exact alpha source release and create the owner's account over valid HTTPS.
+4. [ ] Install the owner's GitHub App and prove one signed push-to-deploy delivery.
+5. [x] Deploy the selected app; prove its HTTP response and failed-deploy traffic preservation.
+6. [x] Reboot; verify identity, routes, owner session and active application.
+7. [ ] Export a cold backup off-server, restore to a separate empty host, then deploy again. Export and verification are complete; destination restore remains.
+8. [ ] Rehearse update/recovery and observe at least 48 hours including a build/update; record resource use, transfer, availability and the actual Linode charge separately from estimates.
+
+## Recorded workload and recovery evidence
+
+- Project `2433c1a853804a005d28db20`, service `037b9c4141bba7f16d897963` built the public `railwayapp-templates/expressjs` repository with Railpack and serves `{"body":"Hello world!"}` over HTTPS.
+- Active deployment `00ce3a973726fcfac2e49c17` remained in the response header after an intentional build using a missing Dockerfile failed.
+- After `systemctl reboot`, SSH returned with a new boot ID, the authenticated state retained the same project/service/deployment IDs, and both dashboard and application returned HTTP 200.
+- `scripts/host-recovery.py backup` stopped the control services, captured state and resumed them. Its verifier passed on the source and again after SSH transfer to ignored off-server storage. Both copies had manifest SHA-256 `b077db3b82402bef058753af1440019eef77947208acf364a6372f1c0a1796c5`; dashboard and app returned HTTP 200 afterward.
 
 Until these checks pass, CI and local fixture certificates are not Linode/DNS/ACME evidence. The optional [AWS pilot](aws-pilot.md) remains documented for a later provider comparison.

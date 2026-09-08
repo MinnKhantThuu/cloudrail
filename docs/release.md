@@ -67,10 +67,10 @@ bash scripts/verify-control-restore.sh .data/updates/TIMESTAMP-ID/control-backup
 
 - One owner/node, trusted builds; no hostile multi-tenancy, RBAC, scheduling or HA.
 - Tested source matrix: public Go Dockerfile (`traefik/whoami`) and Node/Express Railpack template. Other languages/private dependencies are not yet verified.
-- Real GitHub App install/webhook delivery, public DNS/ACME and AWS application pilot are pending account/domain access.
-- Public installer declares Ubuntu 24.04/26.04 amd64/arm64 targets; neither a clean public host nor both architectures have received full installer/runtime proof. Local Linux arm64 runtime and a fresh Ubuntu CI amd64 Compose/browser journey have passed; public installer/ACME remain unverified. The host-recovery rehearsal and its limits are recorded separately in [verification](verification-current.md).
+- Real GitHub App install/webhook delivery, ACME renewal and the optional AWS application pilot remain pending account/domain access. First public DNS/ACME issuance passed on the Linode pilot using temporary `sslip.io` DNS.
+- Public installer declares Ubuntu 24.04/26.04 amd64/arm64 targets. A clean Ubuntu 24.04 amd64 Linode install, workload and reboot passed; arm64 has package/CI evidence but no clean public-host runtime proof. The host-recovery rehearsal and its limits are recorded separately in [verification](verification-current.md).
 - State is retained deliberately: registry/backups/history need operator retention. No scheduled off-server backup or automatic database major upgrade.
 - A node certificate eventually needs operator re-enrollment; keep identity recovery material. Backup archives include private application data.
-- Final owner UX walkthrough, public installation, public-host recovery and deployment-image security review remain beta gates. CI-signed alpha packages and an independent Linux Compose update/rollback rehearsal are available. Source hosting and private vulnerability reporting use [the GitHub repository](https://github.com/MinnKhantThuu/cloudrail).
+- Final owner UX walkthrough, separate public-host restore, certificate renewal and deployment-image security review remain beta gates. CI-signed alpha packages, an independent Linux Compose update/rollback rehearsal and one public Linode install/reboot are available. Source hosting and private vulnerability reporting use [the GitHub repository](https://github.com/MinnKhantThuu/cloudrail).
 
 Source repository: [MinnKhantThuu/cloudrail](https://github.com/MinnKhantThuu/cloudrail). Versioned packages are available on the [releases page](https://github.com/MinnKhantThuu/cloudrail/releases). Publishing it created no AWS resources. The commands above also build local development archives.
