@@ -13,7 +13,11 @@ jobs:
           POSTGRES_PASSWORD: ci-only-not-a-secret
           POSTGRES_DB: cloudrail_test
         ports: ['5432:5432']
-        options: --health-cmd='pg_isready -U cloudrail -d cloudrail_test' --health-interval=3s --health-timeout=3s --health-retries=20
+        options: >-
+          --health-cmd "pg_isready -U cloudrail -d cloudrail_test"
+          --health-interval 3s
+          --health-timeout 3s
+          --health-retries 20
     env:
       CLOUDRAIL_INTEGRATION: '1'
       DATABASE_URL: postgres://cloudrail:ci-only-not-a-secret@127.0.0.1:5432/cloudrail_test?sslmode=disable

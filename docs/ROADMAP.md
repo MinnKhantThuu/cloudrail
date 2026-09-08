@@ -24,7 +24,7 @@ Public customer signup၊ billing၊ arbitrary customer code၊ autoscaling၊ K
 | Phase 6 — AWS pilot | Template + read-only account/catalog planner ပြီး; AWS profile/domain မရှိသေး |
 | Phase 7 — release preparation | Source + Linux amd64/arm64 archives, CI definitions, docs ပြီး; final local checks အောင် |
 | UX | Desktop/mobile automated checks + visual inspection ပြီး; owner final review pending |
-| Git / hosting | Local repository only; commit, remote, push, public release, AWS resources မရှိ |
+| Git / hosting | **[MinnKhantThuu/cloudrail](https://github.com/MinnKhantThuu/cloudrail) public source တင်ပြီး**; AWS deployment/versioned release မရှိသေး |
 
 Code ရေးပြီးတာကို public VPS/AWS verification ပြီးတယ်လို့ မရေတွက်ပါ။ Phase 6 account-bound အဆင့်ရောက်ပြီးနောက် အဲဒီ access မလိုတဲ့ Phase 7 packaging ကို ဆက်လုပ်ထားသည်။ Phase အရေအတွက်နဲ့ completion percentage မတွက်ပါ။
 
@@ -87,7 +87,7 @@ Public HTTPS installer/config ရှိပြီး local TLS proof ရှိသ
 | **4 — GitHub deployment** | Repo ကနေ app တင်လို့ရအောင်လုပ်ခြင်း | Repo/branch ရွေး၊ push-to-deploy၊ build logs | **Local code + public GitHub build proof ပြီး; live App install/webhook pending** |
 | **5 — VPS operating features** | Public URL နဲ့ persistent app တွေကိုထိန်းနိုင်အောင်လုပ်ခြင်း | Installer၊ domain/HTTPS၊ metrics၊ volumes၊ DB backup/restore | **Code + local verification ပြီး; clean public VPS/ACME pending** |
 | **6 — AWS pilot** | ကိုယ်ပိုင် application တစ်ခုနဲ့တကယ်သုံးစမ်းခြင်း | AWS ပေါ် end-to-end deployed app နဲ့ measured cost | **Preparation ပြီး; real pilot pending account/domain** |
-| **7 — Open-source beta** | တခြားသူ install/update လုပ်လို့ရတဲ့ release ပြင်ခြင်း | Versioned release၊ docs၊ clean install/upgrade proof | **Local packaging/docs/CI ပြီး; clean-host/public release pending** |
+| **7 — Open-source beta** | တခြားသူ install/update လုပ်လို့ရတဲ့ release ပြင်ခြင်း | Versioned release၊ docs၊ clean install/upgrade proof | **Public source + docs တင်ပြီး; hosted CI/clean VPS/beta gates ဆက်စစ်နေ** |
 
 **လက်ရှိ Phase 7 local alpha packaging/verification ပြီးထားသည်။ Phase 6 real AWS pilot ကို credentials/domain မရှိသေးသဖြင့် pending ထားသည်။**
 
@@ -203,15 +203,15 @@ Current phase:
 
 ## 7. လက်ရှိ checkpoint
 
-- **Current:** Phase 7 — public GitHub publication authorized; preparing README, user guides, privacy review and hosted CI. AWS pilot and beta gates remain pending.
+- **Current:** Phase 7 — public source and English/Myanmar user guides published; hosted CI fresh-runner issues are being corrected. AWS pilot and beta gates remain pending.
 - **Phase 0:** User approved sequential continuation through all phases.
 - **Phase 2 evidence:** Go race tests + vet, frontend build, real Docker acceptance, Chrome desktop/mobile journey passed (31.9s). See [Phase 2 flow](phase-2-flow.md).
 - **UX:** Automated browser verification and agent visual inspection; user final UX review pending.
-- **Remote:** No AWS resources, public domain or GitHub App configured. No commit/push/release.
+- **Remote:** Public source committed/pushed to [MinnKhantThuu/cloudrail](https://github.com/MinnKhantThuu/cloudrail), main branch. Private vulnerability reporting enabled. No AWS resources, public application domain or installed GitHub App; no versioned GitHub Release.
 - **Phase 3 evidence:** mTLS heartbeat/revoke, dedup, cancellation, agent/container restart recovery, isolated PostgreSQL stale-attempt/retry tests and independent backup restore passed. See [Phase 3 flow](phase-3-flow.md).
 - **Phase 4 evidence:** Public GitHub Dockerfile + Railpack builds each served real HTTP via registry digests; failed build preserved traffic. Browser Source/GitHub desktop/mobile passed. Signed replay/stale/cancellation/retry DB tests passed. A transient local disk-full failure was resolved with Cloudrail-only build-cache cleanup and the DB test rerun passed.
 - **Account gap:** GitHub App installation/delivered webhook and AWS/domain are pending user account details.
 - **Phase 5 evidence:** PostgreSQL and HTTP volume persistence/backup/restore passed, including nonempty restore rejection; actual Docker limits/metrics and domain route passed. Local HTTPS with a trusted test certificate passed. Database UI journey passed (13.1s). Ubuntu installer syntax/public Compose validation passed; clean host + ACME issuance pending.
 - **Phase 6 preparation:** Lightsail CloudFormation template + read-only account/catalog planner and cost/runbook complete. CLI response shape checked; authenticated validation/provisioning pending.
-- **Phase 7 preparation:** Versioned source and Linux amd64/arm64 archives, checksums/notices, CI definitions, current quickstart/API/architecture/security/contributing/update/recovery docs. Final Go race/vet + isolated DB tests + real Docker acceptance passed after dependency fixes. All 3 Chrome desktop/mobile journeys passed (42.8s). Archive checksums/notices and deterministic source/credential-exclusion checks passed; no hosted CI run or independent-host upgrade proof.
+- **Phase 7 preparation:** Versioned source and Linux amd64/arm64 archives, checksums/notices, CI definitions, current quickstart/API/architecture/security/contributing/update/recovery docs. Final Go race/vet + isolated DB tests + real Docker acceptance passed after dependency fixes. All 3 Chrome desktop/mobile journeys passed (42.8s). Archive checksums/notices and deterministic source/credential-exclusion checks passed; Hosted CI is now running; independent public-host upgrade proof remains pending.
 - **Next external inputs:** AWS profile/region + DNS domain + GitHub App/repository + selected pilot application. Existing credentials must stay outside chat. See [AWS runbook](aws-pilot.md), [release gates](release.md), [current verification](verification-current.md).

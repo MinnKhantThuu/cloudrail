@@ -14,6 +14,7 @@ p=client.json('/api/projects',{'name':'Phase 2 '+str(int(time.time()))},expected
 client.json('/api/projects/'+p['id']+'/environments',{'name':'staging'},expected=201)
 services=[client.json('/api/projects/'+p['id']+'/services',{'name':'api','environment':env},expected=201) for env in ('production','staging')]
 assert services[0]['id']!=services[1]['id']
+subprocess.run(['docker','pull','traefik/whoami:v1.11.0'],check=True,stdout=subprocess.DEVNULL)
 image=json.loads(subprocess.check_output(['docker','image','inspect','traefik/whoami:v1.11.0','--format','{{json .RepoDigests}}']))[0]
 secret='phase2-private-'+str(int(time.time()))
 for svc in services:
