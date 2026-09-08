@@ -39,6 +39,8 @@ Inspired by the developer experience of Railway and the self-hosting model of Co
 
 Multi-user teams/RBAC, hostile multi-tenancy, billing, multi-node scheduling, autoscaling and Kubernetes are outside the current scope.
 
+Published packages: [v0.1.0-alpha.2](https://github.com/MinnKhantThuu/cloudrail/releases/tag/v0.1.0-alpha.2) — source, Linux amd64/arm64 archives and checksums, with verified build provenance.
+
 ## Quickstart
 
 ### 1. Check requirements
@@ -53,7 +55,7 @@ On macOS, start Docker Desktop or Colima with a Linux VM meeting those requireme
 ### 2. Clone and start
 
 ```sh
-git clone https://github.com/MinnKhantThuu/cloudrail.git
+git clone --branch v0.1.0-alpha.2 --depth 1 https://github.com/MinnKhantThuu/cloudrail.git
 cd cloudrail
 bash scripts/dev-up.sh
 ```
