@@ -1,6 +1,6 @@
 # Cloudrail — phase-by-phase master plan
 
-Updated: 2026-09-08. ဒီဖိုင်ကို project scope၊ phase အစဉ်နဲ့ progress အတွက် အဓိကစာတမ်းအဖြစ် သုံးမယ်။ အရင် `M1/M2/...` notes တွေနဲ့ ကွဲရင် ဒီ roadmap အတိုင်းလိုက်မယ်။
+Updated: 2026-09-09. ဒီဖိုင်ကို project scope၊ phase အစဉ်နဲ့ progress အတွက် အဓိကစာတမ်းအဖြစ် သုံးမယ်။ အရင် `M1/M2/...` notes တွေနဲ့ ကွဲရင် ဒီ roadmap အတိုင်းလိုက်မယ်။
 
 ## 1. ဘာဆောက်နေတာလဲ
 
@@ -18,12 +18,12 @@ Public customer signup၊ billing၊ arbitrary customer code၊ autoscaling၊ K
 
 | အပိုင်း | လက်ရှိအခြေအနေ |
 | --- | --- |
-| Phase 0–3 — flow, workspace, node/jobs | Code + local verification ပြီး |
+| Phase 0–3 — flow, workspace, node/jobs | Existing backend/core code ပြီး; Phase 2 Railway product-model/canvas recovery plan active |
 | Phase 4 — GitHub source builds | Public Dockerfile/Railpack live builds ပြီး; real GitHub App delivery pending |
 | Phase 5 — operating features | Code + local DB/volume tests ပြီး; clean Linode amd64 install, real ACME issuance နဲ့ reboot အောင် |
 | Phase 6 — Linode pilot | Owner + Railpack app live; failure/reboot/separate-host restore အောင်; GitHub App/observation pending |
 | Phase 7 — release preparation | Source + Linux amd64/arm64 archives, CI definitions, docs ပြီး; final local checks အောင် |
-| UX | Desktop/mobile automated checks + visual inspection ပြီး; owner final review pending |
+| UX | User က list/detail layout နဲ့ HTTP/Postgres နှစ်မျိုးတည်း model ကို reject လုပ်သည်; Railway feature inventory + phased product plan ရေးပြီး implementation မစသေး |
 | Git / hosting | **[MinnKhantThuu/cloudrail](https://github.com/MinnKhantThuu/cloudrail) public source တင်ပြီး**; alpha.4 release တင်ပြီး; Linode control plane live |
 
 Code ရေးပြီးတာကို public VPS/AWS verification ပြီးတယ်လို့ မရေတွက်ပါ။ Phase 6 account-bound အဆင့်ရောက်ပြီးနောက် အဲဒီ access မလိုတဲ့ Phase 7 packaging ကို ဆက်လုပ်ထားသည်။ Phase အရေအတွက်နဲ့ completion percentage မတွက်ပါ။
@@ -82,14 +82,14 @@ Public HTTPS installer/config ရှိပြီး local TLS proof ရှိသ
 | --- | --- | --- | --- |
 | **0 — Scope & flow** | ဘာဆောက်မယ်၊ ဘယ်လိုသုံးမယ်၊ ဘယ်အစဉ်လိုက်သွားမယ် ရှင်းလင်းခြင်း | Roadmap၊ screen map၊ current/target flow | **အစဉ်အတိုင်း ဆက်လုပ်ရန် အတည်ပြုပြီး** |
 | **1 — Local deployment prototype** | Image deployment နဲ့ failed replacement ကိုသက်သေပြခြင်း | Local image တင်/ဖွင့်၊ logs/history ကြည့်နိုင် | **Code + local verification ပြီး** |
-| **2 — Workspace & core UX** | နေ့စဉ်သုံးမယ့် screens နဲ့ settings ကိုအခြေခံချခြင်း | Login၊ projects/environments/services၊ variables၊ restart/stop | **Code + local verification ပြီး; user UX review pending** |
+| **2 — Workspace & core UX** | Railway ရဲ့ resource model နဲ့နေ့စဉ် flow အတိုင်း ပြန်တည်ဆောက်ခြင်း | Project canvas၊ generic compute/data/storage resources၊ links၊ resource drawer | **Existing flow ရှိ; Railway parity plan ပြီး၊ UX-1 implementation မစသေး** |
 | **3 — Reliable node & jobs** | Restart/disconnect/overlap ဖြစ်ချိန် state မှန်အောင်လုပ်ခြင်း | Node online/offline၊ recoverable jobs၊ ရှင်းလင်းတဲ့ failure state | **Code + local failure/recovery checks ပြီး** |
 | **4 — GitHub deployment** | Repo ကနေ app တင်လို့ရအောင်လုပ်ခြင်း | Repo/branch ရွေး၊ push-to-deploy၊ build logs | **Local code + public GitHub build proof ပြီး; live App install/webhook pending** |
 | **5 — VPS operating features** | Public URL နဲ့ persistent app တွေကိုထိန်းနိုင်အောင်လုပ်ခြင်း | Installer၊ domain/HTTPS၊ metrics၊ volumes၊ DB backup/restore | **Single clean Linode amd64 installer + public DNS/ACME + reboot အောင်; renewal pending** |
 | **6 — Linode pilot** | ကိုယ်ပိုင် application တစ်ခုနဲ့တကယ်သုံးစမ်းခြင်း | Linode ပေါ် end-to-end deployed app နဲ့ measured cost | **Owner + public workload + failure/reboot/empty-host restore အောင်; GitHub App/observation pending** |
 | **7 — Open-source beta** | တခြားသူ install/update လုပ်လို့ရတဲ့ release ပြင်ခြင်း | Versioned release၊ docs၊ clean install/upgrade proof | **Public source/docs/CI + one public amd64 install ရရှိ; beta gates pending** |
 
-**လက်ရှိ Phase 7 alpha packaging/verification ပြီးထားပြီး Phase 6.3 Linode validation ကို `172.104.38.63` ပေါ်ဆက်လုပ်နေသည်။ Alpha.4 public HTTPS install၊ owner setup၊ Railpack workload၊ failed-build traffic preservation၊ reboot နဲ့ real separate-host cold recovery အောင်ထားပြီး GitHub App push delivery နဲ့ operating observation ဆက်လုပ်ရန်ကျန်သည်။**
+**2026-09-09 user review အရ Phase 2 ကိုပြန်ဖွင့်ထားသည်။ ပြဿနာက list/grid တစ်ခုတည်းမဟုတ်ဘဲ `Application | PostgreSQL` နှစ်မျိုးပဲရှိသည့် product model ဖြစ်သည်။ Railway ရဲ့ service/source/workload/template/volume/bucket/reference/environment flow ကိုအရင်စုပြီး [Railway-inspired product plan](railway-parity-plan.md) တွင် UX-0 မှ UX-9 အထိရေးထားသည်။ UX code implementation မစသေး။ Phase 6 infrastructure evidence ကိုမဖျက်ဘဲ UX-1 resource model ကနေအစဉ်လိုက်ပြန်လုပ်မည်။**
 
 ## 5. Phase တစ်ခုချင်းစီရဲ့ အလုပ်နဲ့ ပြီးဆုံးစံ
 
@@ -129,6 +129,27 @@ Admin token login ကို owner account + secure session flow နဲ့ပြ�
 **2.3 Service configuration & actions**
 
 Encrypted runtime variables၊ port/readiness settings၊ restart/stop၊ historical image redeploy တို့ကို API နဲ့ UI အပြည့်ချိတ်မယ်။ Variable value ကို logs/API response တွေမှာ မတော်တဆမပေါ်အောင်စစ်မယ်။
+
+**2.4 Railway-inspired product and canvas recovery — UX-0 plan complete; UX-1 not started**
+
+Railway ကိုကြည့်ပြီး canvas ပုံသဏ္ဌာန်တစ်ခုတည်းကူးမည်မဟုတ်။ Service/source/workload/template ခွဲခြားပုံ၊ compute/data/storage resource types၊ actual reference/attachment links၊ environments/staged changes၊ deployment/observability flow အားလုံးကိုအစဉ်လိုက်လုပ်မည်။ အသေးစိတ် scope, data model, API projection, canvas interaction, phase exit criteria နှင့် acceptance scenarios ကို [Railway-inspired product plan](railway-parity-plan.md) တွင်သတ်မှတ်ထားသည်။
+
+- [x] **UX-0:** Railway official feature inventory, current gap map, target flow and phased plan။
+- [ ] **UX-1:** Generic resource model, migrations and canvas graph API။
+- [ ] **UX-2:** Persisted project canvas, create/command/context palette and resource drawer shell။
+- [ ] **UX-3:** GitHub/Docker/Empty source + web/worker/cron creation and runtime။
+- [ ] **UX-4:** Database templates, first-class volumes/backups and S3-compatible bucket resource။
+- [ ] **UX-5:** Secret/reference variables, real canvas links, private/public networking and TCP follow-up။
+- [ ] **UX-6:** Deployments/Variables/Metrics/Settings drawer and environment log explorer။
+- [ ] **UX-7:** Environment duplicate/sync and staged change review/apply flow; PR environments later substep။
+- [ ] **UX-8:** Templates, Compose import and basic CLI/config as code။
+- [ ] **UX-9:** Public Linode pilot update, docs/release and separate user UX acceptance।
+
+**Next selected substep:** UX-1 — backward-compatible resource model and canvas API။ Implementation မစခင် migration/data preservation scope နဲ့ exact API response ကိုပြမည်။
+
+**Visible outcome after UX-2:** Project overview သည် card grid/list မဟုတ်တော့ဘဲ actual service/database/volume/bucket resources နဲ့ real relations ကို canvas ပေါ်တွင်မြင်၊ နေရာရွှေ့၊ click လုပ်ပြီး drawer ထဲဝင်နိုင်ရမည်။
+
+**Core completion after UX-6:** Canvas ကနေ GitHub/Docker/Empty service, web/worker/cron, PostgreSQL/Redis, volume, bucket and references ကိုတကယ်ဖန်တီး/operate လုပ်နိုင်ရမည်။ User review မရမချင်း UX accepted ဟုမမှတ်တမ်းတင်ရ။
 
 **Exit:** User တစ်ယောက်က owner setup ကစပြီး project/environment/service ဆောက်၊ variables နဲ့ image deploy၊ restart/stop/redeploy လုပ်နိုင်ရ။ Staging ပြင်တာ production ကိုမထိရ။ Screen flow ကို user review လုပ်ပြီး usability ပြင်ဆင်ချက်တွေပြီးရ။
 
@@ -203,10 +224,10 @@ Current phase:
 
 ## 7. လက်ရှိ checkpoint
 
-- **Current:** Phase 6.3 Linode validation. Exact alpha.4 commit `302aec4` is live at `https://console.172-104-38-63.sslip.io`; the owner session, public Railpack app, failed-build traffic preservation, reboot and real empty-host recovery have passed. Real GitHub App delivery, renewal and 48-hour observation remain pending.
+- **Current:** Phase 2.4 UX-0 product contract is complete. The user rejected the existing card grid and two-kind `Application | PostgreSQL` model. UX-1 resource model/API is next and implementation has not started. Phase 6 evidence remains preserved: exact alpha.4 commit `302aec4` is still live at `https://console.172-104-38-63.sslip.io`; GitHub App delivery, renewal and 48-hour observation remain pending.
 - **Phase 0:** User approved sequential continuation through all phases.
 - **Phase 2 evidence:** Go race tests + vet, frontend build, real Docker acceptance, Chrome desktop/mobile journey passed (31.9s). See [Phase 2 flow](phase-2-flow.md).
-- **UX:** Automated browser verification and agent visual inspection; user final UX review pending.
+- **UX:** Existing UI browser evidence remains historical only. The Railway-inspired replacement has a documented plan but no implementation or visual/browser evidence yet; user review pending.
 - **Local owner handoff:** Login correction passed fresh registration (3.7s) and the full dashboard/deploy/browser journey (32.4s). The assistant-created acceptance owner was backed up and removed, retaining projects/apps, so the user can create their own account at localhost:8080. Do not run acceptance helpers that create an owner on this handed-over installation; use disposable CI installations for further registration/maintenance tests.
 - **Remote:** Public source committed/pushed to [MinnKhantThuu/cloudrail](https://github.com/MinnKhantThuu/cloudrail), main branch. Private vulnerability reporting enabled. [v0.1.0-alpha.4](https://github.com/MinnKhantThuu/cloudrail/releases/tag/v0.1.0-alpha.4) is published with all four verified CI assets. The Linode dashboard and pilot app have public HTTPS URLs; no AWS resources or installed GitHub App exists yet.
 - **Phase 3 evidence:** mTLS heartbeat/revoke, dedup, cancellation, agent/container restart recovery, isolated PostgreSQL stale-attempt/retry tests and independent backup restore passed. See [Phase 3 flow](phase-3-flow.md).

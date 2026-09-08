@@ -10,7 +10,7 @@ An open-source, self-hosted deployment platform with a Railway-inspired workspac
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](LICENSE)
 [![Stage: Alpha](https://img.shields.io/badge/Stage-Alpha-orange.svg)](docs/release.md)
 
-[Getting started](#quickstart) · [User guide](docs/user-guide.md) · [မြန်မာလမ်းညွှန်](docs/guide-my.md) · [Architecture](docs/architecture.md) · [Roadmap](docs/ROADMAP.md)
+[Getting started](#quickstart) · [User guide](docs/user-guide.md) · [မြန်မာလမ်းညွှန်](docs/guide-my.md) · [Architecture](docs/architecture.md) · [Railway-inspired plan](docs/railway-parity-plan.md) · [Roadmap](docs/ROADMAP.md)
 
 </div>
 
@@ -22,7 +22,7 @@ Cloudrail turns a Linux Docker server into a workspace for deploying your applic
 
 Inspired by the developer experience of Railway and the self-hosting model of Coolify, Cloudrail uses original application code and UI. It is not affiliated with either project.
 
-**Status: early alpha (`0.1.0-alpha.4`).** Designed for **one owner, one Linux node and trusted repositories**. Local deployment, recovery, database and browser journeys have been tested, along with a fresh Ubuntu CI Docker quickstart. A Linode host is selected for the first public pilot; installation, DNS-issued HTTPS and a real GitHub App push still require end-to-end verification. Public source availability does not mean production readiness. See [verification](docs/verification-current.md).
+**Status: early alpha (`0.1.0-alpha.4`).** Designed for **one owner, one Linux node and trusted repositories**. Local deployment, recovery, database and browser journeys have been tested, along with a fresh Ubuntu CI Docker quickstart. The current dashboard still uses a limited application/PostgreSQL flow; the generic Railway-inspired resource model and project canvas are now specified in the [product plan](docs/railway-parity-plan.md) and are not implemented yet. A Linode host is selected for the first public pilot; installation, DNS-issued HTTPS and a real GitHub App push still require end-to-end verification. Public source availability does not mean production readiness. See [verification](docs/verification-current.md).
 
 ## Features
 
@@ -144,6 +144,7 @@ Application containers are managed separately from Compose. Stopping the platfor
 | [API](docs/api.md) | Owner endpoints and private node protocol |
 | [Verification](docs/verification-current.md) | Recorded checks and unverified boundaries |
 | [Release/update guide](docs/release.md) | Packaging, update, recovery and alpha limitations |
+| [Railway-inspired product plan](docs/railway-parity-plan.md) | Feature inventory, target resource model, canvas flow and UX-0 through UX-9 delivery order |
 | [Roadmap](docs/ROADMAP.md) | Canonical phase plan and progress |
 
 ## Development and contribution
