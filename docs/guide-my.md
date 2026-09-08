@@ -101,8 +101,8 @@ Failed deployment ရဲ့ error နဲ့ logs ကိုအရင်ကြည�
 
 History က image အဟောင်းကို redeploy လုပ်ရင် deployment အသစ်တစ်ခုဖြစ်ပါတယ်။ **Database migration နဲ့ data ပြောင်းလဲမှုတွေကို image rollback က နောက်ပြန်မပြင်ပေးပါဘူး။** ပြဿနာအလိုက် [Troubleshooting](troubleshooting.md) မှာကြည့်ပါ။
 
-## ၉။ VPS / AWS ပေါ်တင်ခြင်း
+## ၉။ VPS / Linode ပေါ်တင်ခြင်း
 
 Local preview ကို public ဖွင့်ရုံနဲ့ VPS installation မပြီးပါဘူး။ Domain၊ wildcard DNS၊ ports 80/443၊ HTTPS နဲ့ backup တွေပါပြင်ဖို့ [VPS install guide](vps-operations.md) အတိုင်းလိုက်ပါ။
 
-AWS သုံးမယ်ဆို [AWS pilot guide](aws-pilot.md) မှာ account/region ရွေးခြင်း၊ cost estimate၊ template နဲ့ live checks တွေရှိပါတယ်။ Plan ထုတ်တဲ့ script က read-only ဖြစ်ပြီး infrastructure template ကို apply လုပ်မှ billable resources ဖန်တီးပါတယ်။
+ပထမ public test ကို Linode ပေါ်မှာလုပ်ရန် [Linode pilot guide](linode-pilot.md) အတိုင်း SSH၊ DNS၊ firewall၊ install နဲ့ live checks ကိုအစဉ်လိုက်သွားပါမယ်။ AWS က မဖြစ်မနေမလိုဘဲ နောက်ပိုင်း provider comparison အတွက် [AWS pilot guide](aws-pilot.md) ကိုဆက်ထားပါတယ်။

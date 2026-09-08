@@ -22,7 +22,7 @@ Cloudrail turns a Linux Docker server into a workspace for deploying your applic
 
 Inspired by the developer experience of Railway and the self-hosting model of Coolify, Cloudrail uses original application code and UI. It is not affiliated with either project.
 
-**Status: early alpha (`0.1.0-alpha.4`).** Designed for **one owner, one Linux node and trusted repositories**. Local deployment, recovery, database and browser journeys have been tested, along with a fresh Ubuntu CI Docker quickstart. Public Ubuntu installation, DNS-issued HTTPS, a real GitHub App push and an AWS pilot still require end-to-end verification. Public source availability does not mean production readiness. See [verification](docs/verification-current.md).
+**Status: early alpha (`0.1.0-alpha.4`).** Designed for **one owner, one Linux node and trusted repositories**. Local deployment, recovery, database and browser journeys have been tested, along with a fresh Ubuntu CI Docker quickstart. A Linode host is selected for the first public pilot; installation, DNS-issued HTTPS and a real GitHub App push still require end-to-end verification. Public source availability does not mean production readiness. See [verification](docs/verification-current.md).
 
 ## Features
 
@@ -35,7 +35,7 @@ Inspired by the developer experience of Railway and the self-hosting model of Co
 | Configuration | Encrypted runtime variables, CPU/RAM limits and custom hostname settings |
 | Persistent workloads | Named volumes, private PostgreSQL services and application connection bindings |
 | Operations | Container logs, node heartbeat, observed metrics, backup downloads and empty-target restore |
-| Installation | Local Docker Compose, Ubuntu VPS installer and AWS Lightsail planning/template |
+| Installation | Local Docker Compose, provider-neutral Ubuntu VPS installer, Linode pilot runbook and optional AWS Lightsail template |
 
 Multi-user teams/RBAC, hostile multi-tenancy, billing, multi-node scheduling, autoscaling and Kubernetes are outside the current scope.
 
@@ -107,11 +107,11 @@ A **project** groups related applications. An **environment** separates service 
 
 HTTP services without shared storage use candidate readiness before switching traffic. Persistent services stop their previous container before starting a replacement to avoid concurrent writers. **Image rollback does not undo database migrations or changes to stored data.** See the [full user guide](docs/user-guide.md).
 
-## Install on a VPS or AWS
+## Install on a VPS
 
 For a public server, use the [Ubuntu installation runbook](docs/vps-operations.md). It covers DNS, wildcard app domains, firewall ports, owner setup, automatic HTTPS configuration and backup requirements. Do not expose the local preview ports directly as a public installation.
 
-For AWS, use the [Lightsail pilot runbook](docs/aws-pilot.md). The account/catalog planner is read-only; applying the CloudFormation template creates billable resources. Cloudrail's local quickstart creates no AWS resources.
+The first public target follows the [Linode pilot runbook](docs/linode-pilot.md). For AWS later, use the [Lightsail pilot runbook](docs/aws-pilot.md). Cloudrail's local quickstart creates no provider resources.
 
 ## Daily operations
 
@@ -138,7 +138,8 @@ Application containers are managed separately from Compose. Stopping the platfor
 | [Architecture](docs/architecture.md) | Components, trust boundaries and execution flow |
 | [GitHub builds](docs/source-builds.md) | App setup, permissions, source configuration and builder limits |
 | [VPS operations](docs/vps-operations.md) | Public install, domains/TLS, storage and disk retention |
-| [AWS pilot](docs/aws-pilot.md) | Account planning, estimated cost and live validation checklist |
+| [Linode pilot](docs/linode-pilot.md) | Selected public target, access handoff and live validation checklist |
+| [AWS pilot](docs/aws-pilot.md) | Optional Lightsail account planning and template |
 | [Troubleshooting](docs/troubleshooting.md) | Setup, build, routing, node, storage and backup failures |
 | [API](docs/api.md) | Owner endpoints and private node protocol |
 | [Verification](docs/verification-current.md) | Recorded checks and unverified boundaries |
