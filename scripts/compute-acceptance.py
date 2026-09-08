@@ -80,7 +80,10 @@ wait_action(restart['id'])
 assert running(first['id']), 'Restart action did not restore the worker'
 print('PASS: worker start, stop and restart actions preserve route-free lifecycle', flush=True)
 
-subprocess.run(['bash', 'scripts/compose.sh', 'restart', 'agent'], check=True, stdout=subprocess.DEVNULL)
+subprocess.run(['bash', 'scripts/compose.sh', 'stop', 'agent'], check=True, stdout=subprocess.DEVNULL)
+subprocess.run(['docker', 'stop', 'cloudrail-app-' + first['id']], check=True, stdout=subprocess.DEVNULL)
+assert not running(first['id']), 'Worker stayed running while the agent was offline'
+subprocess.run(['bash', 'scripts/compose.sh', 'start', 'agent'], check=True, stdout=subprocess.DEVNULL)
 deadline = time.monotonic() + 30
 while time.monotonic() < deadline and not running(first['id']):
     time.sleep(.5)

@@ -40,9 +40,11 @@ The isolated authenticated PostgreSQL API test created GitHub worker and image c
 
 Hosted [CI run 34279315566](https://github.com/MinnKhantThuu/cloudrail/actions/runs/34279315566) passed the complete checks/runtime/maintenance/recovery workflow for UX-3.1 at `07d6791`.
 
-## Route-free worker runtime — UX-3.2 candidate
+## Route-free worker runtime — UX-3.2
 
-The agent now checks that a worker process stays running instead of probing HTTP, removes any stale public route, switches to a healthy candidate before stopping the prior worker and preserves that prior process on candidate failure. Start, stop, restart and reconciliation use the same route-free behavior. Unit tests cover worker activation/failure ordering and the proxy refuses to write a worker route. A disposable real-Docker acceptance creates an image worker, verifies route absence, injects a pull failure, exercises lifecycle actions and restarts the agent. Its hosted result is pending; UX-3.2 is not yet marked complete.
+The agent checks that a worker process stays running instead of probing HTTP, removes any stale public route, switches to a healthy candidate before stopping the prior worker and preserves that prior process on candidate failure. Start, stop, restart and reconciliation use the same route-free behavior. Unit tests cover worker activation/failure ordering and the proxy refuses to write a worker route. The mocked Chrome canvas journey opens a live worker node and verifies its route-free active status. A disposable real-Docker acceptance creates an image worker, verifies route absence, injects a pull failure, exercises lifecycle actions and proves agent restart recovery after the worker container is stopped while the agent is offline.
+
+Hosted [CI run 34280088388](https://github.com/MinnKhantThuu/cloudrail/actions/runs/34280088388) passed checks, runtime, maintenance, backup and independent-host recovery for UX-3.2 at `71d9f5c`. The stronger stopped-container recovery assertion is queued with the completion checkpoint commit.
 
 The final dependency scan found reachable advisories in pgx v5.7.6 and x/text v0.24.0. They were updated to **pgx v5.9.2** and **x/text v0.39.0**. `govulncheck v1.7.0` then reported zero affected code paths and zero vulnerabilities in imported packages; it still lists advisories elsewhere in required modules that the application does not call. This is not an external security audit or a container-image scan. [Go pgx advisory](https://pkg.go.dev/vuln/GO-2026-5004), [Go x/text advisory](https://pkg.go.dev/vuln/GO-2026-5970). `npm audit` reported zero known vulnerabilities in the locked frontend dependency tree.
 
