@@ -10,7 +10,9 @@ This guide describes the current single-owner alpha. Start the [local quickstart
 | Node | Linux machine running the agent and applications | One Ubuntu VPS |
 | Project | Related services grouped together | Shop |
 | Environment | Separate configuration/deployment scope inside a project | staging / production |
-| HTTP service | An application with a public route | web / api |
+| Web service | An application with a public route | web / api |
+| Worker service | A long-running process without a public route | queue consumer |
+| Cron service | A command run on a five-field UTC schedule | nightly cleanup |
 | Database service | Private PostgreSQL with persistent data | database |
 | Build | Exact source commit converted to an image | GitHub SHA → digest |
 | Deployment | One attempt to run an image with a saved configuration | api release 4 |
@@ -31,7 +33,7 @@ Acceptance scripts can create a development-only owner if none exists. Their pri
 ## Deploy a container image
 
 1. Create a project and choose its environment.
-2. Select **New service → Application**.
+2. Select **New resource → Docker Image**, keep workload **Web / API**, and name the service.
 3. Click **Deploy**. Supply a full digest reference such as `traefik/whoami@sha256:...`, not a mutable tag.
 4. Set the port the application actually listens on **inside its container** and a readiness path returning HTTP 2xx. For `whoami`, use `80` and `/`.
 5. Submit and follow deployment activity. **Active** means the release passed activation checks; open its URL to verify your app's behavior.
@@ -59,6 +61,12 @@ Back in **Source**, load installations, select the installed account and reposit
 
 Runtime variables are not available during builds. Private package build secrets are not supported in this alpha. Use only trusted repositories because the builder has privileged access to the host runtime.
 
+## Run workers and cron jobs
+
+Choose **New resource → Background Worker** for a long-running process without a public route. Choose **Cron Job**, then save a five-field UTC schedule in **Settings** before deploying. Cron runs are isolated, retain bounded logs/exit status and do not overlap for the same service.
+
+Under **Settings → Deploy commands & recovery**, an optional start command overrides the image command through `/bin/sh -lc`. A pre-deploy command runs once after image pull in a separate container with runtime variables/private networking and without the service volume. Set its timeout from 1–3600 seconds. A failure or timeout keeps the current release. Web and worker services support **On failure**, **Always** and **Never** restart policies; deploy again to apply changed settings.
+
 ## Variables and environment changes
 
 Open the service's **Variables** tab to add/update/remove runtime variables. Saved values are encrypted, and only names are returned to the UI. Enter the replacement value when changing a secret.
@@ -71,7 +79,8 @@ Deploy again to apply changes. **Restart** reuses the current deployment's snaps
 flowchart TD
   Source[Source build, if needed] --> Queued[Queued image deployment]
   Queued --> Pull[Pull image]
-  Pull --> Start[Start candidate]
+  Pull --> Pre[Pre-deploy command, if configured]
+  Pre --> Start[Start candidate]
   Start --> Ready{Readiness}
   Ready -->|Pass| Route[Switch and verify route]
   Route --> Active[Active / retire previous container]
@@ -79,7 +88,7 @@ flowchart TD
   Route -->|Fail| Recover
 ```
 
-- **Queued/pulling/starting/checking/routing**: a deployment is in progress.
+- **Queued/pulling/predeploy/starting/checking/routing**: a deployment is in progress.
 - **Active**: activation succeeded. Check ongoing node/container observations for current health.
 - **Failed**: inspect its error and retained logs. A prior healthy release can still be serving.
 - **Superseded**: a newer release replaced it.
@@ -98,7 +107,7 @@ Persistent services stop the previous container before starting the replacement.
 
 ## Add PostgreSQL and connect an application
 
-1. Select **New service → PostgreSQL database** in the same project/environment as your HTTP application.
+1. Select **New resource → PostgreSQL** in the same project/environment as your application.
 2. Wait for the private database deployment to become active. It has no public URL or published database port.
 3. In its **Settings**, select the HTTP application under **Connect an application**.
 4. Save the connection variable, normally `DATABASE_URL`.

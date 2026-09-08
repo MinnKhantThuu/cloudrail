@@ -1,7 +1,7 @@
 # Cloudrail — Railway-inspired product and delivery plan
 
 Updated: 2026-09-09  
-Status: **UX-0 through UX-2 implemented and locally verified; UX-3 is in progress with generic compute creation, worker runtime and cron runtime complete, deployment controls next.**
+Status: **UX-0 through UX-3 implemented and verified; UX-4.1 Redis template is next.**
 
 ဒီစာတမ်းက Cloudrail ကို “service card နှစ်မျိုးပါတဲ့ dashboard” အဖြစ်မတည်ဆောက်ဘဲ Railway လို **project canvas ကနေ application stack တစ်ခုလုံးဆောက်၊ ချိတ်၊ deploy နဲ့ operate လုပ်နိုင်တဲ့ self-hosted PaaS** အဖြစ်ပြောင်းရန် canonical feature plan ဖြစ်သည်။ Phase အစဉ်နဲ့ overall progress ကို `ROADMAP.md` ကပဲ ဆက်ထိန်းမည်။
 
@@ -202,7 +202,7 @@ flowchart LR
 
 ### UX-3 — Compute creation and deployment flow
 
-**Status:** In progress. UX-3.1 generic compute creation, UX-3.2 route-free worker runtime and UX-3.3 recoverable cron runtime passed hosted CI. Deployment controls remain.
+**Status:** Complete. Generic compute creation, route-free workers, recoverable cron jobs and deployment controls passed hosted CI.
 
 **Scope:** GitHub Repository, Docker Image, Empty Service create paths; web/API, background worker, cron modes; build/start/pre-deploy command; healthcheck/restart policy; deployment state presentation။
 
@@ -211,7 +211,7 @@ Substeps:
 - [x] **UX-3.1:** Source/workload axes, generic create API and canvas creation form။
 - [x] **UX-3.2:** Route-free long-running worker deployment and lifecycle actions; unit, browser and hosted real-Docker proof passed။
 - [x] **UX-3.3:** UTC cron schedules, due-run claim, overlap guard, history and restart recovery; local and hosted real-Docker proof passed။
-- [ ] **UX-3.4:** Start/pre-deploy commands, restart policy and complete real-container acceptance matrix; implementation/local proof ready, hosted Docker matrix pending။
+- [x] **UX-3.4:** Start/pre-deploy commands, restart policy and complete real-container acceptance matrix; hosted CI run 34286036519 passed the full workflow။
 
 **Visible result:** Canvas `Create +` ကနေ backend, frontend, worker, cron ကိုတကယ်ဖန်တီးပြီး deploy/run လို့ရမည်။
 
@@ -226,6 +226,16 @@ Research basis: Railway official [Start Command](https://docs.railway.com/deploy
 **Visible result:** Database တစ်မျိုးတည်းမဟုတ်တော့ဘဲ Data/Storage resources ကို canvas ပေါ်ကနေဖန်တီး၊ attach၊ backup၊ connect လုပ်နိုင်မည်။
 
 **Completion:** Template တစ်ခုချင်း persistence/reboot/backup/empty-target restore စစ်ရ၊ volume edge နဲ့ bucket reference က actual relation ကိုပြရမည်။
+
+Substeps:
+
+- [ ] **UX-4.1:** Versioned template registry + one-click Redis service; persistence and reboot proof။
+- [ ] **UX-4.2:** First-class volume create/attach/detach with single-writer and mount-path guards။
+- [ ] **UX-4.3:** Redis/application volume backups and compatible empty-target restore flow။
+- [ ] **UX-4.4:** S3-compatible bucket resource, encrypted credentials and connection lifecycle။
+- [ ] **UX-4.5:** MySQL and MongoDB templates with persistence, backup and recovery proof။
+
+Research basis: Railway treats databases as preconfigured container services with variables and attached persistent volumes, creates them from the project canvas, and keeps buckets as private S3-compatible resources. See the official [Databases](https://docs.railway.com/databases), [Redis](https://docs.railway.com/databases/redis), [Volumes](https://docs.railway.com/volumes/reference) and [Storage Buckets](https://docs.railway.com/storage-buckets) documentation.
 
 ### UX-5 — Variables, links and networking
 

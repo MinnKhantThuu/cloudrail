@@ -22,14 +22,15 @@ Cloudrail turns a Linux Docker server into a workspace for deploying your applic
 
 Inspired by the developer experience of Railway and the self-hosting model of Coolify, Cloudrail uses original application code and UI. It is not affiliated with either project.
 
-**Status: early alpha (`0.1.0-alpha.4`).** Designed for **one owner, one Linux node and trusted repositories**. Local deployment, recovery, database and browser journeys have been tested, along with a fresh Ubuntu CI Docker quickstart. The Railway-inspired generic resource model and local project canvas shell are implemented through UX-2; compute/data/storage creation and operation continue phase by phase in the [product plan](docs/railway-parity-plan.md). The public Linode still runs the alpha.4 dashboard and has not received this canvas yet. Public source availability does not mean production readiness. See [verification](docs/verification-current.md).
+**Status: early alpha (`0.1.0-alpha.4`).** Designed for **one owner, one Linux node and trusted repositories**. The Railway-inspired canvas and compute flow are implemented through UX-3: GitHub/Docker/empty sources, web services, route-free workers, recoverable cron jobs, deployment commands and restart policies. Data/storage expansion continues in UX-4. The public Linode still runs the alpha.4 dashboard and has not received this canvas yet. Public source availability does not mean production readiness. See the [product plan](docs/railway-parity-plan.md) and [verification](docs/verification-current.md).
 
 ## Features
 
 | Area | Included in this alpha |
 | --- | --- |
-| Workspace | Owner sign-in, projects, environments and service views |
-| Deployment | Digest-pinned images, readiness checks, deployment history, cancellation and recovery |
+| Workspace | Owner sign-in, projects/environments, pan/zoom canvas, persisted nodes and resource drawers |
+| Compute | GitHub/Docker/empty sources with web, background-worker and UTC cron workloads |
+| Deployment | Digest-pinned images, readiness, start/pre-deploy commands, restart policies, history, cancellation and recovery |
 | Source builds | GitHub repository/branch configuration, Dockerfile and Railpack, build logs |
 | GitHub integration | Encrypted App credentials, signed push handlers and delivery deduplication |
 | Configuration | Encrypted runtime variables, CPU/RAM limits and custom hostname settings |
@@ -82,7 +83,7 @@ docker image inspect traefik/whoami:v1.11.0 --format '{{index .RepoDigests 0}}'
 In the dashboard:
 
 1. Create a **project** and select its **production** environment.
-2. Choose **New service → Application** and name it `hello`.
+2. Choose **New resource → Docker Image**, keep workload **Web / API**, and name it `hello`.
 3. Choose **Deploy**, paste the returned `repository@sha256:...`, set port **80** and readiness path **/**.
 4. Wait for **Active**, then open the service URL: `http://<service-id>.localhost:8088`.
 
@@ -93,17 +94,18 @@ For clients without wildcard localhost support, request `http://127.0.0.1:8088` 
 ```mermaid
 flowchart LR
   A[Create project] --> B[Choose environment]
-  B --> C[Add service]
-  C --> D[Configure source or image]
-  D --> E[Save runtime variables]
-  E --> F[Build / deploy]
-  F --> G{Readiness passes?}
-  G -->|Yes| H[Switch traffic / active release]
-  G -->|No| I[Keep or recover previous release]
-  H --> J[Logs / metrics / backups]
+  B --> C[Add resource on canvas]
+  C --> D[Choose GitHub / Docker / Empty source]
+  D --> E[Choose web / worker / cron workload]
+  E --> F[Variables and runtime settings]
+  F --> G[Build / deploy]
+  G --> H{Activation passes?}
+  H -->|Yes| I[Route or schedule active release]
+  H -->|No| J[Keep or recover previous release]
+  I --> K[Logs / metrics / backups]
 ```
 
-A **project** groups related applications. An **environment** separates service configuration and deployment state, for example staging and production. A **service** is an HTTP application or private database. A **deployment** records one release attempt and its configuration snapshot. A **build** turns one source commit into an image before deployment begins.
+A **project** groups related resources. An **environment** separates configuration and deployment state, for example staging and production. A compute service can be a public web/API process, route-free worker or scheduled cron job. A **deployment** records one release attempt and its configuration snapshot. A **build** turns one source commit into an image before deployment begins.
 
 HTTP services without shared storage use candidate readiness before switching traffic. Persistent services stop their previous container before starting a replacement to avoid concurrent writers. **Image rollback does not undo database migrations or changes to stored data.** See the [full user guide](docs/user-guide.md).
 

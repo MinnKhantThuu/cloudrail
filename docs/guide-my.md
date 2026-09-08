@@ -25,8 +25,9 @@ Public VPS မှာ install ပြီးတာနဲ့ account ကို ခ�
 ```text
 Project ဖန်တီး
   → Environment ရွေး
-  → Service ထည့်
-  → GitHub source သို့မဟုတ် container image သတ်မှတ်
+  → Canvas ပေါ် Resource ထည့်
+  → GitHub / Docker / Empty source ရွေး
+  → Web / Worker / Cron workload ရွေး
   → Variables ဖြည့်
   → Build / deploy
   → Readiness စစ်
@@ -38,6 +39,8 @@ Project ဖန်တီး
 | Project | ဆက်စပ်တဲ့ applications တွေ စုထားတဲ့နေရာ၊ ဥပမာ Shop |
 | Environment | Configuration နဲ့ deployment ခွဲထားတဲ့နေရာ၊ ဥပမာ staging / production |
 | HTTP service | Website၊ API စတဲ့ application တစ်ခု |
+| Worker service | Public URL မရှိတဲ့ background process |
+| Cron service | UTC schedule နဲ့ command တစ်ကြိမ်စီ run မယ့် job |
 | PostgreSQL service | Private network ထဲမှာသုံးတဲ့ database |
 | Build | Source commit တစ်ခုကနေ image ထုတ်ခြင်း |
 | Deployment | Image တစ်ခုကို configuration snapshot နဲ့ run ဖို့ကြိုးစားမှု |
@@ -52,7 +55,7 @@ docker image inspect traefik/whoami:v1.11.0 --format '{{index .RepoDigests 0}}'
 ```
 
 1. Dashboard မှာ project တစ်ခုဆောက်ပြီး `production` ကိုရွေးပါ။
-2. **New service → Application** ကိုရွေးပြီး `hello` လို့နာမည်ပေးပါ။
+2. **New resource → Docker Image** ကိုရွေး၊ workload ကို **Web / API** ထားပြီး `hello` လို့နာမည်ပေးပါ။
 3. **Deploy** ကိုနှိပ်ပြီး command ကရတဲ့ `repository@sha256:...` ကိုထည့်ပါ။
 4. Port ကို **80**၊ readiness path ကို **/** ထားပါ။
 5. **Active** ဖြစ်ရင် service URL ကိုဖွင့်ပါ။
@@ -70,22 +73,28 @@ HTTP service ရဲ့ **Source** tab ကိုဖွင့်ပါ။ Public r
 
 Private repo နဲ့ push တိုင်း auto deploy လိုရင် ကိုယ်ပိုင် GitHub App ဖန်တီးပြီးချိတ်ရပါမယ်။ လိုတဲ့ permissions၊ webhook နဲ့ installation အဆင့်တွေကို [GitHub App guide](source-builds.md#github-app) မှာရေးထားပါတယ်။ Cloudrail source repo ကို GitHub တင်ထားတာနဲ့ ကိုယ့် apps တွေရဲ့ auto deploy ချိတ်ပြီးသား မဖြစ်ပါဘူး။
 
-## ၅။ Variables နဲ့ update လုပ်ခြင်း
+## ၅။ Worker၊ Cron နဲ့ deployment commands
+
+Public URL မလိုတဲ့ long-running process ဆို **New resource → Background Worker** ကိုရွေးပါ။ Schedule နဲ့ command run မယ်ဆို **Cron Job** ကိုရွေးပြီး **Settings** ထဲမှာ five-field UTC cron expression သိမ်းပြီးမှ deploy လုပ်ပါ။ Cron run တစ်ခုချင်း logs နဲ့ exit status သိမ်းထားပြီး service တစ်ခုတည်းမှာ run နှစ်ခုမထပ်အောင်ထိန်းထားပါတယ်။
+
+**Settings → Deploy commands & recovery** မှာ start command override၊ pre-deploy command/timeout နဲ့ restart policy သတ်မှတ်နိုင်ပါတယ်။ Pre-deploy က image pull ပြီး၊ candidate မစခင် သီးခြား container ထဲ run တယ်; service volume မတပ်ပါဘူး။ Fail/timeout ဖြစ်ရင် လက်ရှိ active release ကိုဆက်ထားပါတယ်။ Settings ပြောင်းပြီးရင် deploy အသစ်လုပ်မှအသက်ဝင်ပါမယ်။
+
+## ၆။ Variables နဲ့ update လုပ်ခြင်း
 
 Service ရဲ့ **Variables** tab မှာ `DATABASE_URL`၊ `PORT` စတာတွေထည့်နိုင်ပါတယ်။ သိမ်းပြီးတဲ့ secret value ကို UI ကပြန်မဖော်ပြပါဘူး။ ပြောင်းချင်ရင် value အသစ်ထည့်ရပါတယ်။
 
 Variables နဲ့ resource settings ပြင်ပြီးရင် **deploy အသစ်လုပ်ပါ**။ Restart က လက်ရှိ deployment ရဲ့ configuration ကိုပဲပြန်သုံးပါတယ်။ Runtime variables တွေကို build အတွင်း မပို့ပါဘူး။ Private package build secrets ကို ဒီ alpha မှာ မပံ့ပိုးသေးပါဘူး။
 
-## ၆။ Database ချိတ်ခြင်း
+## ၇။ Database ချိတ်ခြင်း
 
-1. Application နဲ့ project/environment တူတဲ့နေရာမှာ **New service → PostgreSQL database** ဖန်တီးပါ။
+1. Application နဲ့ project/environment တူတဲ့နေရာမှာ **New resource → PostgreSQL** ဖန်တီးပါ။
 2. Active ဖြစ်ရင် database ရဲ့ **Settings** ကိုဖွင့်ပါ။
 3. **Connect an application** မှာ app ကိုရွေးပြီး `DATABASE_URL` variable အဖြစ် save လုပ်ပါ။
 4. အဲဒီ app ကို redeploy လုပ်ပါ။
 
 Database မှာ public port မဖွင့်ထားပါဘူး။ Password ကိုလည်း dashboard မှာ မဖော်ပြပါဘူး။ Environment မတူတဲ့ app ကို တိုက်ရိုက်ချိတ်တာကို ပိတ်ထားပါတယ်။
 
-## ၇။ Backup နဲ့ restore
+## ၈။ Backup နဲ့ restore
 
 PostgreSQL ရဲ့ **Settings → Create backup** ကနေ dump ထုတ်ပြီး download လုပ်နိုင်ပါတယ်။ Server ပြင်ပက လုံခြုံတဲ့နေရာမှာ copy သိမ်းပါ။ Restore လုပ်ဖို့ database အသစ်တစ်ခုဖန်တီးပြီး backup ကိုရွေးပါ။ Data ရှိပြီးသား database ကို overwrite လုပ်တာကို ပိတ်ထားပါတယ်။
 
@@ -95,13 +104,13 @@ UI က လက်ရှိ installation ထဲမှာကျန်နေတဲ�
 
 Alpha.3 မှာ server တစ်ခုလုံးအတွက် cold backup / host restore command ပါဝင်ပါတယ်။ Backup ယူနေချိန် apps တွေ ခဏရပ်မယ်။ Backup directory အပြည့်ကို server ပြင်ပမှာ encrypt လုပ်ပြီးသိမ်းပါ။ Restore က မူလ server ကိုရပ်ထားပြီး version/architecture တူတဲ့ Docker host ဗလာတစ်လုံးပေါ်မှာလုပ်ရပါတယ်။ လက်ရှိ server ကို overwrite လုပ်တဲ့ command မဟုတ်ပါဘူး။ [Host recovery အဆင့်ဆင့်](host-recovery.md) ကိုလိုက်ပါ။
 
-## ၈။ Deploy ပျက်သွားလျှင်
+## ၉။ Deploy ပျက်သွားလျှင်
 
 Failed deployment ရဲ့ error နဲ့ logs ကိုအရင်ကြည့်ပါ။ Stateless app အသစ် readiness မအောင်ရင် အရင် release ကို ဆက်သုံးနိုင်အောင်လုပ်ထားပါတယ်။ Persistent service ဆို writer နှစ်ခုမဖြစ်အောင် container အဟောင်းကိုရပ်ပြီးမှ အသစ်ကိုစပါတယ်၊ ဒါကြောင့် ခဏပြတ်နိုင်ပါတယ်။
 
 History က image အဟောင်းကို redeploy လုပ်ရင် deployment အသစ်တစ်ခုဖြစ်ပါတယ်။ **Database migration နဲ့ data ပြောင်းလဲမှုတွေကို image rollback က နောက်ပြန်မပြင်ပေးပါဘူး။** ပြဿနာအလိုက် [Troubleshooting](troubleshooting.md) မှာကြည့်ပါ။
 
-## ၉။ VPS / Linode ပေါ်တင်ခြင်း
+## ၁၀။ VPS / Linode ပေါ်တင်ခြင်း
 
 Local preview ကို public ဖွင့်ရုံနဲ့ VPS installation မပြီးပါဘူး။ Domain၊ wildcard DNS၊ ports 80/443၊ HTTPS နဲ့ backup တွေပါပြင်ဖို့ [VPS install guide](vps-operations.md) အတိုင်းလိုက်ပါ။
 
