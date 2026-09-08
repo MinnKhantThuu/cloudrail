@@ -14,10 +14,10 @@ This record separates implemented/local behavior from account-bound production c
 | GitHub handler | Signed HTTP payload/replay rejection, delivery deduplication and build cancellation/stale-attempt tests passed against isolated PostgreSQL schemas; real installed App delivery remains pending |
 | PostgreSQL | Private network/no public port, persistent container replacement, encrypted same-environment binding, backup download/checksum, empty-target restore and nonempty rejection passed |
 | HTTP volumes | Actual memory/CPU limits, immutable mount, data across redeploy, stopped-volume backup/restore to an empty target and preserved source passed |
-| Networking/metrics | Actual container measurements, custom host route and separate local HTTPS proxy with a trusted test certificate passed; no public ACME issuance yet |
+| Networking/metrics | Local route/TLS tests passed; Linode Cloud Firewall 22/80/443, public HTTP/2 dashboard and trusted Let's Encrypt issuance now verified |
 | Dashboard | Chrome desktop/mobile workspace, source history/GitHub settings and database creation/backup/binding journeys passed; final combined run: 3 passed in 42.8 seconds; screenshots visually inspected |
 | Control backup | Dump plus key/identity backup restored into a separate temporary database; original workspace untouched. This is not a whole-host restore |
-| Installer/AWS | Shell syntax, public Compose rendering and CloudFormation JSON parsed; AWS CLI availability-zone response shape checked. No authenticated AWS validation or clean Ubuntu install |
+| Installer/AWS | Unmodified installer passed on a clean Ubuntu 24.04 Linode amd64 host with real DNS/ACME. AWS remains an optional unverified provider path |
 | Packaging | Source and Linux amd64/arm64 binaries/dashboard/notices generated locally. Archive checksums/notices and repeatability/manifest/credential checks passed (`scripts/verify-release.py`) |
 
 The final dependency scan found reachable advisories in pgx v5.7.6 and x/text v0.24.0. They were updated to **pgx v5.9.2** and **x/text v0.39.0**. `govulncheck v1.7.0` then reported zero affected code paths and zero vulnerabilities in imported packages; it still lists advisories elsewhere in required modules that the application does not call. This is not an external security audit or a container-image scan. [Go pgx advisory](https://pkg.go.dev/vuln/GO-2026-5004), [Go x/text advisory](https://pkg.go.dev/vuln/GO-2026-5970). `npm audit` reported zero known vulnerabilities in the locked frontend dependency tree.
@@ -63,7 +63,7 @@ The local 30 GB Docker VM approached capacity during source builds. Only Cloudra
 
 ## Unverified external gates
 
-Real GitHub App installation/push delivery; AWS account/catalog/provisioning; public DNS/ACME/renewal; clean Ubuntu installation on both architectures; public-host reboot/disaster recovery; owner final UX review; actual billing observation; consult [GitHub Actions](https://github.com/MinnKhantThuu/cloudrail/actions/workflows/verify.yml) for current hosted CI results. See [AWS pilot](aws-pilot.md) and [release gates](release.md). Source publication is tracked in the roadmap. No AWS resource was created by publishing the repository.
+Real GitHub App installation/push delivery; ACME renewal; clean public installation on arm64; public-host reboot/disaster recovery; owner final UX review; actual billing observation; and the optional AWS provider path remain unverified. Public DNS, first ACME issuance and clean Ubuntu 24.04 amd64 installation passed on the selected Linode with temporary `sslip.io` DNS. Consult [GitHub Actions](https://github.com/MinnKhantThuu/cloudrail/actions/workflows/verify.yml) for hosted CI results and [release gates](release.md) for the remaining scope.
 
 ## Public repository and fresh-runner verification
 
@@ -132,3 +132,15 @@ The alpha.4 [tag-triggered CI run 34213842668](https://github.com/MinnKhantThuu/
 ## Linode pilot preflight — 2026-09-08
 
 The owner selected `172.104.38.63` as the first public pilot, replacing AWS for this run. TCP 22 accepted a connection. TCP 80/443 and direct HTTP/HTTPS timed out, and reverse DNS returned no record. A read-only `root` SSH attempt with the available local identity reached the SSH service but was rejected with public-key authentication; therefore OS, capacity, Docker and firewall state remain unverified. No package, DNS, firewall or server data was changed. A dedicated local Ed25519 pilot key was generated under ignored `.data` storage for explicit authorization. The public half may be installed by the owner; the private half must never enter source control or chat.
+
+## Linode alpha.4 public install — 2026-09-08
+
+The owner authorized root recovery, the dedicated SSH identity and HTTP/HTTPS firewall rules. Root access was recovered through LISH, the key was installed with mode-restricted SSH files, and a batch SSH request succeeded after independently matching the live Ed25519 host fingerprint to the boot-console fingerprint.
+
+The target is Ubuntu 24.04.4 x86-64 on a Linode 4 GB plan: 2 CPU, 3.8 GiB usable RAM, 79 GiB root filesystem with 72 GiB initially free. Cloud Firewall ID `159893558` accepts TCP 22, 80 and 443 plus ICMP; its default inbound policy remains drop. After the rule update, ports 80/443 changed from timeout to immediate refusal before a listener started, proving the network path without confusing it with application readiness.
+
+Docker Engine 29.8.0 (API 1.56) and Compose 5.5.1 were installed from Docker's Ubuntu repository. Exact alpha.4 commit `302aec491fc33fd8a0ef5216b33856d899e5cb5f` was checked out under `/opt/cloudrail`. The unmodified public installer passed OS, architecture, DNS, RAM and disk preflight using `console.172-104-38-63.sslip.io` and `apps.172-104-38-63.sslip.io`, then built and started PostgreSQL, server, agent, proxy, registry and BuildKit. PostgreSQL, server and agent reported healthy.
+
+The public dashboard returned HTTP/2 200. Its certificate has subject/SAN `console.172-104-38-63.sslip.io`, issuer Let's Encrypt YR1 and validity 2026-09-08 through 2026-12-07. `/auth/status` returned `configured:false`, which proves the one-time owner screen remains available; it is not owner login acceptance. The first no-load container snapshot totaled about 82 MiB (API 4.66, agent 4.06, PostgreSQL 30.59, proxy 17.12, registry 15.02 and BuildKit 10.52 MiB). Docker daemon, kernel cache, applications and build peaks are excluded.
+
+This closes the first-host access, firewall, clean Ubuntu amd64 installer and real ACME issuance gates. Temporary `sslip.io` DNS is suitable for the pilot but is not a user-owned production domain. Owner setup/secure-cookie browser use, GitHub App/webhook delivery, real workload behavior, reboot, off-server restore, renewal and 48-hour cost/resource observation remain pending.

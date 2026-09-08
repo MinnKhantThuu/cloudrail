@@ -1,26 +1,30 @@
 # Linode public pilot
 
-Status, 2026-09-08: target `172.104.38.63` supplied by the owner. TCP 22 accepts connections. TCP 80/443 and direct HTTP/HTTPS timed out. Reverse DNS is absent. A read-only `root` SSH attempt using the local default identity was rejected with `Permission denied (publickey)`. No package, firewall, DNS or server state was changed.
+Status, 2026-09-08: preparation and public control-plane install complete on target `172.104.38.63`. The 4 GB Singapore Linode runs Ubuntu 24.04.4 x86-64 with 2 CPU and a 79 GiB root disk. A dedicated root SSH identity was authorized and verified against the console-published host fingerprint. Cloud Firewall allows TCP 22/80/443 with default inbound drop. Docker 29.8.0/API 1.56 and Compose 5.5.1 are installed.
+
+Exact alpha.4 commit `302aec491fc33fd8a0ef5216b33856d899e5cb5f` passed installer preflight and is live at `https://console.172-104-38-63.sslip.io`. The dashboard returned HTTP/2 200 with a trusted Let's Encrypt YR1 certificate valid for that hostname. All six platform containers started, with PostgreSQL, server and agent healthy. The first idle snapshot totaled about 82 MiB across the six containers; Docker daemon, OS cache and build peaks are excluded. Owner setup, GitHub App delivery, pilot workload, reboot/recovery and the 48-hour observation remain pending.
 
 ## Access handoff
 
-Add the project-specific public key supplied by the operator to `/root/.ssh/authorized_keys` using Linode Cloud Manager/Lish or another already-authorized session. Do not send the root password, SSH private key, API token or recovery data through chat. The private half stays in ignored local `.data` storage with mode `0600`.
+The project-specific public key is present in `/root/.ssh/authorized_keys`. The private half and generated recovery credential remain in ignored local `.data` storage with mode `0600`; they must never enter source control or chat.
 
-After key authorization, the first connection only records:
+The initial verified connection recorded:
 
 - `/etc/os-release`, architecture and kernel;
 - CPU count, RAM and free root/Docker disk;
 - Docker/Compose availability;
 - listening ports and active host firewall policy.
 
-The supported installer target is Ubuntu 24.04 or 26.04, amd64/arm64, at least 4 GB RAM and at least 8 GB free Docker disk (20 GB recommended). If this host is smaller or uses another OS, resize/rebuild it before installation.
+The supported installer target is Ubuntu 24.04 or 26.04, amd64/arm64, at least 4 GB RAM and at least 8 GB free Docker disk (20 GB recommended). This host passed those checks; no resize or replacement purchase was needed.
 
-## Inputs before installation
+## Pilot DNS used for installation
 
-- Dashboard hostname, for example `cloudrail.example.com`.
-- Wildcard application domain, for example `*.apps.example.com`.
-- ACME contact email.
-- Pilot GitHub repository and its expected user flow.
+- Dashboard hostname: `console.172-104-38-63.sslip.io`.
+- Wildcard-compatible application suffix: `apps.172-104-38-63.sslip.io`.
+- Both resolve directly to `172.104.38.63`; the installer preflight passed.
+- The contact email came from the repository operator configuration and is retained only in the private installation environment.
+
+`sslip.io` provides temporary IP-based public DNS for this pilot. Move to a user-owned domain before relying on the hostname for wider or long-term use. The remaining external input is the pilot GitHub repository and its expected user flow.
 
 Both dashboard `A` and wildcard application `A` records must resolve directly to `172.104.38.63`. TCP 80 and 443 must be allowed in the Linode Cloud Firewall and host firewall; SSH should remain restricted to the operator's source network where practical. The installer performs DNS/RAM/disk checks before changing packages.
 

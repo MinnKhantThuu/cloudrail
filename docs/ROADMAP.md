@@ -20,11 +20,11 @@ Public customer signup၊ billing၊ arbitrary customer code၊ autoscaling၊ K
 | --- | --- |
 | Phase 0–3 — flow, workspace, node/jobs | Code + local verification ပြီး |
 | Phase 4 — GitHub source builds | Public Dockerfile/Railpack live builds ပြီး; real GitHub App delivery pending |
-| Phase 5 — operating features | Code + local DB/volume/HTTPS tests ပြီး; clean VPS/ACME pending |
-| Phase 6 — Linode pilot | Target IP ရရှိ; SSH port reachable; host login/domain မရသေး |
+| Phase 5 — operating features | Code + local DB/volume tests ပြီး; clean Linode amd64 install + real ACME issuance အောင် |
+| Phase 6 — Linode pilot | 4 GB Linode access + firewall + alpha.4 public HTTPS install အောင်; owner/GitHub app pilot pending |
 | Phase 7 — release preparation | Source + Linux amd64/arm64 archives, CI definitions, docs ပြီး; final local checks အောင် |
 | UX | Desktop/mobile automated checks + visual inspection ပြီး; owner final review pending |
-| Git / hosting | **[MinnKhantThuu/cloudrail](https://github.com/MinnKhantThuu/cloudrail) public source တင်ပြီး**; alpha.4 release တင်ပြီး; Linode deployment မစရသေး |
+| Git / hosting | **[MinnKhantThuu/cloudrail](https://github.com/MinnKhantThuu/cloudrail) public source တင်ပြီး**; alpha.4 release တင်ပြီး; Linode control plane live |
 
 Code ရေးပြီးတာကို public VPS/AWS verification ပြီးတယ်လို့ မရေတွက်ပါ။ Phase 6 account-bound အဆင့်ရောက်ပြီးနောက် အဲဒီ access မလိုတဲ့ Phase 7 packaging ကို ဆက်လုပ်ထားသည်။ Phase အရေအတွက်နဲ့ completion percentage မတွက်ပါ။
 
@@ -85,11 +85,11 @@ Public HTTPS installer/config ရှိပြီး local TLS proof ရှိသ
 | **2 — Workspace & core UX** | နေ့စဉ်သုံးမယ့် screens နဲ့ settings ကိုအခြေခံချခြင်း | Login၊ projects/environments/services၊ variables၊ restart/stop | **Code + local verification ပြီး; user UX review pending** |
 | **3 — Reliable node & jobs** | Restart/disconnect/overlap ဖြစ်ချိန် state မှန်အောင်လုပ်ခြင်း | Node online/offline၊ recoverable jobs၊ ရှင်းလင်းတဲ့ failure state | **Code + local failure/recovery checks ပြီး** |
 | **4 — GitHub deployment** | Repo ကနေ app တင်လို့ရအောင်လုပ်ခြင်း | Repo/branch ရွေး၊ push-to-deploy၊ build logs | **Local code + public GitHub build proof ပြီး; live App install/webhook pending** |
-| **5 — VPS operating features** | Public URL နဲ့ persistent app တွေကိုထိန်းနိုင်အောင်လုပ်ခြင်း | Installer၊ domain/HTTPS၊ metrics၊ volumes၊ DB backup/restore | **Code + local verification ပြီး; clean public VPS/ACME pending** |
-| **6 — Linode pilot** | ကိုယ်ပိုင် application တစ်ခုနဲ့တကယ်သုံးစမ်းခြင်း | Linode ပေါ် end-to-end deployed app နဲ့ measured cost | **Target IP ရရှိ; SSH authorization/domain pending** |
-| **7 — Open-source beta** | တခြားသူ install/update လုပ်လို့ရတဲ့ release ပြင်ခြင်း | Versioned release၊ docs၊ clean install/upgrade proof | **Public source/docs တင်ပြီး; hosted CI evidence ရရှိ; public VPS/beta gates pending** |
+| **5 — VPS operating features** | Public URL နဲ့ persistent app တွေကိုထိန်းနိုင်အောင်လုပ်ခြင်း | Installer၊ domain/HTTPS၊ metrics၊ volumes၊ DB backup/restore | **Single clean Linode amd64 installer + public DNS/ACME အောင်; reboot/renewal pending** |
+| **6 — Linode pilot** | ကိုယ်ပိုင် application တစ်ခုနဲ့တကယ်သုံးစမ်းခြင်း | Linode ပေါ် end-to-end deployed app နဲ့ measured cost | **Control plane public HTTPS live; owner/GitHub app/workload/observation pending** |
+| **7 — Open-source beta** | တခြားသူ install/update လုပ်လို့ရတဲ့ release ပြင်ခြင်း | Versioned release၊ docs၊ clean install/upgrade proof | **Public source/docs/CI + one public amd64 install ရရှိ; beta gates pending** |
 
-**လက်ရှိ Phase 7 alpha packaging/verification ပြီးထားပြီး Phase 6 Linode real pilot ကို `172.104.38.63` ပေါ် စတင်ထားသည်။ SSH key authorization/domain မရှိသေးသဖြင့် host inventory မပြီးသေး။**
+**လက်ရှိ Phase 7 alpha packaging/verification ပြီးထားပြီး Phase 6 Linode real pilot ကို `172.104.38.63` ပေါ် စတင်ထားသည်။ Host preparation နဲ့ alpha.4 public HTTPS control-plane install အောင်ထားပြီး owner setup၊ GitHub App၊ pilot workload နဲ့ operating observation ဆက်လုပ်ရန်ကျန်သည်။**
 
 ## 5. Phase တစ်ခုချင်းစီရဲ့ အလုပ်နဲ့ ပြီးဆုံးစံ
 
@@ -164,7 +164,7 @@ Encrypted runtime variables၊ port/readiness settings၊ restart/stop၊ histor
 
 ### Phase 6 — Linode pilot
 
-**6.1 Deployment preparation:** Target Linode ရဲ့ Ubuntu version၊ CPU/RAM/disk၊ SSH access၊ Cloud Firewall၊ public IPv4၊ registry၊ backups နဲ့ current plan cost ကိုစစ်မယ်။ Target `172.104.38.63` တွင် port 22 reachable ဖြစ်ပြီး 80/443 timeout ဖြစ်သည်; `root` public-key authentication နဲ့ Linode API access မရသေး။
+**6.1 Deployment preparation:** Target Linode ရဲ့ Ubuntu version၊ CPU/RAM/disk၊ SSH access၊ Cloud Firewall၊ public IPv4၊ registry၊ backups နဲ့ current plan cost ကိုစစ်မယ်။ Target `172.104.38.63` သည် Ubuntu 24.04.4 x86-64, 2 CPU, 3.8 GiB RAM, 79 GiB root disk ဖြစ်သည်။ Dedicated root SSH key ကို verify လုပ်ပြီး Cloud Firewall မှာ 22/80/443 allow, default inbound drop ဖြစ်သည်။
 
 **6.2 Real deployment:** Linode node install၊ domain/TLS၊ repo connection၊ user ရွေးတဲ့ ကိုယ်ပိုင် application တစ်ခုတင်။ Provider-specific firewall/backup integration လိုတာကိုသာထည့်မယ်။
 
@@ -203,7 +203,7 @@ Current phase:
 
 ## 7. လက်ရှိ checkpoint
 
-- **Current:** Phase 6.1 Linode pilot preflight. User supplied `172.104.38.63`; TCP 22 is reachable, TCP 80/443 and direct HTTP/HTTPS timed out, reverse DNS is absent, and `root` rejected the available local public key. No server mutation occurred. Exit for this substep: authorized SSH, supported Ubuntu, at least 4 GB RAM/adequate disk, 80/443 path and target domains confirmed. Alpha.4/CI evidence remains valid.
+- **Current:** Phase 6.2 Linode public install. Phase 6.1 passed on `172.104.38.63`: dedicated SSH identity, Ubuntu 24.04.4 x86-64, 2 CPU, 3.8 GiB RAM, 79 GiB disk and Cloud Firewall 22/80/443 were verified. Docker 29.8.0/API 1.56 and Compose 5.5.1 were installed. Exact alpha.4 commit `302aec4` passed installer preflight and started six containers at `https://console.172-104-38-63.sslip.io`; public HTTP/2 200 and a trusted Let's Encrypt YR1 certificate were verified. Owner setup and the real GitHub/workload pilot remain pending.
 - **Phase 0:** User approved sequential continuation through all phases.
 - **Phase 2 evidence:** Go race tests + vet, frontend build, real Docker acceptance, Chrome desktop/mobile journey passed (31.9s). See [Phase 2 flow](phase-2-flow.md).
 - **UX:** Automated browser verification and agent visual inspection; user final UX review pending.
@@ -211,11 +211,11 @@ Current phase:
 - **Remote:** Public source committed/pushed to [MinnKhantThuu/cloudrail](https://github.com/MinnKhantThuu/cloudrail), main branch. Private vulnerability reporting enabled. No AWS resources, public application domain or installed GitHub App; [v0.1.0-alpha.4](https://github.com/MinnKhantThuu/cloudrail/releases/tag/v0.1.0-alpha.4) is published with all four verified CI assets. Alpha.3 notes link to its public-dashboard recovery repair.
 - **Phase 3 evidence:** mTLS heartbeat/revoke, dedup, cancellation, agent/container restart recovery, isolated PostgreSQL stale-attempt/retry tests and independent backup restore passed. See [Phase 3 flow](phase-3-flow.md).
 - **Phase 4 evidence:** Public GitHub Dockerfile + Railpack builds each served real HTTP via registry digests; failed build preserved traffic. Browser Source/GitHub desktop/mobile passed. Signed replay/stale/cancellation/retry DB tests passed. A transient local disk-full failure was resolved with Cloudrail-only build-cache cleanup and the DB test rerun passed.
-- **Account gap:** Linode SSH authorization, target domains, ACME email, GitHub App installation/delivered webhook and pilot repository are pending.
-- **Phase 5 evidence:** PostgreSQL and HTTP volume persistence/backup/restore passed, including nonempty restore rejection; actual Docker limits/metrics and domain route passed. Local HTTPS with a trusted test certificate passed. Database UI journey passed (13.1s). Ubuntu installer syntax/public Compose validation passed; clean host + ACME issuance pending.
-- **Phase 6 preparation:** Linode target IP selected and network preflight started. AWS Lightsail template/planner remains an optional provider reference; it is no longer the selected pilot path.
-- **Phase 7 preparation:** Versioned source and Linux amd64/arm64 archives, checksums/notices, CI definitions, current quickstart/API/architecture/security/contributing/update/recovery docs. Final Go race/vet + isolated DB tests + real Docker acceptance passed after dependency fixes. All 3 Chrome desktop/mobile journeys passed (42.8s). Archive checksums/notices and deterministic source/credential-exclusion checks passed; [Hosted CI run 34201850332](https://github.com/MinnKhantThuu/cloudrail/actions/runs/34201850332) passed checks and runtime jobs on a fresh Ubuntu 24.04 runner. This verifies the local Compose quickstart on Linux amd64; public installer/ACME remain pending. Independent-host cold recovery subsequently passed in run 34211555644. The subsequent [alpha.2 CI run](https://github.com/MinnKhantThuu/cloudrail/actions/runs/34205416387) passed all three jobs, including the old-public-runtime → alpha.2 upgrade/rollback rehearsal with continuous app HTTP traffic and encrypted configuration preservation.
-- **Next external inputs:** Authorize the project-specific SSH public key on `root@172.104.38.63`, then supply dashboard/wildcard app domain, ACME email, pilot repository and expected app flow. Secrets stay outside chat. See [Linode pilot](linode-pilot.md), [release gates](release.md), [current verification](verification-current.md).
+- **Account gap:** Linode access and temporary pilot DNS/ACME are complete. Owner account setup, GitHub App installation/delivered webhook and pilot repository are pending. A user-owned branded domain remains optional before wider use.
+- **Phase 5 evidence:** PostgreSQL and HTTP volume persistence/backup/restore passed, including nonempty restore rejection; actual Docker limits/metrics and domain route passed. Local HTTPS with a trusted test certificate passed. Database UI journey passed (13.1s). The unmodified Ubuntu installer also passed on the clean Linode amd64 host with public DNS and real ACME issuance; renewal and public recovery remain pending.
+- **Phase 6 preparation:** Linode host access, inventory, Docker prerequisites, Cloud Firewall and temporary pilot DNS are complete. AWS Lightsail template/planner remains an optional provider reference; it is no longer the selected pilot path.
+- **Phase 7 preparation:** Versioned source and Linux amd64/arm64 archives, checksums/notices, CI definitions, current quickstart/API/architecture/security/contributing/update/recovery docs. Final Go race/vet + isolated DB tests + real Docker acceptance passed after dependency fixes. All 3 Chrome desktop/mobile journeys passed (42.8s). Archive checksums/notices and deterministic source/credential-exclusion checks passed; [Hosted CI run 34201850332](https://github.com/MinnKhantThuu/cloudrail/actions/runs/34201850332) passed checks and runtime jobs on a fresh Ubuntu 24.04 runner. Independent-host cold recovery subsequently passed in run 34211555644. Alpha.4 now also has one clean public Ubuntu amd64 installer/ACME proof on Linode; arm64 public install and remaining beta gates are still pending. The [alpha.2 CI run](https://github.com/MinnKhantThuu/cloudrail/actions/runs/34205416387) passed all three jobs, including the old-public-runtime → alpha.2 upgrade/rollback rehearsal with continuous app HTTP traffic and encrypted configuration preservation.
+- **Next external inputs:** Complete the one-time owner form over the verified HTTPS dashboard, then select the pilot repository and expected app flow. GitHub App creation/installation follows when that repository is selected. Secrets stay outside chat. See [Linode pilot](linode-pilot.md), [release gates](release.md), [current verification](verification-current.md).
 
 ## 8. Completion-goal work queue — 2026-09-08
 
@@ -239,9 +239,9 @@ The preceding alpha.3 and alpha.4 goal turns completed release/recovery work whi
 | --- | --- | --- |
 | Public source, README/flow/usage and versioned alpha | Public alpha.4 tag/assets, 167 source entries matching Git, checksums/provenance and anonymous download; current docs pushed | Verified |
 | Independent install, update, rollback and recovery | Main/tag CI: clean Ubuntu Compose journey, cross-version maintenance, two-host data recovery and fixture-TLS dashboard routing | Verified within the recorded Linux/fixture scope |
-| Clean public VPS installer, real DNS/HTTPS and reboot recovery | No target public host/domain; fixture certificates do not prove ACME or public secure-cookie login | Pending target access |
+| Clean public VPS installer, real DNS/HTTPS and reboot recovery | Alpha.4 clean install and Let's Encrypt HTTPS passed on the Linode with temporary `sslip.io` DNS; owner secure-cookie login and reboot/renewal remain | In progress |
 | Real GitHub App push-to-deploy | No configured App/pilot repository supplied; signed local tests/public source builds are narrower evidence | Pending owner App/repository |
-| Linode pilot, real app flow, off-server recovery and 48-hour measured operation/cost | Target IP exists; SSH authorization, host inventory, domain, app choice and deployment are pending | In progress, blocked on access inputs |
+| Linode pilot, real app flow, off-server recovery and 48-hour measured operation/cost | Host access/firewall/inventory and public control plane are verified; owner setup, GitHub App, app choice, recovery and observation remain | In progress |
 | Final owner UX walkthrough | Automated/visual checks exist, but no owner acceptance was supplied | Pending owner review |
 
-Resume after adding the task-specific public key to `root@172.104.38.63`, then supply dashboard/wildcard app domain, ACME email, the owner's GitHub App/pilot repository and selected app flow. Continue with the [Linode pilot runbook](linode-pilot.md). This state does not claim production/beta readiness or an external security audit.
+Resume at owner setup on the verified public dashboard, then select the GitHub App/pilot repository and app flow. Continue with the [Linode pilot runbook](linode-pilot.md). This state does not claim workload/reboot/recovery completion, production/beta readiness or an external security audit.
