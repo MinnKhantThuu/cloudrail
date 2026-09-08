@@ -19,13 +19,17 @@ if [ "${#task_apps[@]}" -gt 0 ]; then docker rm -f "${task_apps[@]}" >/dev/null;
 bash scripts/compose.sh down
 sudo systemctl stop docker.service docker.socket
 sudo mkdir -p /var/lib/cloudrail-recovery-test /run/cloudrail-recovery-test
-sudo sh -c 'nohup dockerd --host=unix:///run/cloudrail-recovery-test/docker.sock --data-root=/var/lib/cloudrail-recovery-test --exec-root=/run/cloudrail-recovery-test --pidfile=/run/cloudrail-recovery-test/dockerd.pid --bridge=cr-recovery0 --bip=172.28.0.1/16 --default-address-pool=base=172.29.0.0/16,size=24 > /tmp/cloudrail-recovery-dockerd.log 2>&1 &'
+printf '{}\n' | sudo tee /run/cloudrail-recovery-test/daemon.json >/dev/null
+sudo sh -c 'nohup dockerd --config-file=/run/cloudrail-recovery-test/daemon.json --host=unix:///run/cloudrail-recovery-test/docker.sock --data-root=/var/lib/cloudrail-recovery-test --exec-root=/run/cloudrail-recovery-test --pidfile=/run/cloudrail-recovery-test/dockerd.pid --bridge=none --containerd-namespace=cloudrail-recovery --containerd-plugins-namespace=cloudrail-recovery-plugins --default-address-pool=base=172.29.0.0/16,size=24 > /tmp/cloudrail-recovery-dockerd.log 2>&1 &'
 export DOCKER_HOST=unix:///run/cloudrail-recovery-test/docker.sock
 for task_attempt in $(seq 1 60); do
   if docker info >/dev/null 2>&1; then break; fi
   sleep 1
 done
 docker info >/dev/null
+test "$(docker info --format '{{.DockerRootDir}}')" = /var/lib/cloudrail-recovery-test
+test -z "$(docker image ls -q)"
+test -z "$(docker volume ls -q)"
 python3 .data/recovery-target/scripts/host-recovery.py restore "$task_root/.data/host-backup" --source-fenced
 cp .data/test-owner.json .data/host-fixture.json .data/recovery-target/.data/
 python3 .data/recovery-target/scripts/host-recovery-acceptance.py verify

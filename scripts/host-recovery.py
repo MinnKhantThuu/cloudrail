@@ -36,7 +36,8 @@ def host():
     info = json.loads(docker('info', '--format', '{{json .}}'))
     if info['OSType'] != 'linux':
         raise RuntimeError('A Linux Docker daemon is required')
-    return {'id': info['ID'], 'architecture': info['Architecture']}
+    architecture = {'x86_64': 'amd64', 'aarch64': 'arm64'}.get(info['Architecture'], info['Architecture'])
+    return {'id': info['ID'], 'architecture': architecture}
 
 
 def checksum(path):
@@ -90,7 +91,7 @@ def volume_archive(path):
 
 
 def helper(image, volume, reading=True):
-    args = ['docker', 'run', '--rm', '-i', '--network', 'none', '--read-only',
+    args = ['docker', 'run', '--rm', '-i', '--log-driver', 'none', '--network', 'none', '--read-only',
             '--security-opt', 'no-new-privileges', '--cap-drop', 'ALL', '--cap-add', 'DAC_OVERRIDE']
     if not reading:
         args += ['--cap-add', 'CHOWN', '--cap-add', 'FOWNER']
@@ -262,7 +263,7 @@ def restore(directory, fenced, public_ip):
         raise RuntimeError('Use the matching source release and deployment configuration')
     if (ROOT / 'deploy/local/.env').exists() or docker('ps', '-aq') or docker('volume', 'ls', '-q'):
         raise RuntimeError('Restore requires an empty Docker host and no installed environment')
-    if record['public'] and (not public_ip or not ipaddress.ip_address(public_ip).is_global):
+    if record['public'] and (not public_ip or ipaddress.ip_address(public_ip).version != 4 or not ipaddress.ip_address(public_ip).is_global):
         raise RuntimeError('Public recovery needs --public-ip for the new host; prepare DNS and ports first')
     checkpoint = ROOT / '.data/host-restore.json'
     m.save(checkpoint, {'phase': 'restoring', 'backup': str(directory), 'host': target})
