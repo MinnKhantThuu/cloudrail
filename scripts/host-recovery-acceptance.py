@@ -66,12 +66,13 @@ if sys.argv[1]=='prepare':
     fixture={'projectIDs':sorted(p['id'] for p in state['projects']),'serviceIDs':sorted(s['id'] for s in state['services']),
              'app':app['id'],'image':image,'bindingSHA256':env_hash(d['id']),'database':result['database']['id'],
              'restoredDatabase':result['restored']['id'],'backup':result['backup'],'stopped':stopped,
-             'sourceDockerID':command('docker','info','--format','{{.ID}}')}
+             'sourceDockerID':command('docker','info','--format','{{.ID}}'),
+             'sourceBootID':pathlib.Path('/proc/sys/kernel/random/boot_id').read_text().strip()}
     (ROOT/'.data/host-fixture.json').write_text(json.dumps(fixture));(ROOT/'.data/host-fixture.json').chmod(0o600)
     print('PASS fixture contains a retained registry image, database rows, app volume, backup download, hidden binding and stopped service')
 elif sys.argv[1]=='verify':
     fixture=json.loads((ROOT/'.data/host-fixture.json').read_text())
-    assert command('docker','info','--format','{{.ID}}')!=fixture['sourceDockerID']
+    assert pathlib.Path('/proc/sys/kernel/random/boot_id').read_text().strip()!=fixture['sourceBootID'], 'Destination reused the source kernel'
     state=c.json('/api/state')
     assert sorted(p['id'] for p in state['projects'])==fixture['projectIDs']
     assert sorted(s['id'] for s in state['services'])==fixture['serviceIDs']

@@ -37,7 +37,11 @@ def host():
     if info['OSType'] != 'linux':
         raise RuntimeError('A Linux Docker daemon is required')
     architecture = {'x86_64': 'amd64', 'aarch64': 'arm64'}.get(info['Architecture'], info['Architecture'])
-    return {'id': info['ID'], 'architecture': architecture}
+    try:
+        boot_id = pathlib.Path('/proc/sys/kernel/random/boot_id').read_text().strip()
+    except OSError:
+        boot_id = None
+    return {'id': info['ID'], 'architecture': architecture, 'bootID': boot_id}
 
 
 def checksum(path):
@@ -255,8 +259,10 @@ def restore(directory, fenced, public_ip):
     directory = pathlib.Path(directory).resolve()
     record = validate(directory)
     target = host()
-    if target['id'] == record['host']['id']:
-        raise RuntimeError('Restore requires a different Docker host')
+    # VM templates can clone Docker's persistent engine ID. A kernel boot ID
+    # disambiguates the running source; empty storage is still required below.
+    if target['id'] == record['host']['id'] and target.get('bootID') and target['bootID'] == record['host'].get('bootID'):
+        raise RuntimeError('Restore requires a different Docker host/kernel from the running source')
     if target['architecture'] != record['host']['architecture']:
         raise RuntimeError('Physical database recovery requires the same CPU architecture')
     if record['version'] != (ROOT / 'VERSION').read_text().strip() or record['config'] != config_hashes():

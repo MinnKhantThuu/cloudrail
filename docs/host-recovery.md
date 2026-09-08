@@ -25,7 +25,7 @@ Export the entire directory to encrypted off-server storage. It contains passwor
 
 ## Restore on a new host
 
-The destination must have a Linux Docker daemon of the same CPU architecture, Docker Compose and Python 3, sufficient free Docker disk, the matching Cloudrail source, and no containers, volumes or installed `deploy/local/.env`. Restore refuses the source Docker daemon and existing installations. The exact PostgreSQL image is restored; this procedure does not perform database-major or CPU-architecture migrations.
+The destination must have a Linux Docker daemon of the same CPU architecture, Docker Compose and Python 3, sufficient free Docker disk, the matching Cloudrail source, and no containers, volumes or installed `deploy/local/.env`. Restore refuses the still-running source daemon/kernel and existing installations. Docker IDs can be cloned in VM images, so Linux kernel boot identity and empty-storage checks disambiguate the destination; run the commands on the Docker host itself. The exact PostgreSQL image is restored; this procedure does not perform database-major or CPU-architecture migrations.
 
 Fence the old host first: power it down or otherwise prevent both its agent and application writers from running. Keep it fenced through cutover. Copy the private backup to the new host, outside the destination source directory if convenient:
 

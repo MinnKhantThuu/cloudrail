@@ -44,7 +44,7 @@ class HostRecoveryBoundaries(unittest.TestCase):
     def record(self):
         identifier='a'*32
         names=['cloudrail_'+n for n in sorted(h.PERSISTENT-{'certificates'})]
-        record={'format':1,'complete':True,'id':identifier,'public':False,'host':{'id':'source','architecture':'x86_64'},
+        record={'format':1,'complete':True,'id':identifier,'public':False,'host':{'id':'source','architecture':'x86_64','bootID':'source-kernel'},
                 'volumes':[{'name':name,'labels':{}} for name in names], 'applicationImages':[],
                 'images':{role:{'id':'sha256:'+'b'*64,'ref':'cloudrail-host-'+role+':'+identifier} for role in h.ROLES}, 'files':{}}
         data=self.archive([('proof',tarfile.REGTYPE,'')]).read_bytes()
