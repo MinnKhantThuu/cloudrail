@@ -1,7 +1,7 @@
 # Cloudrail — Railway-inspired product and delivery plan
 
 Updated: 2026-09-09  
-Status: **UX-0 product contract and UX-1 resource model/canvas API implemented and locally verified; UX-2 canvas UI is next.**
+Status: **UX-0 product contract, UX-1 resource model/API and UX-2 canvas shell implemented and locally verified; UX-3 compute flow is next.**
 
 ဒီစာတမ်းက Cloudrail ကို “service card နှစ်မျိုးပါတဲ့ dashboard” အဖြစ်မတည်ဆောက်ဘဲ Railway လို **project canvas ကနေ application stack တစ်ခုလုံးဆောက်၊ ချိတ်၊ deploy နဲ့ operate လုပ်နိုင်တဲ့ self-hosted PaaS** အဖြစ်ပြောင်းရန် canonical feature plan ဖြစ်သည်။ Phase အစဉ်နဲ့ overall progress ကို `ROADMAP.md` ကပဲ ဆက်ထိန်းမည်။
 
@@ -192,7 +192,7 @@ flowchart LR
 
 ### UX-2 — Real project canvas shell
 
-**Status:** Not started.
+**Status:** Implemented locally. Production frontend build and mocked desktop/mobile Chrome journeys passed; public deployment and user UX acceptance remain pending.
 
 **Scope:** Pan/zoom/fit, node drag, persisted layout, selection URL, close/back behavior, create palette, command palette, context menu, desktop/mobile drawer shell။
 

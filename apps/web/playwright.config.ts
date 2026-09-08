@@ -4,5 +4,5 @@ export default defineConfig({
   timeout: 120000,
   expect: { timeout: 15000 },
   workers: 1,
-  use: { baseURL: 'http://localhost:8080', channel: 'chrome', viewport: { width: 1440, height: 1000 }, screenshot: 'only-on-failure', trace: 'off' },
+  use: { baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:8080', channel: 'chrome', viewport: { width: 1440, height: 1000 }, screenshot: 'only-on-failure', trace: 'off' },
 });

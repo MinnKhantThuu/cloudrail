@@ -26,6 +26,12 @@ UX-1 adds backward-compatible service classification, normalized volume/attachme
 
 Targeted tests and the full non-race Go integration suite plus `go vet ./...` passed against disposable PostgreSQL. A local full race attempt could not create its isolated schemas after the larger Debian Go image filled the Docker VM; this was an environment disk failure before assertions, and hosted race/CI evidence for UX-1 remains pending. The temporary image and test containers were removed. No current dashboard or public Linode update has been made for UX-1.
 
+## Railway-inspired canvas shell — 2026-09-09
+
+UX-2 replaces the default service card grid with the environment canvas graph. It supports pan, wheel/button zoom, fit, draggable nodes with server-persisted positions, URL-backed selection, real reference/attachment edges, resource drawers and one create palette opened from the header, canvas, right-click or `Cmd/Ctrl + K`. Existing application, PostgreSQL and volume resources are clickable. Future worker, cron, Redis, MySQL, MongoDB, volume and bucket creation is visibly disabled and labeled with its planned phase instead of acting as a dead control.
+
+`npm run build` passed. Two Chrome journeys against a mocked control API passed in 2.3 seconds: desktop resource/edge/drawer navigation, keyboard/context creation, layout save and refresh restoration; and a 390×844 full-screen volume drawer with no horizontal overflow. Desktop/mobile screenshots were inspected. Existing real-stack browser selectors were updated for the new canvas flow, but those journeys have not been rerun in this local phase. The public Linode still serves the alpha.4 dashboard; UX-2 is not remotely deployed or user-accepted yet.
+
 The final dependency scan found reachable advisories in pgx v5.7.6 and x/text v0.24.0. They were updated to **pgx v5.9.2** and **x/text v0.39.0**. `govulncheck v1.7.0` then reported zero affected code paths and zero vulnerabilities in imported packages; it still lists advisories elsewhere in required modules that the application does not call. This is not an external security audit or a container-image scan. [Go pgx advisory](https://pkg.go.dev/vuln/GO-2026-5004), [Go x/text advisory](https://pkg.go.dev/vuln/GO-2026-5970). `npm audit` reported zero known vulnerabilities in the locked frontend dependency tree.
 
 ## Repeat the checks

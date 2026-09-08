@@ -28,10 +28,11 @@ test('real dashboard: create, validate, deploy, inspect logs, recover, and use m
   await page.getByRole('dialog').getByLabel('Environment name').fill('staging');
   await page.getByRole('dialog').getByRole('button', {name:'Create environment',exact:true}).click();
   await expect(page.getByLabel('Environment', {exact:true})).toHaveValue('staging');
-  await page.getByRole('button', { name: 'New service', exact: true }).click();
+  await page.getByRole('button', { name: 'New resource', exact: true }).click();
+  await page.getByRole('dialog', {name:'Add to your canvas'}).getByRole('button', {name:/Empty Service/}).click();
   dialog = page.getByRole('dialog');
-  await dialog.getByLabel('Service name').fill('hello-api');
-  await dialog.getByRole('button', { name: 'Create service' }).click();
+  await dialog.getByLabel('Resource name').fill('hello-api');
+  await dialog.getByRole('button', { name: 'Create resource' }).click();
   await expect(page.getByRole('region', { name: 'hello-api details' })).toBeVisible();
   await page.getByRole('tab', {name:'Variables',exact:true}).click();
   await page.getByLabel('Variable name').fill('DEMO_VALUE');
@@ -67,9 +68,9 @@ test('real dashboard: create, validate, deploy, inspect logs, recover, and use m
   await page.screenshot({ path: screenshots + 'failed-deployment.png', fullPage: true });
   const result = await page.request.get(appURL!);
   expect(result.ok()).toBeTruthy();
-  await page.getByLabel('Filter services').fill('does-not-exist');
-  await expect(page.getByText('No services match')).toBeVisible();
-  await page.getByLabel('Filter services').fill('');
+  await page.getByLabel('Filter resources').fill('does-not-exist');
+  await expect(page.getByText('No resources match')).toBeVisible();
+  await page.getByLabel('Filter resources').fill('');
   await page.setViewportSize({ width: 390, height: 844 });
   await page.screenshot({ path: screenshots + 'mobile.png', fullPage: true });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();

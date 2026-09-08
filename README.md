@@ -22,7 +22,7 @@ Cloudrail turns a Linux Docker server into a workspace for deploying your applic
 
 Inspired by the developer experience of Railway and the self-hosting model of Coolify, Cloudrail uses original application code and UI. It is not affiliated with either project.
 
-**Status: early alpha (`0.1.0-alpha.4`).** Designed for **one owner, one Linux node and trusted repositories**. Local deployment, recovery, database and browser journeys have been tested, along with a fresh Ubuntu CI Docker quickstart. The current dashboard still uses a limited application/PostgreSQL flow; the generic Railway-inspired resource model and project canvas are now specified in the [product plan](docs/railway-parity-plan.md) and are not implemented yet. A Linode host is selected for the first public pilot; installation, DNS-issued HTTPS and a real GitHub App push still require end-to-end verification. Public source availability does not mean production readiness. See [verification](docs/verification-current.md).
+**Status: early alpha (`0.1.0-alpha.4`).** Designed for **one owner, one Linux node and trusted repositories**. Local deployment, recovery, database and browser journeys have been tested, along with a fresh Ubuntu CI Docker quickstart. The Railway-inspired generic resource model and local project canvas shell are implemented through UX-2; compute/data/storage creation and operation continue phase by phase in the [product plan](docs/railway-parity-plan.md). The public Linode still runs the alpha.4 dashboard and has not received this canvas yet. Public source availability does not mean production readiness. See [verification](docs/verification-current.md).
 
 ## Features
 
