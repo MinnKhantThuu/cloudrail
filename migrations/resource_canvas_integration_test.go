@@ -95,4 +95,7 @@ func TestResourceCanvasMigrationPreservesLegacyServices(t *testing.T) {
 	if err = db.QueryRow(ctx, `SELECT source_type FROM service_sources WHERE service_id=$1`, application).Scan(&source); err != nil || source != "github" {
 		t.Fatalf("legacy source was not classified: %s err=%v", source, err)
 	}
+	if _, err = db.Exec(ctx, `INSERT INTO deployments(id,service_id,image,port,health_path,status) VALUES($1,$2,'example@sha256:test',8080,'/','predeploy')`, "444444444444444444444444", application); err != nil {
+		t.Fatalf("upgraded deployment status constraint rejected predeploy: %v", err)
+	}
 }
