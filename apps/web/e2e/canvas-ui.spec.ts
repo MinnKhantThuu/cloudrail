@@ -32,7 +32,7 @@ const graph = {
     { key: 'service:worker-1', id: 'worker-1', kind: 'service', name: 'email-queue', status: 'active', workloadMode: 'worker', sourceType: 'image', privateAddress: 'email-queue.internal', position: { x: 130, y: 390 } },
     { key: 'service:cron-1', id: 'cron-1', kind: 'service', name: 'nightly-cleanup', status: 'active', workloadMode: 'cron', sourceType: 'image', privateAddress: 'nightly-cleanup.internal', position: { x: 410, y: 470 } },
     { key: 'service:db-1', id: 'db-1', kind: 'database', name: 'postgres', status: 'active', workloadMode: 'database', template: 'PostgreSQL', privateAddress: 'postgres.internal:5432', position: { x: 610, y: 150 } },
-    { key: 'volume:volume-1', id: 'volume-1', kind: 'volume', name: 'postgres-data', status: 'attached', template: 'local', position: { x: 610, y: 380 } },
+    { key: 'volume:volume-1', id: 'volume-1', kind: 'volume', name: 'postgres-data', status: 'attached', template: 'local', managedByTemplate: true, position: { x: 610, y: 380 } },
   ],
   links: [
     { id: 'reference-1', from: 'service:app-1', to: 'service:db-1', kind: 'reference', label: 'DATABASE_URL' },
@@ -40,7 +40,7 @@ const graph = {
   ],
 };
 
-async function mockWorkspace(page: import('@playwright/test').Page, savedLayouts: unknown[], savedRuntime: unknown[] = [], savedCreates: unknown[] = []) {
+async function mockWorkspace(page: import('@playwright/test').Page, savedLayouts: unknown[], savedRuntime: unknown[] = [], savedCreates: unknown[] = [], savedAttachments: unknown[] = []) {
   const canvas = structuredClone(graph);
   const workspaceState = structuredClone(state);
   await page.route('**/*', async route => {
@@ -72,6 +72,20 @@ async function mockWorkspace(page: import('@playwright/test').Page, savedLayouts
       canvas.resources.push({ key: 'service:redis-1', id: 'redis-1', kind: 'database', name: body.name, status: 'queued', workloadMode: 'web', sourceType: 'template', template: 'redis', templateVersion: '8.2.2', privateAddress: 'db-redis-1:6379', position: { x: 890, y: 340 } });
       return route.fulfill({ status: 201, json: service });
     }
+    if (url.pathname === '/api/projects/project-1/volumes' && request.method() === 'POST') {
+      const body = request.postDataJSON() as {name:string;environment:string};
+      savedCreates.push(body);
+      canvas.resources.push({ key: 'volume:volume-2', id: 'volume-2', kind: 'volume', name: body.name, status: 'available', position: { x: 900, y: 560 } });
+      return route.fulfill({ status: 201, json: { id: 'volume-2', projectId: 'project-1', ...body, managedByTemplate: false } });
+    }
+    if (url.pathname === '/api/volumes/volume-2/attachment' && request.method() === 'PUT') {
+      const body = request.postDataJSON() as {serviceId:string;mountPath:string};
+      savedAttachments.push(body);
+      const volume = canvas.resources.find(item => item.id === 'volume-2');
+      if (volume) volume.status = 'attached';
+      canvas.links.push({ id: 'attachment-2', from: 'volume:volume-2', to: 'service:' + body.serviceId, kind: 'volume-attachment', label: body.mountPath });
+      return route.fulfill({ json: { ok: true } });
+    }
     if (url.pathname === '/api/backups') return route.fulfill({ json: [] });
     if (url.pathname.endsWith('/variables')) return route.fulfill({ json: { names: [] } });
     if (url.pathname.startsWith('/api/')) return route.fulfill({ json: {} });
@@ -83,9 +97,10 @@ test('canvas exposes resources, connections, creation and saved layout', async (
   const savedLayouts: unknown[] = [];
   const savedRuntime: unknown[] = [];
   const savedCreates: unknown[] = [];
+  const savedAttachments: unknown[] = [];
   const errors: string[] = [];
   page.on('pageerror', error => errors.push(error.message));
-  await mockWorkspace(page, savedLayouts, savedRuntime, savedCreates);
+  await mockWorkspace(page, savedLayouts, savedRuntime, savedCreates, savedAttachments);
   await page.goto('/');
 
   await expect(page.getByRole('region', { name: 'Project canvas' })).toBeVisible();
@@ -148,6 +163,21 @@ test('canvas exposes resources, connections, creation and saved layout', async (
   await expect(page.getByRole('region', { name: 'session-cache details' })).toContainText('Private Redis · db-redis-1:6379');
   expect(savedCreates).toEqual([{ name: 'session-cache', environment: 'production', template: 'redis' }]);
   await page.getByLabel('Close service details').click();
+
+  await page.keyboard.press('Control+K');
+  await page.getByRole('dialog', { name: 'Add to your canvas' }).getByRole('button', { name: /^Volume/ }).click();
+  const volumeDialog = page.getByRole('dialog', { name: 'Persistent Volume' });
+  await volumeDialog.getByLabel('Resource name').fill('uploads');
+  await volumeDialog.getByRole('button', { name: 'Create resource', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'uploads resource' })).toBeVisible();
+  const volumeDrawer = page.getByRole('region', { name: 'uploads details' });
+  await volumeDrawer.getByLabel('Application').selectOption('worker-1');
+  await volumeDrawer.getByLabel('Mount path').fill('/uploads');
+  await volumeDrawer.getByRole('button', { name: 'Attach volume' }).click();
+  await expect(volumeDrawer.getByText('Volume attached. Deploy the application to apply it.')).toBeVisible();
+  expect(savedCreates.at(-1)).toEqual({ name: 'uploads', environment: 'production' });
+  expect(savedAttachments).toEqual([{ serviceId: 'worker-1', mountPath: '/uploads' }]);
+  await page.getByLabel('Close resource details').click();
 
   await page.keyboard.press('Control+K');
   await page.getByRole('dialog', { name: 'Add to your canvas' }).getByRole('button', { name: /Background Worker/ }).click();

@@ -27,6 +27,16 @@ type Project struct {
 	Name      string    `json:"name"`
 	CreatedAt time.Time `json:"createdAt"`
 }
+type Volume struct {
+	ID                string    `json:"id"`
+	ProjectID         string    `json:"projectId"`
+	Environment       string    `json:"environment"`
+	Name              string    `json:"name"`
+	AttachedServiceID string    `json:"attachedServiceId,omitempty"`
+	MountPath         string    `json:"mountPath,omitempty"`
+	ManagedByTemplate bool      `json:"managedByTemplate"`
+	CreatedAt         time.Time `json:"createdAt"`
+}
 type Service struct {
 	URL             string     `json:"url"`
 	Settings        Settings   `json:"settings"`

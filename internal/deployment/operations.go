@@ -175,8 +175,8 @@ func (s *Store) SaveSettings(ctx context.Context, id string, memory, cpu int, mo
 	}
 	if old.VolumeName != "" {
 		volumeID := VolumeID(id)
-		if _, e = tx.Exec(ctx, `INSERT INTO volumes(id,project_id,environment,name) VALUES($1,$2,$3,$4)
-		 ON CONFLICT(id) DO UPDATE SET name=EXCLUDED.name`, volumeID, project, environment, old.VolumeName); e != nil {
+		if _, e = tx.Exec(ctx, `INSERT INTO volumes(id,project_id,environment,name,runtime_name) VALUES($1,$2,$3,$4,$4)
+		 ON CONFLICT(id) DO UPDATE SET name=EXCLUDED.name,runtime_name=EXCLUDED.runtime_name`, volumeID, project, environment, old.VolumeName); e != nil {
 			return e
 		}
 		if _, e = tx.Exec(ctx, `INSERT INTO volume_attachments(volume_id,service_id,mount_path) VALUES($1,$2,$3)
@@ -232,7 +232,7 @@ func (s *Store) CreateDatabase(ctx context.Context, project, name, environment s
 		return v, e
 	}
 	volumeID := VolumeID(v.ID)
-	if _, e = tx.Exec(ctx, `INSERT INTO volumes(id,project_id,environment,name) VALUES($1,$2,$3,$4)`, volumeID, project, environment, v.Settings.VolumeName); e != nil {
+	if _, e = tx.Exec(ctx, `INSERT INTO volumes(id,project_id,environment,name,runtime_name,managed_by_template) VALUES($1,$2,$3,$4,$5,true)`, volumeID, project, environment, name+" data", v.Settings.VolumeName); e != nil {
 		return v, e
 	}
 	if _, e = tx.Exec(ctx, `INSERT INTO volume_attachments(volume_id,service_id,mount_path) VALUES($1,$2,$3)`, volumeID, v.ID, v.Settings.MountPath); e != nil {

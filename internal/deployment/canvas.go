@@ -15,18 +15,19 @@ type CanvasPosition struct {
 }
 
 type CanvasResource struct {
-	Position        CanvasPosition `json:"position"`
-	Key             string         `json:"key"`
-	ID              string         `json:"id"`
-	Kind            string         `json:"kind"`
-	Name            string         `json:"name"`
-	Status          string         `json:"status"`
-	WorkloadMode    string         `json:"workloadMode,omitempty"`
-	SourceType      string         `json:"sourceType,omitempty"`
-	Template        string         `json:"template,omitempty"`
-	TemplateVersion string         `json:"templateVersion,omitempty"`
-	PublicAddress   string         `json:"publicAddress,omitempty"`
-	PrivateAddress  string         `json:"privateAddress,omitempty"`
+	Position          CanvasPosition `json:"position"`
+	Key               string         `json:"key"`
+	ID                string         `json:"id"`
+	Kind              string         `json:"kind"`
+	Name              string         `json:"name"`
+	Status            string         `json:"status"`
+	WorkloadMode      string         `json:"workloadMode,omitempty"`
+	SourceType        string         `json:"sourceType,omitempty"`
+	Template          string         `json:"template,omitempty"`
+	TemplateVersion   string         `json:"templateVersion,omitempty"`
+	PublicAddress     string         `json:"publicAddress,omitempty"`
+	PrivateAddress    string         `json:"privateAddress,omitempty"`
+	ManagedByTemplate bool           `json:"managedByTemplate,omitempty"`
 }
 
 type CanvasLink struct {
@@ -157,7 +158,7 @@ func (s *Store) Canvas(ctx context.Context, project, environment string) (Canvas
 	rows.Close()
 
 	rows, err = s.DB.Query(ctx, `
-		SELECT v.id,v.name,COALESCE(a.service_id,''),COALESCE(a.mount_path,'')
+		SELECT v.id,v.name,v.managed_by_template,COALESCE(a.service_id,''),COALESCE(a.mount_path,'')
 		FROM volumes v LEFT JOIN volume_attachments a ON a.volume_id=v.id
 		WHERE v.project_id=$1 AND v.environment=$2 ORDER BY v.created_at,v.id`, project, environment)
 	if err != nil {
@@ -166,7 +167,7 @@ func (s *Store) Canvas(ctx context.Context, project, environment string) (Canvas
 	for rows.Next() {
 		var resource CanvasResource
 		var serviceID, mountPath string
-		if err = rows.Scan(&resource.ID, &resource.Name, &serviceID, &mountPath); err != nil {
+		if err = rows.Scan(&resource.ID, &resource.Name, &resource.ManagedByTemplate, &serviceID, &mountPath); err != nil {
 			rows.Close()
 			return graph, err
 		}

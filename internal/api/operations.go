@@ -108,6 +108,42 @@ func (a *API) operationRoutes(admin, agent *http.ServeMux) {
 		}
 		write(w, 201, v)
 	})
+	admin.HandleFunc("POST /api/projects/{id}/volumes", func(w http.ResponseWriter, r *http.Request) {
+		var b struct {
+			Name        string `json:"name"`
+			Environment string `json:"environment"`
+		}
+		if !decode(w, r, &b) {
+			return
+		}
+		v, e := a.Store.CreateVolume(r.Context(), r.PathValue("id"), b.Environment, strings.TrimSpace(b.Name))
+		if e != nil {
+			dbError(w, e)
+			return
+		}
+		write(w, 201, v)
+	})
+	admin.HandleFunc("PUT /api/volumes/{id}/attachment", func(w http.ResponseWriter, r *http.Request) {
+		var b struct {
+			ServiceID string `json:"serviceId"`
+			MountPath string `json:"mountPath"`
+		}
+		if !decode(w, r, &b) {
+			return
+		}
+		if e := a.Store.AttachVolume(r.Context(), r.PathValue("id"), b.ServiceID, strings.TrimSpace(b.MountPath)); e != nil {
+			problem(w, 400, e.Error())
+			return
+		}
+		write(w, 200, map[string]bool{"ok": true})
+	})
+	admin.HandleFunc("DELETE /api/volumes/{id}/attachment", func(w http.ResponseWriter, r *http.Request) {
+		if e := a.Store.DetachVolume(r.Context(), r.PathValue("id")); e != nil {
+			problem(w, 400, e.Error())
+			return
+		}
+		write(w, 200, map[string]bool{"ok": true})
+	})
 	admin.HandleFunc("POST /api/services/{id}/bindings", func(w http.ResponseWriter, r *http.Request) {
 		var b struct {
 			Target string `json:"targetServiceId"`

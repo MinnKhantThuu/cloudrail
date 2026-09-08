@@ -167,6 +167,38 @@ func TestCanvasGraphAndPersistedLayout(t *testing.T) {
 	if w.Code != http.StatusBadRequest {
 		t.Fatalf("invalid workload accepted: %d %s", w.Code, w.Body.String())
 	}
+	w = request(http.MethodPost, "/api/projects/"+project.ID+"/volumes", map[string]string{"name": "worker data", "environment": "production"})
+	if w.Code != http.StatusCreated {
+		t.Fatalf("volume create response: %d %s", w.Code, w.Body.String())
+	}
+	var volume deployment.Volume
+	if err = json.Unmarshal(w.Body.Bytes(), &volume); err != nil || volume.Name != "worker data" || volume.ManagedByTemplate {
+		t.Fatalf("volume contract is wrong: %#v %v", volume, err)
+	}
+	w = request(http.MethodPut, "/api/volumes/"+volume.ID+"/attachment", map[string]string{"serviceId": worker.ID, "mountPath": "/cache"})
+	if w.Code != http.StatusOK {
+		t.Fatalf("volume attach response: %d %s", w.Code, w.Body.String())
+	}
+	w = request(http.MethodPut, "/api/volumes/"+volume.ID+"/attachment", map[string]string{"serviceId": cronService.ID, "mountPath": "/cache"})
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("single-writer guard accepted a second service: %d %s", w.Code, w.Body.String())
+	}
+	w = request(http.MethodDelete, "/api/volumes/"+deployment.VolumeID(database.ID)+"/attachment", nil)
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("template volume detach was accepted: %d %s", w.Code, w.Body.String())
+	}
+	w = request(http.MethodDelete, "/api/volumes/"+volume.ID+"/attachment", nil)
+	if w.Code != http.StatusOK {
+		t.Fatalf("volume detach response: %d %s", w.Code, w.Body.String())
+	}
+	w = request(http.MethodPut, "/api/volumes/"+volume.ID+"/attachment", map[string]string{"serviceId": worker.ID, "mountPath": "/etc"})
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("unsafe mount path accepted: %d %s", w.Code, w.Body.String())
+	}
+	w = request(http.MethodPut, "/api/volumes/"+volume.ID+"/attachment", map[string]string{"serviceId": worker.ID, "mountPath": "/cache"})
+	if w.Code != http.StatusOK {
+		t.Fatalf("volume reattach response: %d %s", w.Code, w.Body.String())
+	}
 
 	w = request(http.MethodGet, canvasPath, nil)
 	if w.Code != http.StatusOK {
@@ -176,11 +208,11 @@ func TestCanvasGraphAndPersistedLayout(t *testing.T) {
 	if err = json.Unmarshal(w.Body.Bytes(), &graph); err != nil {
 		t.Fatal(err)
 	}
-	if len(graph.Resources) != 8 {
-		t.Fatalf("expected app, worker, cron, two databases and three volumes; got %#v", graph.Resources)
+	if len(graph.Resources) != 9 {
+		t.Fatalf("expected app, worker, cron, two databases and four volumes; got %#v", graph.Resources)
 	}
-	if len(graph.Links) != 5 {
-		t.Fatalf("expected three attachments and two references; got %#v", graph.Links)
+	if len(graph.Links) != 6 {
+		t.Fatalf("expected four attachments and two references; got %#v", graph.Links)
 	}
 	var appResource, databaseResource, redisResource *deployment.CanvasResource
 	for index := range graph.Resources {

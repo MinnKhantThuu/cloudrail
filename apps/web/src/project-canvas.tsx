@@ -21,7 +21,7 @@ import {
 
 type Request = <T,>(path: string, body?: unknown, method?: string) => Promise<T>;
 
-export type CreateIntent = 'github' | 'image' | 'empty' | 'worker' | 'cron' | 'postgres' | 'redis';
+export type CreateIntent = 'github' | 'image' | 'empty' | 'worker' | 'cron' | 'postgres' | 'redis' | 'volume';
 
 type Position = { x: number; y: number };
 export type CanvasResource = {
@@ -37,6 +37,7 @@ export type CanvasResource = {
   templateVersion?: string;
   publicAddress?: string;
   privateAddress?: string;
+  managedByTemplate?: boolean;
 };
 type CanvasLink = { id: string; from: string; to: string; kind: string; label?: string };
 type CanvasGraph = { projectId: string; environment: string; resources: CanvasResource[]; links: CanvasLink[] };
@@ -121,24 +122,41 @@ function CreatePalette({ open, close, create }: { open: boolean; close: () => vo
       </div>
       <h3>Storage</h3>
       <div className="create-option-grid">
-        <CreateOption icon={<HardDrive size={18} />} title="Volume" description="Attach persistent storage to a service" phase="UX-4" />
+        <CreateOption icon={<HardDrive size={18} />} title="Volume" description="Attach persistent storage to a service" onClick={() => create('volume')} />
         <CreateOption icon={<Cloud size={18} />} title="S3-compatible Bucket" description="Private object storage credentials" phase="UX-4" />
       </div>
     </section>
   </div>;
 }
 
-function ResourceDrawer({ resource, links, resources, close, select }: {
+function ResourceDrawer({ resource, links, resources, request, reload, close, select }: {
   resource: CanvasResource;
   links: CanvasLink[];
   resources: CanvasResource[];
+  request: Request;
+  reload: () => Promise<void>;
   close: () => void;
   select: (resource: CanvasResource) => void;
 }) {
+  const [target, setTarget] = useState('');
+  const [mountPath, setMountPath] = useState('/data');
+  const [busy, setBusy] = useState(false);
+  const [notice, setNotice] = useState('');
+  const [error, setError] = useState('');
   const related = links.filter(link => link.from === resource.key || link.to === resource.key).map(link => {
     const key = link.from === resource.key ? link.to : link.from;
     return { link, resource: resources.find(item => item.key === key) };
   });
+  const attachment = related.find(item => item.link.kind === 'volume-attachment');
+  const changeAttachment = async (detach = false) => {
+    setBusy(true); setError(''); setNotice('');
+    try {
+      await request(`/api/volumes/${resource.id}/attachment`, detach ? undefined : { serviceId: target, mountPath }, detach ? 'DELETE' : 'PUT');
+      await reload();
+      setNotice(detach ? 'Volume detached. Redeploy before starting the application.' : 'Volume attached. Deploy the application to apply it.');
+    } catch (cause) { setError((cause as Error).message); }
+    finally { setBusy(false); }
+  };
   return <section className="detail-pane canvas-resource-drawer" aria-label={`${resource.name} details`}>
     <div className="detail-header"><span className={`service-icon ${resource.kind}`}>{resourceIcon(resource)}</span><div><h2>{resource.name}</h2><span className="muted">{resourceSubtitle(resource)}</span></div><button className="icon-button detail-close" aria-label="Close resource details" onClick={close}><X size={17} /></button></div>
     <div className="resource-summary">
@@ -146,7 +164,7 @@ function ResourceDrawer({ resource, links, resources, close, select }: {
       <div><span>Resource key</span><code>{resource.key}</code></div>
     </div>
     <div className="resource-drawer-content"><h3>Connections</h3>{related.length ? related.map(({ link, resource: item }) => <button key={link.id} className="resource-link-row" disabled={!item} onClick={() => item && select(item)}><Network size={15} /><span><strong>{item?.name || 'Unavailable resource'}</strong><small>{link.kind} · {link.label}</small></span></button>) : <p className="muted">No recorded resource connection.</p>}
-      <h3>Management</h3><p className="muted">Volume attach, backup and restore controls move into this drawer in UX-4. The current attachment remains fully active.</p>
+      <h3>Management</h3>{resource.kind !== 'volume' ? <p className="muted">Management controls for this resource arrive in its planned UX phase.</p> : resource.managedByTemplate ? <p className="muted">This volume is managed by its data template and cannot be detached.</p> : attachment ? <><p className="muted">Stop the application before detaching. Stored data is retained in this volume.</p><button className="secondary" disabled={busy} onClick={() => void changeAttachment(true)}>Detach from {attachment.resource?.name || 'application'}</button></> : <><p className="muted">Attach to one application in this environment. Deploy it afterward to apply the mount.</p><label htmlFor="volume-target">Application</label><select id="volume-target" value={target} onChange={event => setTarget(event.target.value)}><option value="">Choose an application</option>{resources.filter(item => item.kind === 'service').map(item => <option key={item.id} value={item.id}>{item.name} · {statusLabels[item.status] || item.status}</option>)}</select><label htmlFor="volume-mount">Mount path</label><input id="volume-mount" value={mountPath} onChange={event => setMountPath(event.target.value)} placeholder="/data"/><button className="secondary spaced-label" disabled={busy || !target || !mountPath} onClick={() => void changeAttachment()}>Attach volume</button></>}{error && <p className="error-text" role="alert">{error}</p>}{notice && <p className="success-note" role="status">{notice}</p>}
     </div>
   </section>;
 }
@@ -269,7 +287,7 @@ export function ProjectCanvas({ projectID, environment, request, selectedKey, cr
       </div>}
     </div>
     <div className="canvas-hint"><Grip size={13} /> Drag nodes to arrange · drag empty space to pan · right-click to create</div>
-    {selectedResource && selectedResource.kind !== 'service' && selectedResource.kind !== 'database' && <ResourceDrawer resource={selectedResource} links={graph.links} resources={graph.resources} close={onCloseSelection} select={select} />}
+    {selectedResource && selectedResource.kind !== 'service' && selectedResource.kind !== 'database' && <ResourceDrawer resource={selectedResource} links={graph.links} resources={graph.resources} request={request} reload={load} close={onCloseSelection} select={select} />}
     <CreatePalette open={createOpen} close={() => setCreateOpen(false)} create={onCreate} />
   </section>;
 }
