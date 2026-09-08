@@ -2,7 +2,7 @@
 
 Status, 2026-09-08: preparation and public control-plane install complete on target `172.104.38.63`. The 4 GB Singapore Linode runs Ubuntu 24.04.4 x86-64 with 2 CPU and a 79 GiB root disk. A dedicated root SSH identity was authorized and verified against the console-published host fingerprint. Cloud Firewall allows TCP 22/80/443 with default inbound drop. Docker 29.8.0/API 1.56 and Compose 5.5.1 are installed.
 
-Exact alpha.4 commit `302aec491fc33fd8a0ef5216b33856d899e5cb5f` passed installer preflight and is live at `https://console.172-104-38-63.sslip.io`. The dashboard returned HTTP/2 200 with a trusted Let's Encrypt YR1 certificate valid for that hostname. The owner was created over HTTPS and the secure session survived a host reboot. A public Railpack sample is active at `https://037b9c4141bba7f16d897963.apps.172-104-38-63.sslip.io`; an intentional failed Dockerfile build left that deployment serving. A verified 503 MiB cold backup was copied off-server. GitHub App delivery, restore to a separate empty host, certificate renewal and the 48-hour observation remain pending.
+Exact alpha.4 commit `302aec491fc33fd8a0ef5216b33856d899e5cb5f` passed installer preflight and is live at `https://console.172-104-38-63.sslip.io`. The dashboard returned HTTP/2 200 with a trusted Let's Encrypt YR1 certificate valid for that hostname. The owner was created over HTTPS and the secure session survived a host reboot. A public Railpack sample is active at `https://037b9c4141bba7f16d897963.apps.172-104-38-63.sslip.io`; an intentional failed Dockerfile build left that deployment serving. A verified 503 MiB cold backup restored successfully on a separate empty Linode and accepted a new deployment. GitHub App delivery, certificate renewal and the 48-hour observation remain pending.
 
 ## Access handoff
 
@@ -36,7 +36,7 @@ Both dashboard `A` and wildcard application `A` records must resolve directly to
 4. [ ] Install the owner's GitHub App and prove one signed push-to-deploy delivery.
 5. [x] Deploy the selected app; prove its HTTP response and failed-deploy traffic preservation.
 6. [x] Reboot; verify identity, routes, owner session and active application.
-7. [ ] Export a cold backup off-server, restore to a separate empty host, then deploy again. Export and verification are complete; destination restore remains.
+7. [x] Export a cold backup off-server, restore to a separate empty host, then deploy again.
 8. [ ] Rehearse update/recovery and observe at least 48 hours including a build/update; record resource use, transfer, availability and the actual Linode charge separately from estimates.
 
 ## Recorded workload and recovery evidence
@@ -45,5 +45,8 @@ Both dashboard `A` and wildcard application `A` records must resolve directly to
 - Active deployment `00ce3a973726fcfac2e49c17` remained in the response header after an intentional build using a missing Dockerfile failed.
 - After `systemctl reboot`, SSH returned with a new boot ID, the authenticated state retained the same project/service/deployment IDs, and both dashboard and application returned HTTP 200.
 - `scripts/host-recovery.py backup` stopped the control services, captured state and resumed them. Its verifier passed on the source and again after SSH transfer to ignored off-server storage. Both copies had manifest SHA-256 `b077db3b82402bef058753af1440019eef77947208acf364a6372f1c0a1796c5`; dashboard and app returned HTTP 200 afterward.
+- Temporary Linode `104604476` (`172.104.183.192`) used Ubuntu 24.04.4 amd64, 2 CPU, 3.8 GiB usable RAM, an encrypted 79 GiB root filesystem and an empty Docker 29.8/Compose 5.5.1 installation. Its boot ID differed from the source. The destination verifier matched the same manifest checksum before restore.
+- The source was fenced before `restore --source-fenced --public-ip 172.104.183.192`. Restored owner/session, project/service/deployment IDs, app response/header and retained Let's Encrypt certificate passed using direct DNS overrides. A new source build became active as deployment `d41f0e2223a08071cf0617e3` on the restored host.
+- The destination was fenced before the original host resumed. The original public dashboard/app returned HTTP 200 with deployment `00ce3a973726fcfac2e49c17`. The temporary Linode was then deleted; the source pilot remained running.
 
 Until these checks pass, CI and local fixture certificates are not Linode/DNS/ACME evidence. The optional [AWS pilot](aws-pilot.md) remains documented for a later provider comparison.

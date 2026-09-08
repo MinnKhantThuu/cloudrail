@@ -21,7 +21,7 @@ Public customer signup၊ billing၊ arbitrary customer code၊ autoscaling၊ K
 | Phase 0–3 — flow, workspace, node/jobs | Code + local verification ပြီး |
 | Phase 4 — GitHub source builds | Public Dockerfile/Railpack live builds ပြီး; real GitHub App delivery pending |
 | Phase 5 — operating features | Code + local DB/volume tests ပြီး; clean Linode amd64 install, real ACME issuance နဲ့ reboot အောင် |
-| Phase 6 — Linode pilot | Owner + Railpack app live; failed build/reboot/cold backup အောင်; GitHub App/restore/observation pending |
+| Phase 6 — Linode pilot | Owner + Railpack app live; failure/reboot/separate-host restore အောင်; GitHub App/observation pending |
 | Phase 7 — release preparation | Source + Linux amd64/arm64 archives, CI definitions, docs ပြီး; final local checks အောင် |
 | UX | Desktop/mobile automated checks + visual inspection ပြီး; owner final review pending |
 | Git / hosting | **[MinnKhantThuu/cloudrail](https://github.com/MinnKhantThuu/cloudrail) public source တင်ပြီး**; alpha.4 release တင်ပြီး; Linode control plane live |
@@ -86,10 +86,10 @@ Public HTTPS installer/config ရှိပြီး local TLS proof ရှိသ
 | **3 — Reliable node & jobs** | Restart/disconnect/overlap ဖြစ်ချိန် state မှန်အောင်လုပ်ခြင်း | Node online/offline၊ recoverable jobs၊ ရှင်းလင်းတဲ့ failure state | **Code + local failure/recovery checks ပြီး** |
 | **4 — GitHub deployment** | Repo ကနေ app တင်လို့ရအောင်လုပ်ခြင်း | Repo/branch ရွေး၊ push-to-deploy၊ build logs | **Local code + public GitHub build proof ပြီး; live App install/webhook pending** |
 | **5 — VPS operating features** | Public URL နဲ့ persistent app တွေကိုထိန်းနိုင်အောင်လုပ်ခြင်း | Installer၊ domain/HTTPS၊ metrics၊ volumes၊ DB backup/restore | **Single clean Linode amd64 installer + public DNS/ACME + reboot အောင်; renewal pending** |
-| **6 — Linode pilot** | ကိုယ်ပိုင် application တစ်ခုနဲ့တကယ်သုံးစမ်းခြင်း | Linode ပေါ် end-to-end deployed app နဲ့ measured cost | **Owner + public workload + failure/reboot/backup အောင်; GitHub App/empty-host restore/observation pending** |
+| **6 — Linode pilot** | ကိုယ်ပိုင် application တစ်ခုနဲ့တကယ်သုံးစမ်းခြင်း | Linode ပေါ် end-to-end deployed app နဲ့ measured cost | **Owner + public workload + failure/reboot/empty-host restore အောင်; GitHub App/observation pending** |
 | **7 — Open-source beta** | တခြားသူ install/update လုပ်လို့ရတဲ့ release ပြင်ခြင်း | Versioned release၊ docs၊ clean install/upgrade proof | **Public source/docs/CI + one public amd64 install ရရှိ; beta gates pending** |
 
-**လက်ရှိ Phase 7 alpha packaging/verification ပြီးထားပြီး Phase 6.3 Linode validation ကို `172.104.38.63` ပေါ်ဆက်လုပ်နေသည်။ Alpha.4 public HTTPS install၊ owner setup၊ Railpack workload၊ failed-build traffic preservation၊ reboot နဲ့ verified off-server cold backup အောင်ထားပြီး GitHub App push delivery၊ empty-host restore နဲ့ operating observation ဆက်လုပ်ရန်ကျန်သည်။**
+**လက်ရှိ Phase 7 alpha packaging/verification ပြီးထားပြီး Phase 6.3 Linode validation ကို `172.104.38.63` ပေါ်ဆက်လုပ်နေသည်။ Alpha.4 public HTTPS install၊ owner setup၊ Railpack workload၊ failed-build traffic preservation၊ reboot နဲ့ real separate-host cold recovery အောင်ထားပြီး GitHub App push delivery နဲ့ operating observation ဆက်လုပ်ရန်ကျန်သည်။**
 
 ## 5. Phase တစ်ခုချင်းစီရဲ့ အလုပ်နဲ့ ပြီးဆုံးစံ
 
@@ -203,7 +203,7 @@ Current phase:
 
 ## 7. လက်ရှိ checkpoint
 
-- **Current:** Phase 6.3 Linode validation. Exact alpha.4 commit `302aec4` is live at `https://console.172-104-38-63.sslip.io`; the owner session, a public Railpack sample app, failed-build traffic preservation, host reboot and a 503 MiB verified off-server cold backup have passed. Real GitHub App delivery, restore to a separate empty host, renewal and 48-hour observation remain pending.
+- **Current:** Phase 6.3 Linode validation. Exact alpha.4 commit `302aec4` is live at `https://console.172-104-38-63.sslip.io`; the owner session, public Railpack app, failed-build traffic preservation, reboot and real empty-host recovery have passed. Real GitHub App delivery, renewal and 48-hour observation remain pending.
 - **Phase 0:** User approved sequential continuation through all phases.
 - **Phase 2 evidence:** Go race tests + vet, frontend build, real Docker acceptance, Chrome desktop/mobile journey passed (31.9s). See [Phase 2 flow](phase-2-flow.md).
 - **UX:** Automated browser verification and agent visual inspection; user final UX review pending.
@@ -212,10 +212,10 @@ Current phase:
 - **Phase 3 evidence:** mTLS heartbeat/revoke, dedup, cancellation, agent/container restart recovery, isolated PostgreSQL stale-attempt/retry tests and independent backup restore passed. See [Phase 3 flow](phase-3-flow.md).
 - **Phase 4 evidence:** Public GitHub Dockerfile + Railpack builds each served real HTTP via registry digests; failed build preserved traffic. Browser Source/GitHub desktop/mobile passed. Signed replay/stale/cancellation/retry DB tests passed. A transient local disk-full failure was resolved with Cloudrail-only build-cache cleanup and the DB test rerun passed.
 - **Account gap:** Linode access, temporary pilot DNS/ACME and owner setup are complete. GitHub App installation/delivered webhook and a repository dedicated to its push test are pending. A user-owned branded domain remains optional before wider use.
-- **Phase 5 evidence:** PostgreSQL and HTTP volume persistence/backup/restore passed, including nonempty restore rejection; actual Docker limits/metrics and domain route passed. Local HTTPS with a trusted test certificate passed. Database UI journey passed (13.1s). The unmodified Ubuntu installer also passed on the clean Linode amd64 host with public DNS and real ACME issuance. Platform, session, route and active app survived a real reboot; renewal and restore to a separate public host remain pending.
+- **Phase 5 evidence:** PostgreSQL and HTTP volume persistence/backup/restore passed, including nonempty restore rejection; actual Docker limits/metrics and domain route passed. Local HTTPS with a trusted test certificate passed. Database UI journey passed (13.1s). The unmodified Ubuntu installer passed on the clean Linode amd64 host with public DNS and real ACME issuance. Platform, session, route and active app survived reboot and a real separate-host restore; renewal remains pending.
 - **Phase 6 preparation:** Linode host access, inventory, Docker prerequisites, Cloud Firewall and temporary pilot DNS are complete. AWS Lightsail template/planner remains an optional provider reference; it is no longer the selected pilot path.
 - **Phase 7 preparation:** Versioned source and Linux amd64/arm64 archives, checksums/notices, CI definitions, current quickstart/API/architecture/security/contributing/update/recovery docs. Final Go race/vet + isolated DB tests + real Docker acceptance passed after dependency fixes. All 3 Chrome desktop/mobile journeys passed (42.8s). Archive checksums/notices and deterministic source/credential-exclusion checks passed; [Hosted CI run 34201850332](https://github.com/MinnKhantThuu/cloudrail/actions/runs/34201850332) passed checks and runtime jobs on a fresh Ubuntu 24.04 runner. Independent-host cold recovery subsequently passed in run 34211555644. Alpha.4 now also has one clean public Ubuntu amd64 installer/ACME proof on Linode; arm64 public install and remaining beta gates are still pending. The [alpha.2 CI run](https://github.com/MinnKhantThuu/cloudrail/actions/runs/34205416387) passed all three jobs, including the old-public-runtime → alpha.2 upgrade/rollback rehearsal with continuous app HTTP traffic and encrypted configuration preservation.
-- **Next external inputs:** Create/install the least-privilege GitHub App for one dedicated pilot repository, then restore the verified cold backup on a temporary empty same-architecture Linode. Both are account-bound actions prepared for explicit confirmation. Secrets stay outside chat. See [Linode pilot](linode-pilot.md), [release gates](release.md), [current verification](verification-current.md).
+- **Next external inputs:** Complete GitHub sudo/passkey authentication, then create/install the prepared least-privilege GitHub App on the `cloudrail` repository and prove one push delivery. Secrets stay outside chat. See [Linode pilot](linode-pilot.md), [release gates](release.md), [current verification](verification-current.md).
 
 ## 8. Completion-goal work queue — 2026-09-08
 
@@ -239,9 +239,9 @@ The preceding alpha.3 and alpha.4 goal turns completed release/recovery work whi
 | --- | --- | --- |
 | Public source, README/flow/usage and versioned alpha | Public alpha.4 tag/assets, 167 source entries matching Git, checksums/provenance and anonymous download; current docs pushed | Verified |
 | Independent install, update, rollback and recovery | Main/tag CI: clean Ubuntu Compose journey, cross-version maintenance, two-host data recovery and fixture-TLS dashboard routing | Verified within the recorded Linux/fixture scope |
-| Clean public VPS installer, real DNS/HTTPS and reboot recovery | Alpha.4 clean install, Let's Encrypt HTTPS, owner secure-cookie session and reboot recovery passed on the Linode with temporary `sslip.io` DNS; renewal remains | In progress |
+| Clean public VPS installer, real DNS/HTTPS and reboot recovery | Alpha.4 clean install, Let's Encrypt HTTPS, owner session, reboot and separate empty-host HTTPS recovery passed using temporary `sslip.io` hostnames; renewal remains | In progress |
 | Real GitHub App push-to-deploy | Public Railpack source build passed, but no installed App/delivered webhook exists; signed local tests are narrower evidence | Pending account action |
-| Linode pilot, real app flow, off-server recovery and 48-hour measured operation/cost | Public app, failed-build preservation, reboot and verified 503 MiB off-server backup passed; empty-host restore and observation remain | In progress |
+| Linode pilot, real app flow, off-server recovery and 48-hour measured operation/cost | Public app, failed-build preservation, reboot, 503 MiB off-server backup and temporary empty-host restore/new deploy passed; observation remains | In progress |
 | Final owner UX walkthrough | Automated/visual checks exist, but no owner acceptance was supplied | Pending owner review |
 
-Resume at the least-privilege GitHub App push delivery, then restore the cold backup to a separate empty host and start the 48-hour observation. Continue with the [Linode pilot runbook](linode-pilot.md). This state does not claim empty-host public recovery, certificate renewal, production/beta readiness or an external security audit.
+Resume after GitHub sudo/passkey authentication at the least-privilege App push delivery, then start the 48-hour observation. Continue with the [Linode pilot runbook](linode-pilot.md). This state does not claim certificate renewal, production/beta readiness or an external security audit.
