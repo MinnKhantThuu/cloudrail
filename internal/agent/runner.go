@@ -46,7 +46,7 @@ type Runner struct {
 }
 
 func webWorkload(s deployment.Service) bool {
-	return s.Settings.Kind != "postgres" && (s.WorkloadMode == "" || s.WorkloadMode == "web")
+	return !deployment.IsDataKind(s.Settings.Kind) && (s.WorkloadMode == "" || s.WorkloadMode == "web")
 }
 
 func (r *Runner) setRoute(s deployment.Service, d *deployment.Deployment) error {

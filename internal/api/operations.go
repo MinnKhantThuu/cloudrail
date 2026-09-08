@@ -88,6 +88,7 @@ func (a *API) operationRoutes(admin, agent *http.ServeMux) {
 		var b struct {
 			Name        string `json:"name"`
 			Environment string `json:"environment"`
+			Template    string `json:"template"`
 		}
 		if !decode(w, r, &b) {
 			return
@@ -96,7 +97,11 @@ func (a *API) operationRoutes(admin, agent *http.ServeMux) {
 			problem(w, 400, "Invalid database service name")
 			return
 		}
-		v, e := a.Store.CreateDatabase(r.Context(), r.PathValue("id"), b.Name, b.Environment)
+		if b.Template != "" && !deployment.ValidDataTemplate(b.Template) {
+			problem(w, 400, "Choose a supported data template")
+			return
+		}
+		v, e := a.Store.CreateDatabase(r.Context(), r.PathValue("id"), b.Name, b.Environment, b.Template)
 		if e != nil {
 			dbError(w, e)
 			return

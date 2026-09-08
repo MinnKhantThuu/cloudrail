@@ -8,7 +8,7 @@ import (
 )
 
 func (r *Runner) candidateReady(ctx context.Context, d deployment.Deployment, s deployment.Service) error {
-	if d.Settings.Kind == "postgres" {
+	if deployment.IsDataKind(d.Settings.Kind) {
 		runtime, ok := r.Runtime.(interface {
 			Ready(context.Context, deployment.Deployment) error
 		})

@@ -21,7 +21,7 @@ import {
 
 type Request = <T,>(path: string, body?: unknown, method?: string) => Promise<T>;
 
-export type CreateIntent = 'github' | 'image' | 'empty' | 'worker' | 'cron' | 'postgres';
+export type CreateIntent = 'github' | 'image' | 'empty' | 'worker' | 'cron' | 'postgres' | 'redis';
 
 type Position = { x: number; y: number };
 export type CanvasResource = {
@@ -34,6 +34,7 @@ export type CanvasResource = {
   workloadMode?: string;
   sourceType?: string;
   template?: string;
+  templateVersion?: string;
   publicAddress?: string;
   privateAddress?: string;
 };
@@ -43,7 +44,7 @@ type CanvasGraph = { projectId: string; environment: string; resources: CanvasRe
 const nodeWidth = 250;
 const nodeHeight = 136;
 const emptyGraph: CanvasGraph = { projectId: '', environment: '', resources: [], links: [] };
-const busyStatuses = ['queued', 'pulling', 'starting', 'checking', 'routing'];
+const busyStatuses = ['queued', 'pulling', 'predeploy', 'starting', 'checking', 'routing'];
 const statusLabels: Record<string, string> = {
   queued: 'Queued', pulling: 'Pulling', starting: 'Starting', checking: 'Checking', routing: 'Routing',
   active: 'Active', failed: 'Failed', superseded: 'Replaced', stopped: 'Stopped', empty: 'Not deployed',
@@ -60,7 +61,7 @@ function resourceIcon(resource: CanvasResource) {
 }
 
 function resourceSubtitle(resource: CanvasResource) {
-  if (resource.kind === 'database') return `${resource.template || 'Database'} template`;
+  if (resource.kind === 'database') return `${resource.template || 'Database'}${resource.templateVersion ? ` ${resource.templateVersion}` : ''} template`;
   if (resource.kind === 'volume') return 'Persistent volume';
   if (resource.kind === 'bucket') return 'S3-compatible bucket';
   if (resource.workloadMode === 'worker') return 'Background worker';
@@ -114,7 +115,7 @@ function CreatePalette({ open, close, create }: { open: boolean; close: () => vo
       <h3>Data</h3>
       <div className="create-option-grid">
         <CreateOption icon={<Database size={18} />} title="PostgreSQL" description="Private database with persistent storage" onClick={() => create('postgres')} />
-        <CreateOption icon={<Database size={18} />} title="Redis" description="Cache, queue and key-value data" phase="UX-4" />
+        <CreateOption icon={<Database size={18} />} title="Redis" description="Persistent cache, queue and key-value data" onClick={() => create('redis')} />
         <CreateOption icon={<Database size={18} />} title="MySQL" description="Persistent relational database" phase="UX-4" />
         <CreateOption icon={<Database size={18} />} title="MongoDB" description="Persistent document database" phase="UX-4" />
       </div>

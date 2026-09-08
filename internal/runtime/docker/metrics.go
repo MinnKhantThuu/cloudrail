@@ -149,7 +149,7 @@ func (c *Client) Metrics(ctx context.Context) Metrics {
 					}
 					resp.Body.Close()
 				}
-				if port := v.Labels["cloudrail.port"]; port != "" && v.Labels["cloudrail.kind"] != "postgres" {
+				if port := v.Labels["cloudrail.port"]; port != "" && v.Labels["cloudrail.kind"] == "http" {
 					probe, err := http.NewRequestWithContext(ctx, "GET", "http://cloudrail-app-"+v.Labels["cloudrail.deployment"]+":"+port+v.Labels["cloudrail.health-path"], nil)
 					if err == nil {
 						client := &http.Client{Timeout: time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}

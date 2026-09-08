@@ -87,7 +87,7 @@ func (s *Store) SetVariable(ctx context.Context, id, name, value string) error {
 	if e != nil {
 		return e
 	}
-	if config.Kind == "postgres" && (name == "POSTGRES_USER" || name == "POSTGRES_DB" || name == "POSTGRES_PASSWORD") {
+	if IsDataKind(config.Kind) {
 		return errors.New("database template credentials are managed by Cloudrail")
 	}
 	if !variableName.MatchString(name) || len(value) > 8192 {

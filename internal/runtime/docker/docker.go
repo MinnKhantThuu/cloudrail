@@ -170,7 +170,7 @@ func (c *Client) Ensure(ctx context.Context, d deployment.Deployment) error {
 			}
 			endpoints[d.Settings.Network] = map[string]any{}
 		}
-		if d.Settings.Kind == "postgres" {
+		if deployment.IsDataKind(d.Settings.Kind) {
 			network = d.Settings.Network
 			endpoints = map[string]any{network: map[string]any{"Aliases": []string{"db-" + d.ServiceID}}}
 		}
@@ -195,6 +195,8 @@ func (c *Client) Ensure(ctx context.Context, d deployment.Deployment) error {
 		}
 		if d.Settings.Kind == "postgres" {
 			body["Healthcheck"] = map[string]any{"Test": []string{"CMD", "pg_isready", "-h", "127.0.0.1", "-U", "app", "-d", "app"}, "Interval": int64(2 * time.Second), "Timeout": int64(time.Second), "Retries": 30}
+		} else if d.Settings.Kind == "redis" {
+			body["Healthcheck"] = map[string]any{"Test": []string{"CMD-SHELL", `redis-cli -a "$REDIS_PASSWORD" ping | grep -q PONG`}, "Interval": int64(2 * time.Second), "Timeout": int64(time.Second), "Retries": 30}
 		}
 
 		resp, err = c.request(ctx, "POST", "/containers/create?name="+name, body)

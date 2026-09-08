@@ -15,17 +15,18 @@ type CanvasPosition struct {
 }
 
 type CanvasResource struct {
-	Position       CanvasPosition `json:"position"`
-	Key            string         `json:"key"`
-	ID             string         `json:"id"`
-	Kind           string         `json:"kind"`
-	Name           string         `json:"name"`
-	Status         string         `json:"status"`
-	WorkloadMode   string         `json:"workloadMode,omitempty"`
-	SourceType     string         `json:"sourceType,omitempty"`
-	Template       string         `json:"template,omitempty"`
-	PublicAddress  string         `json:"publicAddress,omitempty"`
-	PrivateAddress string         `json:"privateAddress,omitempty"`
+	Position        CanvasPosition `json:"position"`
+	Key             string         `json:"key"`
+	ID              string         `json:"id"`
+	Kind            string         `json:"kind"`
+	Name            string         `json:"name"`
+	Status          string         `json:"status"`
+	WorkloadMode    string         `json:"workloadMode,omitempty"`
+	SourceType      string         `json:"sourceType,omitempty"`
+	Template        string         `json:"template,omitempty"`
+	TemplateVersion string         `json:"templateVersion,omitempty"`
+	PublicAddress   string         `json:"publicAddress,omitempty"`
+	PrivateAddress  string         `json:"privateAddress,omitempty"`
 }
 
 type CanvasLink struct {
@@ -104,7 +105,7 @@ func (s *Store) Canvas(ctx context.Context, project, environment string) (Canvas
 	rows.Close()
 
 	rows, err = s.DB.Query(ctx, `
-		SELECT s.id,s.name,s.resource_kind,s.workload_mode,s.template_key,s.host,s.active_id,s.desired_state,
+		SELECT s.id,s.name,s.resource_kind,s.workload_mode,s.template_key,s.template_version,s.host,s.active_id,s.desired_state,
 		 COALESCE(source.source_type,''),COALESCE(latest.status,''),COALESCE(latest.port,0)
 		FROM services s
 		LEFT JOIN service_sources source ON source.service_id=s.id
@@ -119,7 +120,7 @@ func (s *Store) Canvas(ctx context.Context, project, environment string) (Canvas
 		var resource CanvasResource
 		var host, active, desired, latest string
 		var port int
-		if err = rows.Scan(&resource.ID, &resource.Name, &resource.Kind, &resource.WorkloadMode, &resource.Template, &host, &active, &desired, &resource.SourceType, &latest, &port); err != nil {
+		if err = rows.Scan(&resource.ID, &resource.Name, &resource.Kind, &resource.WorkloadMode, &resource.Template, &resource.TemplateVersion, &host, &active, &desired, &resource.SourceType, &latest, &port); err != nil {
 			rows.Close()
 			return graph, err
 		}

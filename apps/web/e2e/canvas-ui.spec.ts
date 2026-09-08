@@ -40,13 +40,14 @@ const graph = {
   ],
 };
 
-async function mockWorkspace(page: import('@playwright/test').Page, savedLayouts: unknown[], savedRuntime: unknown[] = []) {
+async function mockWorkspace(page: import('@playwright/test').Page, savedLayouts: unknown[], savedRuntime: unknown[] = [], savedCreates: unknown[] = []) {
   const canvas = structuredClone(graph);
+  const workspaceState = structuredClone(state);
   await page.route('**/*', async route => {
     const request = route.request();
     const url = new URL(request.url());
     if (url.pathname === '/auth/status') return route.fulfill({ json: { configured: true, email: 'owner@example.com' } });
-    if (url.pathname === '/api/state') return route.fulfill({ json: state });
+    if (url.pathname === '/api/state') return route.fulfill({ json: workspaceState });
     if (url.pathname === '/api/node') return route.fulfill({ json: { enrolled: true, revoked: false, online: true, lastSeen: '2026-09-09T00:02:00Z', metrics: { memoryTotal: 2147483648, memoryAvailable: 1073741824, diskFree: 10737418240, diskTotal: 21474836480, cpuPercent: 8 } } });
     if (url.pathname.endsWith('/canvas/layout') && request.method() === 'PUT') {
       const body = request.postDataJSON() as {positions: {resourceKey: string; x: number; y: number}[]};
@@ -63,6 +64,14 @@ async function mockWorkspace(page: import('@playwright/test').Page, savedLayouts
       savedRuntime.push(request.postDataJSON());
       return route.fulfill({ json: request.postDataJSON() });
     }
+    if (url.pathname === '/api/projects/project-1/databases' && request.method() === 'POST') {
+      const body = request.postDataJSON() as {name:string;environment:string;template:string};
+      savedCreates.push(body);
+      const service = { id: 'redis-1', projectId: 'project-1', name: body.name, environment: body.environment, host: '', url: '', activeId: '', desiredState: 'running', resourceKind: 'database', workloadMode: 'web', template: body.template, templateVersion: '8.2.2', createdAt: '2026-09-09T00:00:00Z', settings: { kind: 'redis', memoryMB: 128, cpuMillis: 1000, mountPath: '/data', volumeName: 'redis-data', network: 'cloudrail' } };
+      workspaceState.services.push(service);
+      canvas.resources.push({ key: 'service:redis-1', id: 'redis-1', kind: 'database', name: body.name, status: 'queued', workloadMode: 'web', sourceType: 'template', template: 'redis', templateVersion: '8.2.2', privateAddress: 'db-redis-1:6379', position: { x: 890, y: 340 } });
+      return route.fulfill({ status: 201, json: service });
+    }
     if (url.pathname === '/api/backups') return route.fulfill({ json: [] });
     if (url.pathname.endsWith('/variables')) return route.fulfill({ json: { names: [] } });
     if (url.pathname.startsWith('/api/')) return route.fulfill({ json: {} });
@@ -73,9 +82,10 @@ async function mockWorkspace(page: import('@playwright/test').Page, savedLayouts
 test('canvas exposes resources, connections, creation and saved layout', async ({ page }) => {
   const savedLayouts: unknown[] = [];
   const savedRuntime: unknown[] = [];
+  const savedCreates: unknown[] = [];
   const errors: string[] = [];
   page.on('pageerror', error => errors.push(error.message));
-  await mockWorkspace(page, savedLayouts, savedRuntime);
+  await mockWorkspace(page, savedLayouts, savedRuntime, savedCreates);
   await page.goto('/');
 
   await expect(page.getByRole('region', { name: 'Project canvas' })).toBeVisible();
@@ -128,8 +138,19 @@ test('canvas exposes resources, connections, creation and saved layout', async (
   await expect(palette.getByRole('button', { name: /GitHub Repository/ })).toBeEnabled();
   await expect(palette.getByRole('button', { name: /Background Worker/ })).toBeEnabled();
   await expect(palette.getByRole('button', { name: /Cron Job/ })).toBeEnabled();
-  await expect(palette.getByRole('button', { name: /Redis/ })).toBeDisabled();
-  await palette.getByRole('button', { name: /Background Worker/ }).click();
+  await expect(palette.getByRole('button', { name: /Redis/ })).toBeEnabled();
+  await palette.getByRole('button', { name: /Redis/ }).click();
+  const redisDialog = page.getByRole('dialog', { name: 'Redis' });
+  await expect(redisDialog.getByText('Redis data service')).toBeVisible();
+  await redisDialog.getByLabel('Resource name').fill('session-cache');
+  await redisDialog.getByRole('button', { name: 'Create resource', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'session-cache resource' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'session-cache details' })).toContainText('Private Redis · db-redis-1:6379');
+  expect(savedCreates).toEqual([{ name: 'session-cache', environment: 'production', template: 'redis' }]);
+  await page.getByLabel('Close service details').click();
+
+  await page.keyboard.press('Control+K');
+  await page.getByRole('dialog', { name: 'Add to your canvas' }).getByRole('button', { name: /Background Worker/ }).click();
   await expect(page.getByRole('dialog', { name: 'Background Worker' })).toBeVisible();
   await expect(page.getByLabel('Resource name')).toBeVisible();
   await expect(page.getByLabel('Workload')).toHaveValue('worker');

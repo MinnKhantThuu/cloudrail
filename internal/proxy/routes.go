@@ -21,7 +21,7 @@ func (r Routes) Set(service deployment.Service, d *deployment.Deployment) error 
 	}
 	// Traefik watches YAML/TOML extensions. JSON is valid YAML, but .json is ignored.
 	path := filepath.Join(r.Directory, service.ID+".yaml")
-	if d == nil || d.Settings.Kind == "postgres" || (service.WorkloadMode != "" && service.WorkloadMode != "web") {
+	if d == nil || deployment.IsDataKind(d.Settings.Kind) || (service.WorkloadMode != "" && service.WorkloadMode != "web") {
 		err := os.Remove(path)
 		if os.IsNotExist(err) {
 			return nil

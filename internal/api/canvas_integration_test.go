@@ -104,6 +104,29 @@ func TestCanvasGraphAndPersistedLayout(t *testing.T) {
 	if w.Code != http.StatusBadRequest {
 		t.Fatalf("invalid runtime settings accepted: %d %s", w.Code, w.Body.String())
 	}
+	w = request(http.MethodGet, "/api/templates", nil)
+	if w.Code != http.StatusOK || !bytes.Contains(w.Body.Bytes(), []byte(`"key":"redis"`)) || bytes.Contains(w.Body.Bytes(), []byte("REDIS_PASSWORD")) {
+		t.Fatalf("safe template catalog response: %d %s", w.Code, w.Body.String())
+	}
+	w = request(http.MethodPost, "/api/projects/"+project.ID+"/databases", map[string]string{"name": "cache", "environment": "production", "template": "redis"})
+	if w.Code != http.StatusCreated {
+		t.Fatalf("redis create response: %d %s", w.Code, w.Body.String())
+	}
+	var redis deployment.Service
+	if err = json.Unmarshal(w.Body.Bytes(), &redis); err != nil || redis.Template != "redis" || redis.TemplateVersion != "8.2.2" || redis.Settings.Kind != "redis" || redis.Settings.MountPath != "/data" {
+		t.Fatalf("redis service contract is wrong: %#v %v", redis, err)
+	}
+	if bytes.Contains(w.Body.Bytes(), []byte("redis://default:")) {
+		t.Fatalf("redis credentials leaked in create response: %s", w.Body.String())
+	}
+	w = request(http.MethodGet, "/api/services/"+redis.ID+"/variables", nil)
+	if w.Code != http.StatusOK || !bytes.Contains(w.Body.Bytes(), []byte("REDIS_URL")) || bytes.Contains(w.Body.Bytes(), []byte("redis://")) {
+		t.Fatalf("redis variable names contract is wrong: %d %s", w.Code, w.Body.String())
+	}
+	w = request(http.MethodPost, "/api/services/"+redis.ID+"/bindings", map[string]string{"targetServiceId": application.ID, "variableName": "REDIS_URL"})
+	if w.Code != http.StatusOK {
+		t.Fatalf("redis binding response: %d %s", w.Code, w.Body.String())
+	}
 
 	canvasPath := "/api/projects/" + project.ID + "/environments/production/canvas"
 	w = request(http.MethodPost, "/api/projects/"+project.ID+"/resources", deployment.ComputeSpec{Name: "queue", Environment: "production", WorkloadMode: "worker", SourceType: "github"})
@@ -153,13 +176,13 @@ func TestCanvasGraphAndPersistedLayout(t *testing.T) {
 	if err = json.Unmarshal(w.Body.Bytes(), &graph); err != nil {
 		t.Fatal(err)
 	}
-	if len(graph.Resources) != 6 {
-		t.Fatalf("expected app, worker, cron, database and two volumes; got %#v", graph.Resources)
+	if len(graph.Resources) != 8 {
+		t.Fatalf("expected app, worker, cron, two databases and three volumes; got %#v", graph.Resources)
 	}
-	if len(graph.Links) != 3 {
-		t.Fatalf("expected two attachments and one reference; got %#v", graph.Links)
+	if len(graph.Links) != 5 {
+		t.Fatalf("expected three attachments and two references; got %#v", graph.Links)
 	}
-	var appResource, databaseResource *deployment.CanvasResource
+	var appResource, databaseResource, redisResource *deployment.CanvasResource
 	for index := range graph.Resources {
 		resource := &graph.Resources[index]
 		switch resource.ID {
@@ -167,6 +190,8 @@ func TestCanvasGraphAndPersistedLayout(t *testing.T) {
 			appResource = resource
 		case database.ID:
 			databaseResource = resource
+		case redis.ID:
+			redisResource = resource
 		}
 	}
 	if appResource == nil || appResource.Kind != "service" || appResource.WorkloadMode != "web" || appResource.SourceType != "empty" {
@@ -174,6 +199,9 @@ func TestCanvasGraphAndPersistedLayout(t *testing.T) {
 	}
 	if databaseResource == nil || databaseResource.Kind != "database" || databaseResource.Template != "postgres" || databaseResource.SourceType != "template" {
 		t.Fatalf("database projection is wrong: %#v", databaseResource)
+	}
+	if redisResource == nil || redisResource.Kind != "database" || redisResource.Template != "redis" || redisResource.TemplateVersion != "8.2.2" || redisResource.PrivateAddress != "db-"+redis.ID+":6379" {
+		t.Fatalf("redis projection is wrong: %#v", redisResource)
 	}
 
 	position := deployment.CanvasPositionUpdate{ResourceKey: "service:" + application.ID, X: 444, Y: 222}

@@ -165,7 +165,7 @@ func (a *API) workspaceRoutes(public, admin, agent *http.ServeMux) {
 			dbError(w, e)
 			return
 		}
-		if config.Kind == "postgres" {
+		if deployment.IsDataKind(config.Kind) {
 			problem(w, 400, "Database template variables are managed by Cloudrail")
 			return
 		}

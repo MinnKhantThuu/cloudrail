@@ -39,7 +39,7 @@ func VolumeID(service string) string {
 	return hex.EncodeToString(h[:])
 }
 func (c Settings) Validate() error {
-	if c.Kind != "http" && c.Kind != "postgres" {
+	if c.Kind != "http" && !IsDataKind(c.Kind) {
 		return errors.New("invalid service kind")
 	}
 	min := 64
@@ -206,20 +206,28 @@ func (s *Store) SetDomain(ctx context.Context, id, host string) error {
 	}
 	return nil
 }
-func (s *Store) CreateDatabase(ctx context.Context, project, name, environment string) (Service, error) {
+func (s *Store) CreateDatabase(ctx context.Context, project, name, environment string, templateKeys ...string) (Service, error) {
 	if environment == "" {
 		environment = "production"
 	}
-	v := Service{ID: ID(), ProjectID: project, Name: name, Environment: environment, DesiredState: "running", ResourceKind: "database", WorkloadMode: "web", Template: "postgres"}
+	templateKey := "postgres"
+	if len(templateKeys) > 0 && templateKeys[0] != "" {
+		templateKey = templateKeys[0]
+	}
+	template, e := dataTemplate(templateKey, "")
+	if e != nil {
+		return Service{}, e
+	}
+	v := Service{ID: ID(), ProjectID: project, Name: name, Environment: environment, DesiredState: "running", ResourceKind: "database", WorkloadMode: "web", Template: template.Key, TemplateVersion: template.Version}
 	v.Host = v.ID + ".localhost"
-	v.Settings = Settings{Kind: "postgres", MemoryMB: 256, CPUMillis: 1000, MountPath: "/var/lib/postgresql/data", VolumeName: "cloudrail-volume-" + v.ID, Network: PrivateNetwork(project, environment)}
+	v.Settings = Settings{Kind: template.Kind, MemoryMB: template.MemoryMB, CPUMillis: 1000, MountPath: template.MountPath, VolumeName: "cloudrail-volume-" + v.ID, Network: PrivateNetwork(project, environment), StartCommand: template.StartCommand, RestartPolicy: "always"}
 	raw, _ := json.Marshal(v.Settings)
 	tx, e := s.DB.Begin(ctx)
 	if e != nil {
 		return v, e
 	}
 	defer tx.Rollback(ctx)
-	e = tx.QueryRow(ctx, `INSERT INTO services(id,project_id,name,environment,host,settings,resource_kind,template_key) VALUES($1,$2,$3,$4,$5,$6,'database','postgres') RETURNING created_at`, v.ID, project, name, environment, v.Host, raw).Scan(&v.CreatedAt)
+	e = tx.QueryRow(ctx, `INSERT INTO services(id,project_id,name,environment,host,settings,resource_kind,template_key,template_version) VALUES($1,$2,$3,$4,$5,$6,'database',$7,$8) RETURNING created_at`, v.ID, project, name, environment, v.Host, raw, template.Key, template.Version).Scan(&v.CreatedAt)
 	if e != nil {
 		return v, e
 	}
@@ -230,7 +238,7 @@ func (s *Store) CreateDatabase(ctx context.Context, project, name, environment s
 	if _, e = tx.Exec(ctx, `INSERT INTO volume_attachments(volume_id,service_id,mount_path) VALUES($1,$2,$3)`, volumeID, v.ID, v.Settings.MountPath); e != nil {
 		return v, e
 	}
-	for k, value := range map[string]string{"POSTGRES_USER": "app", "POSTGRES_DB": "app", "POSTGRES_PASSWORD": ID() + ID()} {
+	for k, value := range template.Variables(v.ID) {
 		encrypted, err := s.Cipher.Seal(value, "variable:"+v.ID+":"+k)
 		if err != nil {
 			return v, err
@@ -239,7 +247,7 @@ func (s *Store) CreateDatabase(ctx context.Context, project, name, environment s
 			return v, e
 		}
 	}
-	if _, e = s.enqueueTx(ctx, tx, v.ID, Spec{Image: PostgresImage, Port: 5432, HealthPath: "/"}, "database-bootstrap"); e != nil {
+	if _, e = s.enqueueTx(ctx, tx, v.ID, Spec{Image: template.Image, Port: template.Port, HealthPath: "/"}, "database-bootstrap"); e != nil {
 		return v, e
 	}
 	return v, tx.Commit(ctx)
@@ -249,15 +257,15 @@ func (s *Store) BindDatabase(ctx context.Context, database, target, name string)
 		return errors.New("invalid variable name")
 	}
 	var same bool
-	e := s.DB.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM services d JOIN services a ON d.project_id=a.project_id AND d.environment=a.environment WHERE d.id=$1 AND a.id=$2 AND d.settings->>'kind'='postgres' AND a.settings->>'kind'='http')`, database, target).Scan(&same)
+	e := s.DB.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM services d JOIN services a ON d.project_id=a.project_id AND d.environment=a.environment WHERE d.id=$1 AND a.id=$2 AND d.resource_kind='database' AND a.settings->>'kind'='http')`, database, target).Scan(&same)
 	if e != nil {
 		return e
 	}
 	if !same {
 		return errors.New("choose an HTTP service in the same project/environment")
 	}
-	var project, environment string
-	if e = s.DB.QueryRow(ctx, `SELECT project_id,environment FROM services WHERE id=$1`, target).Scan(&project, &environment); e != nil {
+	var project, environment, templateKey string
+	if e = s.DB.QueryRow(ctx, `SELECT a.project_id,a.environment,d.template_key FROM services a CROSS JOIN services d WHERE a.id=$1 AND d.id=$2`, target, database).Scan(&project, &environment, &templateKey); e != nil {
 		return e
 	}
 	if _, e = s.DB.Exec(ctx, `UPDATE services SET settings=jsonb_set(settings,'{network}',to_jsonb($2::text)) WHERE id=$1`, target, PrivateNetwork(project, environment)); e != nil {
@@ -267,14 +275,25 @@ func (s *Store) BindDatabase(ctx context.Context, database, target, name string)
 	if e != nil {
 		return e
 	}
-	password := vars["POSTGRES_PASSWORD"]
-	if password == "" {
+	connection, targetVariable := "", ""
+	switch templateKey {
+	case "postgres":
+		password := vars["POSTGRES_PASSWORD"]
+		if password != "" {
+			connection = "postgres://app:" + password + "@db-" + database + ":5432/app?sslmode=disable"
+		}
+		targetVariable = "DATABASE_URL"
+	case "redis":
+		connection = vars["REDIS_URL"]
+		targetVariable = "REDIS_URL"
+	}
+	if connection == "" {
 		return errors.New("database credentials unavailable")
 	}
-	if e = s.SetVariable(ctx, target, name, "postgres://app:"+password+"@db-"+database+":5432/app?sslmode=disable"); e != nil {
+	if e = s.SetVariable(ctx, target, name, connection); e != nil {
 		return e
 	}
-	_, e = s.DB.Exec(ctx, `INSERT INTO service_references(source_service_id,variable_name,target_service_id,target_variable) VALUES($1,$2,$3,'DATABASE_URL')
-	 ON CONFLICT(source_service_id,variable_name) DO UPDATE SET target_service_id=EXCLUDED.target_service_id,target_variable=EXCLUDED.target_variable,created_at=now()`, target, name, database)
+	_, e = s.DB.Exec(ctx, `INSERT INTO service_references(source_service_id,variable_name,target_service_id,target_variable) VALUES($1,$2,$3,$4)
+	 ON CONFLICT(source_service_id,variable_name) DO UPDATE SET target_service_id=EXCLUDED.target_service_id,target_variable=EXCLUDED.target_variable,created_at=now()`, target, name, database, targetVariable)
 	return e
 }

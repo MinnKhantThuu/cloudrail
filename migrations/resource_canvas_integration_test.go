@@ -81,12 +81,12 @@ func TestResourceCanvasMigrationPreservesLegacyServices(t *testing.T) {
 	if err = db.QueryRow(ctx, `SELECT count(*) FROM services WHERE project_id=$1`, project).Scan(&count); err != nil || count != 2 {
 		t.Fatalf("legacy services were not preserved: count=%d err=%v", count, err)
 	}
-	var kind, mode, template string
-	if err = db.QueryRow(ctx, `SELECT resource_kind,workload_mode,template_key FROM services WHERE id=$1`, database).Scan(&kind, &mode, &template); err != nil {
+	var kind, mode, template, version string
+	if err = db.QueryRow(ctx, `SELECT resource_kind,workload_mode,template_key,template_version FROM services WHERE id=$1`, database).Scan(&kind, &mode, &template, &version); err != nil {
 		t.Fatal(err)
 	}
-	if kind != "database" || mode != "web" || template != "postgres" {
-		t.Fatalf("legacy database was not classified: %s %s %s", kind, mode, template)
+	if kind != "database" || mode != "web" || template != "postgres" || version != "17.6" {
+		t.Fatalf("legacy database was not classified and versioned: %s %s %s %s", kind, mode, template, version)
 	}
 	if err = db.QueryRow(ctx, `SELECT count(*) FROM volumes v JOIN volume_attachments a ON a.volume_id=v.id WHERE v.project_id=$1`, project).Scan(&count); err != nil || count != 2 {
 		t.Fatalf("legacy volumes were not normalized: count=%d err=%v", count, err)

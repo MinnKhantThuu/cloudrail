@@ -96,7 +96,7 @@ func (s *Store) CreateCompute(ctx context.Context, projectID string, spec Comput
 }
 
 const depColumns = `id,service_id,image,port,health_path,status,error,logs,created_at,updated_at,settings`
-const svcColumns = `id,project_id,name,environment,host,active_id,created_at,desired_state,settings,resource_kind,workload_mode,template_key,cron_schedule,cron_next_run`
+const svcColumns = `id,project_id,name,environment,host,active_id,created_at,desired_state,settings,resource_kind,workload_mode,template_key,template_version,cron_schedule,cron_next_run`
 
 func scanDep(row pgx.Row) (Deployment, error) {
 	var d Deployment
@@ -110,7 +110,7 @@ func scanDep(row pgx.Row) (Deployment, error) {
 func scanSvc(row pgx.Row) (Service, error) {
 	var v Service
 	var raw []byte
-	err := row.Scan(&v.ID, &v.ProjectID, &v.Name, &v.Environment, &v.Host, &v.ActiveID, &v.CreatedAt, &v.DesiredState, &raw, &v.ResourceKind, &v.WorkloadMode, &v.Template, &v.CronSchedule, &v.CronNextRun)
+	err := row.Scan(&v.ID, &v.ProjectID, &v.Name, &v.Environment, &v.Host, &v.ActiveID, &v.CreatedAt, &v.DesiredState, &raw, &v.ResourceKind, &v.WorkloadMode, &v.Template, &v.TemplateVersion, &v.CronSchedule, &v.CronNextRun)
 	if err == nil {
 		err = json.Unmarshal(raw, &v.Settings)
 	}
@@ -148,8 +148,8 @@ func (s *Store) enqueueTxWithStart(ctx context.Context, tx pgx.Tx, serviceID str
 	// Locking the owning service makes the per-service queue limit race-safe.
 	var owner string
 	var settings []byte
-	var workload, schedule string
-	err = tx.QueryRow(ctx, `SELECT id,settings,workload_mode,cron_schedule FROM services WHERE id=$1 FOR UPDATE`, serviceID).Scan(&owner, &settings, &workload, &schedule)
+	var workload, schedule, templateKey, templateVersion string
+	err = tx.QueryRow(ctx, `SELECT id,settings,workload_mode,cron_schedule,template_key,template_version FROM services WHERE id=$1 FOR UPDATE`, serviceID).Scan(&owner, &settings, &workload, &schedule, &templateKey, &templateVersion)
 	if err != nil {
 		return Deployment{}, err
 	}
@@ -167,8 +167,14 @@ func (s *Store) enqueueTxWithStart(ctx context.Context, tx pgx.Tx, serviceID str
 	if workload == "cron" && schedule == "" {
 		return Deployment{}, ErrCronSchedule
 	}
-	if config.Kind == "postgres" && (spec.Image != PostgresImage || spec.Port != 5432 || spec.HealthPath != "/") {
-		return Deployment{}, errors.New("PostgreSQL template upgrades require a tested migration; use the pinned template image")
+	if templateKey != "" {
+		template, templateErr := dataTemplate(templateKey, templateVersion)
+		if templateErr != nil {
+			return Deployment{}, templateErr
+		}
+		if spec.Image != template.Image || spec.Port != template.Port || spec.HealthPath != "/" {
+			return Deployment{}, errors.New(template.Name + " template upgrades require a tested migration; use the pinned template image")
+		}
 	}
 	key := ""
 	if len(keys) > 0 {

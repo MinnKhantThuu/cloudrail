@@ -28,21 +28,22 @@ type Project struct {
 	CreatedAt time.Time `json:"createdAt"`
 }
 type Service struct {
-	URL          string     `json:"url"`
-	Settings     Settings   `json:"settings"`
-	ID           string     `json:"id"`
-	ProjectID    string     `json:"projectId"`
-	Name         string     `json:"name"`
-	Environment  string     `json:"environment"`
-	Host         string     `json:"host"`
-	ActiveID     string     `json:"activeId"`
-	DesiredState string     `json:"desiredState"`
-	ResourceKind string     `json:"resourceKind"`
-	WorkloadMode string     `json:"workloadMode"`
-	Template     string     `json:"template"`
-	CronSchedule string     `json:"cronSchedule"`
-	CronNextRun  *time.Time `json:"cronNextRun,omitempty"`
-	CreatedAt    time.Time  `json:"createdAt"`
+	URL             string     `json:"url"`
+	Settings        Settings   `json:"settings"`
+	ID              string     `json:"id"`
+	ProjectID       string     `json:"projectId"`
+	Name            string     `json:"name"`
+	Environment     string     `json:"environment"`
+	Host            string     `json:"host"`
+	ActiveID        string     `json:"activeId"`
+	DesiredState    string     `json:"desiredState"`
+	ResourceKind    string     `json:"resourceKind"`
+	WorkloadMode    string     `json:"workloadMode"`
+	Template        string     `json:"template"`
+	TemplateVersion string     `json:"templateVersion,omitempty"`
+	CronSchedule    string     `json:"cronSchedule"`
+	CronNextRun     *time.Time `json:"cronNextRun,omitempty"`
+	CreatedAt       time.Time  `json:"createdAt"`
 }
 type CronRun struct {
 	ID           string     `json:"id"`

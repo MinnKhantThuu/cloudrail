@@ -107,6 +107,7 @@ func (a *API) Handler(webDir string) http.Handler {
 		write(w, 200, v)
 	}
 	admin.HandleFunc("GET /api/state", state)
+	admin.HandleFunc("GET /api/templates", func(w http.ResponseWriter, r *http.Request) { write(w, 200, deployment.DataTemplates()) })
 	admin.HandleFunc("POST /api/projects", func(w http.ResponseWriter, r *http.Request) {
 		var body struct {
 			Name string `json:"name"`
