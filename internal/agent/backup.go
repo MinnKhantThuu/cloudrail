@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type backupRuntime interface {
@@ -20,6 +21,7 @@ type backupRuntime interface {
 	PutRestore(context.Context, string, string) error
 	ExportVolume(context.Context, deployment.Deployment, io.Writer) error
 	RestoreVolume(context.Context, deployment.Deployment, string, string) error
+	RestoreRedisVolume(context.Context, deployment.Deployment, string, string) error
 }
 
 func (r *Runner) RunBackup(ctx context.Context, w deployment.Work, c *Client) error {
@@ -97,9 +99,10 @@ func (r *Runner) RunBackup(ctx context.Context, w deployment.Work, c *Client) er
 		}
 		backupID = w.Action.BackupID
 		var meta struct {
-			Checksum  string `json:"checksum"`
-			Kind      string `json:"kind"`
-			MountPath string `json:"mountPath"`
+			Checksum        string `json:"checksum"`
+			Kind            string `json:"kind"`
+			MountPath       string `json:"mountPath"`
+			TemplateVersion string `json:"templateVersion"`
 		}
 		if _, e := c.call(ctx, "GET", "/internal/backups/"+backupID, nil, &meta); e != nil {
 			return e
@@ -123,6 +126,37 @@ func (r *Runner) RunBackup(ctx context.Context, w deployment.Work, c *Client) er
 		}
 		if meta.Kind == "http" {
 			return runtime.RestoreVolume(ctx, w.Deployment, file, meta.MountPath)
+		}
+		if meta.Kind == "redis" {
+			if meta.TemplateVersion == "" || meta.TemplateVersion != w.Service.TemplateVersion {
+				return errors.New("Redis backup and target template versions do not match")
+			}
+			if e = r.Runtime.Ensure(ctx, w.Deployment); e != nil {
+				return e
+			}
+			stop := true
+			defer func() {
+				if stop {
+					cleanup, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+					defer cancel()
+					_ = r.Runtime.Stop(cleanup, w.Deployment.ID)
+				}
+			}()
+			if e = r.candidateReady(ctx, w.Deployment, w.Service); e != nil {
+				return e
+			}
+			var existing bytes.Buffer
+			if e = runtime.Exec(ctx, w.Deployment.ID, []string{"sh", "-lc", `REDISCLI_AUTH="$REDIS_PASSWORD" redis-cli DBSIZE`}, &existing); e != nil {
+				return e
+			}
+			if strings.TrimSpace(existing.String()) != "0" {
+				return errors.New("restore requires an empty target Redis service; existing keys were preserved")
+			}
+			if e = r.Runtime.Stop(ctx, w.Deployment.ID); e != nil {
+				return e
+			}
+			stop = false
+			return runtime.RestoreRedisVolume(ctx, w.Deployment, file, meta.MountPath)
 		}
 		var existing bytes.Buffer
 		if e = runtime.Exec(ctx, w.Deployment.ID, []string{"psql", "-U", "app", "-d", "app", "-Atc", "SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname NOT IN ('pg_catalog','information_schema') AND n.nspname NOT LIKE 'pg_toast%' AND c.relkind IN ('r','p','m','S','v')"}, &existing); e != nil {

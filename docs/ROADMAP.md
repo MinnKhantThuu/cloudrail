@@ -18,7 +18,7 @@ Public customer signup၊ billing၊ arbitrary customer code၊ autoscaling၊ K
 
 | အပိုင်း | လက်ရှိအခြေအနေ |
 | --- | --- |
-| Phase 0–3 — flow, workspace, node/jobs | Existing backend/core code ပြီး; Phase 2 UX-0–UX-3 နဲ့ UX-4.1 Redis ပြီး၊ UX-4.2 volumes next |
+| Phase 0–3 — flow, workspace, node/jobs | Existing backend/core code ပြီး; Phase 2 UX-0–UX-3 နဲ့ UX-4.1 Redis၊ UX-4.2 volumes ပြီး၊ UX-4.3 backups next |
 | Phase 4 — GitHub source builds | Public Dockerfile/Railpack live builds ပြီး; real GitHub App delivery pending |
 | Phase 5 — operating features | Code + local DB/volume tests ပြီး; clean Linode amd64 install, real ACME issuance နဲ့ reboot အောင် |
 | Phase 6 — Linode pilot | Owner + Railpack app live; failure/reboot/separate-host restore အောင်; GitHub App/observation pending |
@@ -82,7 +82,7 @@ Public HTTPS installer/config ရှိပြီး local TLS proof ရှိသ
 | --- | --- | --- | --- |
 | **0 — Scope & flow** | ဘာဆောက်မယ်၊ ဘယ်လိုသုံးမယ်၊ ဘယ်အစဉ်လိုက်သွားမယ် ရှင်းလင်းခြင်း | Roadmap၊ screen map၊ current/target flow | **အစဉ်အတိုင်း ဆက်လုပ်ရန် အတည်ပြုပြီး** |
 | **1 — Local deployment prototype** | Image deployment နဲ့ failed replacement ကိုသက်သေပြခြင်း | Local image တင်/ဖွင့်၊ logs/history ကြည့်နိုင် | **Code + local verification ပြီး** |
-| **2 — Workspace & core UX** | Railway ရဲ့ resource model နဲ့နေ့စဉ် flow အတိုင်း ပြန်တည်ဆောက်ခြင်း | Project canvas၊ generic compute/data/storage resources၊ links၊ resource drawer | **UX-0–UX-3 နဲ့ UX-4.1 ပြီး; UX-4.2 volumes next** |
+| **2 — Workspace & core UX** | Railway ရဲ့ resource model နဲ့နေ့စဉ် flow အတိုင်း ပြန်တည်ဆောက်ခြင်း | Project canvas၊ generic compute/data/storage resources၊ links၊ resource drawer | **UX-0–UX-3 နဲ့ UX-4.1–UX-4.2 ပြီး; UX-4.3 backups next** |
 | **3 — Reliable node & jobs** | Restart/disconnect/overlap ဖြစ်ချိန် state မှန်အောင်လုပ်ခြင်း | Node online/offline၊ recoverable jobs၊ ရှင်းလင်းတဲ့ failure state | **Code + local failure/recovery checks ပြီး** |
 | **4 — GitHub deployment** | Repo ကနေ app တင်လို့ရအောင်လုပ်ခြင်း | Repo/branch ရွေး၊ push-to-deploy၊ build logs | **Local code + public GitHub build proof ပြီး; live App install/webhook pending** |
 | **5 — VPS operating features** | Public URL နဲ့ persistent app တွေကိုထိန်းနိုင်အောင်လုပ်ခြင်း | Installer၊ domain/HTTPS၊ metrics၊ volumes၊ DB backup/restore | **Single clean Linode amd64 installer + public DNS/ACME + reboot အောင်; renewal pending** |
@@ -144,7 +144,7 @@ Railway ကိုကြည့်ပြီး canvas ပုံသဏ္ဌာန�
   - [x] UX-3.4 commands/restart policy + real-container matrix; hosted CI run 34286036519 passed after migration and cleanup-order coverage.
 - [ ] **UX-4:** Database templates, first-class volumes/backups and S3-compatible bucket resource။
   - [x] UX-4.1 versioned template registry + one-click Redis service; encrypted variables, private binding, AOF volume and agent-recovery proof passed in CI run 34288941666.
-  - [ ] UX-4.2 first-class volume create/attach/detach with writer and path guards.
+  - [x] UX-4.2 first-class volume create/attach/detach; data-moving proof and writer/path/template guards passed in CI run 34290515948.
   - [ ] UX-4.3 Redis/application volume backup and empty-target restore flow.
   - [ ] UX-4.4 S3-compatible bucket create/configure/credential lifecycle.
   - [ ] UX-4.5 MySQL and MongoDB templates with persistence/backup/recovery proof.
@@ -154,7 +154,7 @@ Railway ကိုကြည့်ပြီး canvas ပုံသဏ္ဌာန�
 - [ ] **UX-8:** Templates, Compose import and basic CLI/config as code။
 - [ ] **UX-9:** Public Linode pilot update, docs/release and separate user UX acceptance।
 
-**Next selected substep:** UX-4.2 — first-class volume create/attach/detach with writer and path guards။
+**Next selected substep:** UX-4.3 — Redis/application volume backup and compatible empty-target restore flow။
 
 **UX-2 local visible outcome:** Project overview သည် card grid/list မဟုတ်တော့ဘဲ actual service/database/volume/bucket resources နဲ့ real relations ကို canvas ပေါ်တွင်မြင်၊ နေရာရွှေ့၊ click လုပ်ပြီး drawer ထဲဝင်နိုင်သည်။ Public Linode မှာ alpha.4 UI ပဲရှိသေးပြီး user review မရသေး။
 

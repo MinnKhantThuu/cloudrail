@@ -240,12 +240,13 @@ func (a *API) operationRoutes(admin, agent *http.ServeMux) {
 	})
 	agent.HandleFunc("GET /internal/backups/{id}", func(w http.ResponseWriter, r *http.Request) {
 		var checksum, kind, mount string
-		e := a.Store.DB.QueryRow(r.Context(), `SELECT b.checksum,s.settings->>'kind',s.settings->>'mountPath' FROM backups b JOIN services s ON s.id=b.service_id WHERE b.id=$1`, r.PathValue("id")).Scan(&checksum, &kind, &mount)
+		var templateVersion string
+		e := a.Store.DB.QueryRow(r.Context(), `SELECT b.checksum,s.settings->>'kind',s.settings->>'mountPath',s.template_version FROM backups b JOIN services s ON s.id=b.service_id WHERE b.id=$1`, r.PathValue("id")).Scan(&checksum, &kind, &mount, &templateVersion)
 		if e != nil {
 			dbError(w, e)
 			return
 		}
-		write(w, 200, map[string]string{"checksum": checksum, "kind": kind, "mountPath": mount})
+		write(w, 200, map[string]string{"checksum": checksum, "kind": kind, "mountPath": mount, "templateVersion": templateVersion})
 	})
 	admin.HandleFunc("GET /api/services/{id}/metrics", func(w http.ResponseWriter, r *http.Request) {
 		var metrics []byte

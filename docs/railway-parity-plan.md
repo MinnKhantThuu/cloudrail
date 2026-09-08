@@ -1,7 +1,7 @@
 # Cloudrail — Railway-inspired product and delivery plan
 
 Updated: 2026-09-09  
-Status: **UX-0 through UX-3 and UX-4.1 Redis are implemented and verified; UX-4.2 volume management is next.**
+Status: **UX-0 through UX-3 and UX-4.1 Redis plus UX-4.2 volume management are implemented and verified; UX-4.3 backup/restore is next.**
 
 ဒီစာတမ်းက Cloudrail ကို “service card နှစ်မျိုးပါတဲ့ dashboard” အဖြစ်မတည်ဆောက်ဘဲ Railway လို **project canvas ကနေ application stack တစ်ခုလုံးဆောက်၊ ချိတ်၊ deploy နဲ့ operate လုပ်နိုင်တဲ့ self-hosted PaaS** အဖြစ်ပြောင်းရန် canonical feature plan ဖြစ်သည်။ Phase အစဉ်နဲ့ overall progress ကို `ROADMAP.md` ကပဲ ဆက်ထိန်းမည်။
 
@@ -230,7 +230,7 @@ Research basis: Railway official [Start Command](https://docs.railway.com/deploy
 Substeps:
 
 - [x] **UX-4.1:** Versioned template registry + one-click Redis service; encrypted private binding and persistence/agent-recovery proof passed in CI run 34288941666။
-- [ ] **UX-4.2:** First-class volume create/attach/detach with single-writer and mount-path guards။
+- [x] **UX-4.2:** First-class volume create/attach/detach; a real volume retained its file while moving between applications, with single-writer, running-service, template and mount-path guards verified in CI run 34290515948။
 - [ ] **UX-4.3:** Redis/application volume backups and compatible empty-target restore flow။
 - [ ] **UX-4.4:** S3-compatible bucket resource, encrypted credentials and connection lifecycle။
 - [ ] **UX-4.5:** MySQL and MongoDB templates with persistence, backup and recovery proof။

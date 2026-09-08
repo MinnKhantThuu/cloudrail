@@ -11,6 +11,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -126,6 +127,36 @@ func TestCanvasGraphAndPersistedLayout(t *testing.T) {
 	w = request(http.MethodPost, "/api/services/"+redis.ID+"/bindings", map[string]string{"targetServiceId": application.ID, "variableName": "REDIS_URL"})
 	if w.Code != http.StatusOK {
 		t.Fatalf("redis binding response: %d %s", w.Code, w.Body.String())
+	}
+	var redisDeployment string
+	if err = store.DB.QueryRow(ctx, `SELECT id FROM deployments WHERE service_id=$1`, redis.ID).Scan(&redisDeployment); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = store.DB.Exec(ctx, `UPDATE deployments SET status='active' WHERE id=$1`, redisDeployment); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = store.DB.Exec(ctx, `UPDATE services SET active_id=$2,desired_state='stopped' WHERE id=$1`, redis.ID, redisDeployment); err != nil {
+		t.Fatal(err)
+	}
+	w = request(http.MethodPost, "/api/services/"+redis.ID+"/actions", map[string]string{"kind": "backup"})
+	if w.Code != http.StatusAccepted {
+		t.Fatalf("stopped Redis backup was rejected: %d %s", w.Code, w.Body.String())
+	}
+	if _, err = store.DB.Exec(ctx, `UPDATE service_actions SET status='done' WHERE service_id=$1`, redis.ID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = store.DB.Exec(ctx, `UPDATE services SET desired_state='running' WHERE id=$1`, redis.ID); err != nil {
+		t.Fatal(err)
+	}
+	w = request(http.MethodPost, "/api/services/"+redis.ID+"/actions", map[string]string{"kind": "backup"})
+	if w.Code != http.StatusConflict {
+		t.Fatalf("running Redis backup guard is wrong: %d %s", w.Code, w.Body.String())
+	}
+	if _, actionErr := store.EnqueueAction(ctx, redis.ID, "backup"); actionErr == nil || !strings.Contains(actionErr.Error(), "stopped Redis") {
+		t.Fatalf("running Redis store guard is wrong: %v", actionErr)
+	}
+	if _, err = store.DB.Exec(ctx, `UPDATE services SET desired_state='stopped' WHERE id=$1`, redis.ID); err != nil {
+		t.Fatal(err)
 	}
 
 	canvasPath := "/api/projects/" + project.ID + "/environments/production/canvas"

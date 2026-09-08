@@ -161,6 +161,9 @@ test('canvas exposes resources, connections, creation and saved layout', async (
   await redisDialog.getByRole('button', { name: 'Create resource', exact: true }).click();
   await expect(page.getByRole('button', { name: 'session-cache resource' })).toBeVisible();
   await expect(page.getByRole('region', { name: 'session-cache details' })).toContainText('Private Redis · db-redis-1:6379');
+  await page.getByRole('tab', { name: 'Settings' }).click();
+  await expect(page.getByText('Stop this resource before backing up or restoring its volume.')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Create backup', exact: true })).toBeDisabled();
   expect(savedCreates).toEqual([{ name: 'session-cache', environment: 'production', template: 'redis' }]);
   await page.getByLabel('Close service details').click();
 
