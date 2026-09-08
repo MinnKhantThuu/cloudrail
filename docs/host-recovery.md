@@ -10,7 +10,7 @@ Available from alpha.3. A cold backup and recovery between two separate Ubuntu C
 - Platform CA, node certificate/key, installation environment/encryption key and optional ACME certificate storage.
 - Exact platform Docker images and the public-installation marker.
 
-BuildKit cache/socket and generated proxy routes are recreated. Application container writable layers, host files outside managed volumes, OS configuration and external databases/storage are not included. Persist required application files in an attached volume. External volume drivers and unsafe/nonportable archive links are rejected. Only restore private backups from trusted storage; checksums detect damage but are not an independent authenticity signature.
+BuildKit cache/socket and generated proxy routes are recreated. From alpha.4, public recovery also regenerates the dashboard HTTPS route from the retained dashboard domain; alpha.3 omitted this route. Use alpha.4 for new installations and future backups. Recover an existing alpha.3 backup with its matching source first, then run the route repair below before HTTPS verification. Application container writable layers, host files outside managed volumes, OS configuration and external databases/storage are not included. Persist required application files in an attached volume. External volume drivers and unsafe/nonportable archive links are rejected. Only restore private backups from trusted storage; checksums detect damage but are not an independent authenticity signature.
 
 ## Cold backup on the existing installation
 
@@ -52,3 +52,20 @@ The CI rehearsal uses two separate GitHub-hosted Ubuntu runners. The source job 
 The destination has its own VM/kernel, Docker daemon and storage, and checks owner/session, identity, PostgreSQL rows, application volumes, registry artifacts, encrypted bindings, backup downloads, certificate-volume bytes, stopped state and a new deployment. This still does not substitute for the public HTTPS installer, real ACME or the AWS pilot. See [verification](verification-current.md) for recorded results.
 
 Recorded independent-host proof: [CI run 34211555644](https://github.com/MinnKhantThuu/cloudrail/actions/runs/34211555644) at `85bbdb3`. All five jobs passed, including the source-side envelope byte comparison, destination encrypted-file checksum/authentication and post-restore application/data checks. The earlier isolated envelope authentication failure has no confirmed root cause; integrity checks remain mandatory.
+
+## Repair the dashboard route after an alpha.3 public restore
+
+Alpha.3 backups still require matching alpha.3 source/images for restoration. If that public restore completed but the dashboard returns a proxy 404, regenerate its route on the destination using the retained domain. This does not change owner credentials or application data:
+
+```sh
+python3 - <<'PY_ROUTE'
+import json,pathlib,subprocess
+env=dict(line.split('=',1) for line in pathlib.Path('deploy/local/.env').read_text().splitlines() if '=' in line)
+domain=env['DASHBOARD_DOMAIN']
+route={'http':{'routers':{'cloudrail-dashboard':{'rule':'Host(`'+domain+'`)','entryPoints':['websecure'],'service':'cloudrail-dashboard','tls':{'certResolver':'letsencrypt'}}},'services':{'cloudrail-dashboard':{'loadBalancer':{'servers':[{'url':'http://server:8080'}]}}}}}
+p=pathlib.Path('.data/controlplane.yaml');p.write_text(json.dumps(route));p.chmod(0o600)
+subprocess.run(['docker','cp',str(p),'cloudrail-agent-1:/routes/controlplane.yaml'],check=True)
+PY_ROUTE
+```
+
+Verify the owner login over the actual dashboard HTTPS domain before cutover. Alpha.4 performs this automatically. The disposable CI route check uses a trusted fixture certificate and a reserved `.test` hostname; it makes no ACME request and does not establish public-host certificate issuance.

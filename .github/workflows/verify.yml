@@ -177,6 +177,7 @@ jobs:
           tar -xzf .data/host-transfer.tar.gz -C .data
           python3 scripts/host-recovery.py restore "$PWD/.data/host-backup" --source-fenced
           python3 scripts/host-recovery-acceptance.py verify
+          python3 scripts/dashboard-recovery-acceptance.py
       - if: failure()
         run: |
           docker ps -a --format '{{.Names}} {{.Status}}'

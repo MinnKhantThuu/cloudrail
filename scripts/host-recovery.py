@@ -16,6 +16,7 @@ import tarfile
 import time
 import uuid
 import maintenance as m
+from public_route import write_dashboard_route
 
 ROOT = m.ROOT
 ROLES = ('postgres', 'registry', 'proxy', 'buildkit', 'server', 'agent')
@@ -338,8 +339,18 @@ def restore(directory, fenced, public_ip):
     for ref in record['applicationImages']:
         docker('pull', ref)
     m.compose('up', '-d', '--no-build', '--no-deps', '--pull', 'never', '--wait', '--wait-timeout', '180', 'agent')
+    if record['public']:
+        restore_dashboard_route(configuration['services']['server']['environment']['DASHBOARD_DOMAIN'])
     m.save(checkpoint, {'phase': 'restored', 'backup': str(directory), 'host': target})
     print('PASS platform and persistent data restored; verify owner login, application routes/data and a new deployment before DNS cutover')
+
+
+def restore_dashboard_route(domain):
+    # Generated routes are deliberately excluded from backups. Rebuild this
+    # control-plane route too; the agent only regenerates application routes.
+    path = ROOT / '.data/controlplane.yaml'
+    write_dashboard_route(path, domain)
+    docker('cp', str(path), 'cloudrail-agent-1:/routes/controlplane.yaml')
 
 
 def main():

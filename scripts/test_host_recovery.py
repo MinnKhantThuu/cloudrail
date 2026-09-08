@@ -92,5 +92,19 @@ class HostRecoveryBoundaries(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError,'empty Docker host'):h.restore(self.root,True,None)
             docker.assert_not_called()
 
+    def test_public_dashboard_route_regenerated_from_retained_domain(self):
+        with patch.object(h,'ROOT',self.root),patch.object(h,'docker') as docker:
+            h.restore_dashboard_route('console.example.test')
+            path=self.root/'.data/controlplane.yaml'
+            route=json.loads(path.read_text())['http']
+            self.assertEqual(route['routers']['cloudrail-dashboard']['rule'],'Host(`console.example.test`)')
+            self.assertEqual(route['routers']['cloudrail-dashboard']['tls'],{'certResolver':'letsencrypt'})
+            self.assertEqual(route['services']['cloudrail-dashboard']['loadBalancer']['servers'],[{'url':'http://server:8080'}])
+            docker.assert_called_once_with('cp',str(path),'cloudrail-agent-1:/routes/controlplane.yaml')
+        for domain in ('console.test`) || Path(`/`','https://console.test','bad..test','-bad.test','a'*64+'.test'):
+            with self.subTest(domain=domain),patch.object(h,'ROOT',self.root),patch.object(h,'docker') as docker:
+                with self.assertRaises(ValueError):h.restore_dashboard_route(domain)
+                docker.assert_not_called()
+
 
 if __name__=='__main__':unittest.main()

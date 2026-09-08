@@ -203,7 +203,7 @@ Current phase:
 
 ## 7. လက်ရှိ checkpoint
 
-- **Current:** Phase 7.3 — [alpha.3](https://github.com/MinnKhantThuu/cloudrail/releases/tag/v0.1.0-alpha.3) published from exact commit `991798dfb339173caaef4e34b613fdd19d2cd492`. [All five CI jobs](https://github.com/MinnKhantThuu/cloudrail/actions/runs/34212164749) passed, including cold recovery onto an independent Ubuntu VM. All four release assets passed checksum/provenance checks; 165 source entries matched Git, and anonymous public download/tag/remote digests were verified. Next: public-host installer/HTTPS and AWS/GitHub App pilot once account/domain access is supplied. Local owner handoff remains preserved.
+- **Current:** Phase 7.3 continuation — alpha.3 is published and its independent-host rehearsal passed. Audit found that public recovery recreates application routes but omitted the dashboard route because generated route volumes are excluded from backups. Fixing regeneration from the retained dashboard domain, sharing installer/restore configuration, and verifying it with a disposable HTTPS proxy. Exit: restored dashboard route serves the API over a trusted fixture certificate, archive/unit checks and CI pass. Real DNS/ACME/AWS remain separate external gates.
 - **Phase 0:** User approved sequential continuation through all phases.
 - **Phase 2 evidence:** Go race tests + vet, frontend build, real Docker acceptance, Chrome desktop/mobile journey passed (31.9s). See [Phase 2 flow](phase-2-flow.md).
 - **UX:** Automated browser verification and agent visual inspection; user final UX review pending.

@@ -99,10 +99,7 @@ values.update(dict(zip(['DASHBOARD_DOMAIN','APP_DOMAIN','ACME_EMAIL','PUBLIC_IP'
 p.write_text(''.join(k+'='+v+'\n' for k,v in values.items()));p.chmod(0o600)
 PY
 mkdir -p .data
-python3 - "$task_domain" <<'PY'
-import json,pathlib,sys
-pathlib.Path('.data/controlplane.yaml').write_text(json.dumps({'http':{'routers':{'cloudrail-dashboard':{'rule':'Host(`'+sys.argv[1]+'`)','entryPoints':['websecure'],'service':'cloudrail-dashboard','tls':{'certResolver':'letsencrypt'}}},'services':{'cloudrail-dashboard':{'loadBalancer':{'servers':[{'url':'http://server:8080'}]}}}}}))
-PY
+python3 scripts/public_route.py "$task_domain" .data/controlplane.yaml
 docker compose --env-file deploy/local/.env -f deploy/local/compose.yaml -f deploy/vps/public.yaml up -d --build --wait --wait-timeout 180
 docker cp .data/controlplane.yaml cloudrail-agent-1:/routes/controlplane.yaml
 # This marker makes operational scripts preserve the public overlay on future runs.

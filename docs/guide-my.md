@@ -9,7 +9,7 @@ Cloudrail က ကိုယ်ပိုင် Linux server ပေါ်မှာ 
 Docker Engine API 1.47+၊ Docker Compose၊ Git နဲ့ OpenSSL လိုပါတယ်။ Docker အတွက် RAM အနည်းဆုံး 4 GB၊ disk လွတ်နေရာ အနည်းဆုံး 8 GB ထားပါ။ Source build တွေလုပ်ဖို့ 20 GB လွတ်နေရာရှိရင် ပိုအဆင်ပြေပါတယ်။ Mac သုံးရင် Docker Desktop ဒါမှမဟုတ် Colima ကို အရင်ဖွင့်ပါ။
 
 ```sh
-git clone --branch v0.1.0-alpha.3 --depth 1 https://github.com/MinnKhantThuu/cloudrail.git
+git clone --branch v0.1.0-alpha.4 --depth 1 https://github.com/MinnKhantThuu/cloudrail.git
 cd cloudrail
 bash scripts/dev-up.sh
 ```

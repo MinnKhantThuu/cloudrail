@@ -1,6 +1,6 @@
-# 0.1.0-alpha.3 release and recovery
+# 0.1.0-alpha.4 release and recovery
 
-This alpha adds cold backups and recovery onto a new host, alongside simpler owner registration and guarded maintenance; it is not a production-ready beta. It includes Phase 1–5 implementation, VPS/AWS preparation and release tooling. See [verification](verification-current.md) for what was actually exercised.
+This alpha fixes dashboard-route regeneration during public-host recovery and shares the route generator with the VPS installer; it is not a production-ready beta. It includes Phase 1–5 implementation, VPS/AWS preparation and release tooling. See [verification](verification-current.md) for what was actually exercised.
 
 ## Packages
 
@@ -12,14 +12,14 @@ python3 scripts/package-release.py
 bash scripts/build-release.sh
 ```
 
-Output: `.data/releases/cloudrail-0.1.0-alpha.3-{source,linux-amd64,linux-arm64}.tar.gz` and `SHA256SUMS`. Source archives include a per-file `SOURCE-MANIFEST.json` and exclude installation data, keys, environment files and dependencies. Runtime archives contain API/agent binaries, dashboard assets and dependency notices. They are developer artifacts, not a replacement for the Compose services, BuildKit tools or installer. Use the **source archive** for a standard VPS install.
+Output: `.data/releases/cloudrail-0.1.0-alpha.4-{source,linux-amd64,linux-arm64}.tar.gz` and `SHA256SUMS`. Source archives include a per-file `SOURCE-MANIFEST.json` and exclude installation data, keys, environment files and dependencies. Runtime archives contain API/agent binaries, dashboard assets and dependency notices. They are developer artifacts, not a replacement for the Compose services, BuildKit tools or installer. Use the **source archive** for a standard VPS install.
 
 Archive metadata is normalized for repeatable packaging. Go builds use trimpath and no VCS/build ID. Identical staged inputs produce identical archives. Docker base tags and OS package repositories are not frozen snapshots, so bit-identical Docker rebuilds are not promised. Verify `SHA256SUMS` before extraction. Trusted push builds also generate GitHub artifact attestations in the same CI job that builds the packages. Verify the expected repository, workflow and release commit:
 
 ```sh
 sha256sum -c SHA256SUMS
 # Substitute the release commit recorded in the release notes.
-gh attestation verify cloudrail-0.1.0-alpha.3-source.tar.gz \
+gh attestation verify cloudrail-0.1.0-alpha.4-source.tar.gz \
   --repo MinnKhantThuu/cloudrail \
   --signer-workflow MinnKhantThuu/cloudrail/.github/workflows/verify.yml \
   --source-digest RELEASE_COMMIT
