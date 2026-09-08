@@ -14,7 +14,7 @@ Public customer signup၊ billing၊ arbitrary customer code၊ autoscaling၊ K
 
 ## 2. အခု ဘယ်ရောက်နေပြီလဲ
 
-**[Alpha `0.1.0-alpha.2`](https://github.com/MinnKhantThuu/cloudrail/releases/tag/v0.1.0-alpha.2) ကို public release တင်ပြီး၊ CI/runtime/update/rollback နဲ့ package provenance စစ်အောင်ထားသည်။**
+**[Alpha `0.1.0-alpha.3`](https://github.com/MinnKhantThuu/cloudrail/releases/tag/v0.1.0-alpha.3) ကို public release တင်ပြီး၊ CI/runtime/update/rollback၊ independent-host recovery နဲ့ package provenance စစ်အောင်ထားသည်။**
 
 | အပိုင်း | လက်ရှိအခြေအနေ |
 | --- | --- |
@@ -24,7 +24,7 @@ Public customer signup၊ billing၊ arbitrary customer code၊ autoscaling၊ K
 | Phase 6 — AWS pilot | Template + read-only account/catalog planner ပြီး; AWS profile/domain မရှိသေး |
 | Phase 7 — release preparation | Source + Linux amd64/arm64 archives, CI definitions, docs ပြီး; final local checks အောင် |
 | UX | Desktop/mobile automated checks + visual inspection ပြီး; owner final review pending |
-| Git / hosting | **[MinnKhantThuu/cloudrail](https://github.com/MinnKhantThuu/cloudrail) public source တင်ပြီး**; alpha.2 release တင်ပြီး; AWS deployment မရှိသေး |
+| Git / hosting | **[MinnKhantThuu/cloudrail](https://github.com/MinnKhantThuu/cloudrail) public source တင်ပြီး**; alpha.3 release တင်ပြီး; AWS deployment မရှိသေး |
 
 Code ရေးပြီးတာကို public VPS/AWS verification ပြီးတယ်လို့ မရေတွက်ပါ။ Phase 6 account-bound အဆင့်ရောက်ပြီးနောက် အဲဒီ access မလိုတဲ့ Phase 7 packaging ကို ဆက်လုပ်ထားသည်။ Phase အရေအတွက်နဲ့ completion percentage မတွက်ပါ။
 
@@ -203,12 +203,12 @@ Current phase:
 
 ## 7. လက်ရှိ checkpoint
 
-- **Current:** Phase 7.3 — cold host backup/recovery passed between two separate Ubuntu CI runners ([run 34211555644](https://github.com/MinnKhantThuu/cloudrail/actions/runs/34211555644)). Owner, app files/PostgreSQL data, registry images, encrypted bindings, stopped state and a new deployment survived recovery. Finalizing alpha.3 archive-boundary guards, docs and release packages; final candidate CI/provenance remains to verify. The local user workspace is excluded from this rehearsal.
+- **Current:** Phase 7.3 — [alpha.3](https://github.com/MinnKhantThuu/cloudrail/releases/tag/v0.1.0-alpha.3) published from exact commit `991798dfb339173caaef4e34b613fdd19d2cd492`. [All five CI jobs](https://github.com/MinnKhantThuu/cloudrail/actions/runs/34212164749) passed, including cold recovery onto an independent Ubuntu VM. All four release assets passed checksum/provenance checks; 165 source entries matched Git, and anonymous public download/tag/remote digests were verified. Next: public-host installer/HTTPS and AWS/GitHub App pilot once account/domain access is supplied. Local owner handoff remains preserved.
 - **Phase 0:** User approved sequential continuation through all phases.
 - **Phase 2 evidence:** Go race tests + vet, frontend build, real Docker acceptance, Chrome desktop/mobile journey passed (31.9s). See [Phase 2 flow](phase-2-flow.md).
 - **UX:** Automated browser verification and agent visual inspection; user final UX review pending.
 - **Local owner handoff:** Login correction passed fresh registration (3.7s) and the full dashboard/deploy/browser journey (32.4s). The assistant-created acceptance owner was backed up and removed, retaining projects/apps, so the user can create their own account at localhost:8080. Do not run acceptance helpers that create an owner on this handed-over installation; use disposable CI installations for further registration/maintenance tests.
-- **Remote:** Public source committed/pushed to [MinnKhantThuu/cloudrail](https://github.com/MinnKhantThuu/cloudrail), main branch. Private vulnerability reporting enabled. No AWS resources, public application domain or installed GitHub App; [v0.1.0-alpha.2](https://github.com/MinnKhantThuu/cloudrail/releases/tag/v0.1.0-alpha.2) is published with all four verified CI assets.
+- **Remote:** Public source committed/pushed to [MinnKhantThuu/cloudrail](https://github.com/MinnKhantThuu/cloudrail), main branch. Private vulnerability reporting enabled. No AWS resources, public application domain or installed GitHub App; [v0.1.0-alpha.3](https://github.com/MinnKhantThuu/cloudrail/releases/tag/v0.1.0-alpha.3) is published with all four verified CI assets.
 - **Phase 3 evidence:** mTLS heartbeat/revoke, dedup, cancellation, agent/container restart recovery, isolated PostgreSQL stale-attempt/retry tests and independent backup restore passed. See [Phase 3 flow](phase-3-flow.md).
 - **Phase 4 evidence:** Public GitHub Dockerfile + Railpack builds each served real HTTP via registry digests; failed build preserved traffic. Browser Source/GitHub desktop/mobile passed. Signed replay/stale/cancellation/retry DB tests passed. A transient local disk-full failure was resolved with Cloudrail-only build-cache cleanup and the DB test rerun passed.
 - **Account gap:** GitHub App installation/delivered webhook and AWS/domain are pending user account details.
@@ -223,8 +223,10 @@ Current phase:
 1. [x] Pending-job/concurrent-operator guards, verified rollback metadata and incompatible image-rollback rejection.
 2. [x] Fresh Linux Compose install → deployment → update → rollback → continued operation and backup restore in hosted CI.
 3. [x] Publish versioned alpha artifacts with checksums and verified build provenance.
-4. [x] Cold host backup/recovery and a disposable independent-host rehearsal passed, including application state beyond the control database. Final alpha.3 release candidate checks remain separate.
+4. [x] Cold host backup/recovery and a disposable independent-host rehearsal passed, including application state beyond the control database. Final alpha.3 CI and published package verification also passed.
 5. [ ] Validate public installer/networking and complete the AWS/GitHub/domain pilot when account access is supplied.
 6. [ ] Record final owner UX acceptance and real pilot evidence; never count missing external proof as complete.
 
 This queue completes existing Phase 5–7 gates; it does not add multi-tenancy, Kubernetes or unrelated features.
+
+External gate check after alpha.3 publication: AWS CLI is installed but `aws configure list-profiles` returned no configured profiles. No target domain/GitHub App/pilot inputs or owner UX acceptance have been supplied. No AWS infrastructure or real public application was created by this release.

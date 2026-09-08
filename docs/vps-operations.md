@@ -45,7 +45,7 @@ scripts/backup-control-plane.sh
 scripts/verify-control-restore.sh .data/backups/control-TIMESTAMP
 ```
 
-Control-plane backups include the database, encryption key, installation credentials, CA and node identity. Treat the entire directory as secret. It does **not** include application volumes, the registry, application backup volume or ACME volume. Back those up separately. Restoring only the database without its matching encryption key cannot recover encrypted variables or App credentials.
+Control-plane backups include the database, encryption key, installation credentials, CA and node identity. Treat the entire directory as secret. It does **not** include application volumes, the registry, application backup volume or ACME volume. For the complete installation, use the [cold host backup and independent-host restore](host-recovery.md) commands available from alpha.3, which include those managed volumes. Restoring only the database without its matching encryption key cannot recover encrypted variables or App credentials.
 
 For a lost/revoked node identity, an operator with SSH access can run `scripts/node-reenroll.sh --replace-node`. It backs up the control plane, stops the agent, rotates the enrollment token and replaces the certificate identity. Existing application containers keep running. Verify the new heartbeat before resuming changes.
 
