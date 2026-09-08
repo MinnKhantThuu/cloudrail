@@ -7,10 +7,11 @@ import (
 )
 
 var ErrConflict = errors.New("request conflicts with current deployment state")
+var ErrCronSchedule = errors.New("configure the UTC cron schedule before deploying")
 
 // nextAttempt is called only by the single process holding the host's execution lock.
 func nextAttempt(ctx context.Context, tx pgx.Tx, table, id string) (string, error) {
-	if table != "deployments" && table != "service_actions" {
+	if table != "deployments" && table != "service_actions" && table != "cron_runs" {
 		return "", errors.New("invalid job table")
 	}
 	token := ID()

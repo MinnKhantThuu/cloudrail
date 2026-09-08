@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"cloudrail/migrations"
 	"github.com/jackc/pgx/v5"
@@ -95,7 +96,7 @@ func (s *Store) CreateCompute(ctx context.Context, projectID string, spec Comput
 }
 
 const depColumns = `id,service_id,image,port,health_path,status,error,logs,created_at,updated_at,settings`
-const svcColumns = `id,project_id,name,environment,host,active_id,created_at,desired_state,settings,resource_kind,workload_mode,template_key`
+const svcColumns = `id,project_id,name,environment,host,active_id,created_at,desired_state,settings,resource_kind,workload_mode,template_key,cron_schedule,cron_next_run`
 
 func scanDep(row pgx.Row) (Deployment, error) {
 	var d Deployment
@@ -109,7 +110,7 @@ func scanDep(row pgx.Row) (Deployment, error) {
 func scanSvc(row pgx.Row) (Service, error) {
 	var v Service
 	var raw []byte
-	err := row.Scan(&v.ID, &v.ProjectID, &v.Name, &v.Environment, &v.Host, &v.ActiveID, &v.CreatedAt, &v.DesiredState, &raw, &v.ResourceKind, &v.WorkloadMode, &v.Template)
+	err := row.Scan(&v.ID, &v.ProjectID, &v.Name, &v.Environment, &v.Host, &v.ActiveID, &v.CreatedAt, &v.DesiredState, &raw, &v.ResourceKind, &v.WorkloadMode, &v.Template, &v.CronSchedule, &v.CronNextRun)
 	if err == nil {
 		err = json.Unmarshal(raw, &v.Settings)
 	}
@@ -138,13 +139,17 @@ func (s *Store) enqueueTx(ctx context.Context, tx pgx.Tx, serviceID string, spec
 	// Locking the owning service makes the per-service queue limit race-safe.
 	var owner string
 	var settings []byte
-	err = tx.QueryRow(ctx, `SELECT id,settings FROM services WHERE id=$1 FOR UPDATE`, serviceID).Scan(&owner, &settings)
+	var workload, schedule string
+	err = tx.QueryRow(ctx, `SELECT id,settings,workload_mode,cron_schedule FROM services WHERE id=$1 FOR UPDATE`, serviceID).Scan(&owner, &settings, &workload, &schedule)
 	if err != nil {
 		return Deployment{}, err
 	}
 	var config Settings
 	if err = json.Unmarshal(settings, &config); err != nil {
 		return Deployment{}, err
+	}
+	if workload == "cron" && schedule == "" {
+		return Deployment{}, ErrCronSchedule
 	}
 	if config.Kind == "postgres" && (spec.Image != PostgresImage || spec.Port != 5432 || spec.HealthPath != "/") {
 		return Deployment{}, errors.New("PostgreSQL template upgrades require a tested migration; use the pinned template image")
@@ -231,10 +236,12 @@ func (s *Store) Claim(ctx context.Context) (*Work, error) {
 	}
 	defer tx.Rollback(ctx)
 	// Expired work becomes terminal even if the agent was disconnected. Reconciliation restores routes.
-	for _, table := range []string{"deployments", "service_actions"} {
+	for _, table := range []string{"deployments", "service_actions", "cron_runs"} {
 		terminal := "('active','failed','superseded')"
 		if table == "service_actions" {
 			terminal = "('done','failed')"
+		} else if table == "cron_runs" {
+			terminal = "('succeeded','failed')"
 		}
 		if _, err = tx.Exec(ctx, `UPDATE `+table+` SET status='failed',error='Execution retry limit or deadline reached; desired state will be reconciled',updated_at=now() WHERE status NOT IN `+terminal+` AND (deadline<now() OR (attempt>=3 AND next_attempt<=now()))`); err != nil {
 			return nil, err
@@ -270,7 +277,7 @@ func (s *Store) Claim(ctx context.Context) (*Work, error) {
 	// The filesystem lock serializes execution; attempt tokens fence stale acknowledgements.
 	d, err := scanDep(tx.QueryRow(ctx, `SELECT `+depColumns+` FROM deployments WHERE status NOT IN ('active','failed','superseded') AND next_attempt<=now() AND NOT EXISTS(SELECT 1 FROM deployments earlier WHERE earlier.service_id=deployments.service_id AND earlier.status NOT IN ('active','failed','superseded') AND (earlier.created_at,earlier.id)<(deployments.created_at,deployments.id)) ORDER BY created_at,id LIMIT 1 FOR UPDATE`))
 	if errors.Is(err, pgx.ErrNoRows) {
-		return nil, tx.Commit(ctx)
+		return s.claimCronTx(ctx, tx)
 	}
 	if err != nil {
 		return nil, err
@@ -300,6 +307,107 @@ func (s *Store) Claim(ctx context.Context) (*Work, error) {
 		return nil, err
 	}
 	return w, tx.Commit(ctx)
+}
+
+func (s *Store) claimCronTx(ctx context.Context, tx pgx.Tx) (*Work, error) {
+	run, err := scanCron(tx.QueryRow(ctx, `SELECT `+cronColumns+` FROM cron_runs WHERE status IN ('queued','running') AND next_attempt<=now() ORDER BY scheduled_for,id LIMIT 1 FOR UPDATE`))
+	if errors.Is(err, pgx.ErrNoRows) {
+		var serviceID string
+		err = tx.QueryRow(ctx, `SELECT id FROM services s WHERE workload_mode='cron' AND desired_state='running' AND active_id<>'' AND cron_schedule<>'' AND cron_next_run<=now() AND NOT EXISTS(SELECT 1 FROM cron_runs r WHERE r.service_id=s.id AND r.status IN ('queued','running')) ORDER BY cron_next_run,id LIMIT 1 FOR UPDATE OF s SKIP LOCKED`).Scan(&serviceID)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, tx.Commit(ctx)
+		}
+		if err != nil {
+			return nil, err
+		}
+		service, e := scanSvc(tx.QueryRow(ctx, `SELECT `+svcColumns+` FROM services WHERE id=$1`, serviceID))
+		if e != nil {
+			return nil, e
+		}
+		if service.CronNextRun == nil {
+			return nil, errors.New("cron service has no next run")
+		}
+		next, e := CronNext(service.CronSchedule, time.Now())
+		if e != nil {
+			return nil, e
+		}
+		run, e = scanCron(tx.QueryRow(ctx, `INSERT INTO cron_runs(id,service_id,deployment_id,scheduled_for) VALUES($1,$2,$3,$4) RETURNING `+cronColumns, ID(), service.ID, service.ActiveID, *service.CronNextRun))
+		if e != nil {
+			return nil, e
+		}
+		if _, e = tx.Exec(ctx, `UPDATE services SET cron_next_run=$2 WHERE id=$1`, service.ID, next); e != nil {
+			return nil, e
+		}
+		service.CronNextRun = &next
+	} else if err != nil {
+		return nil, err
+	}
+	service, err := scanSvc(tx.QueryRow(ctx, `SELECT `+svcColumns+` FROM services WHERE id=$1`, run.ServiceID))
+	if err != nil {
+		return nil, err
+	}
+	d, err := scanDep(tx.QueryRow(ctx, `SELECT `+depColumns+` FROM deployments WHERE id=$1`, run.DeploymentID))
+	if err != nil {
+		return nil, err
+	}
+	env, err := s.deploymentEnv(ctx, tx, d.ID)
+	if err != nil {
+		return nil, err
+	}
+	if _, err = tx.Exec(ctx, `UPDATE cron_runs SET status='running',started_at=COALESCE(started_at,now()),updated_at=now() WHERE id=$1`, run.ID); err != nil {
+		return nil, err
+	}
+	attempt, err := nextAttempt(ctx, tx, "cron_runs", run.ID)
+	if err != nil {
+		return nil, err
+	}
+	run.Status = "running"
+	return &Work{Attempt: attempt, CronRun: &run, Deployment: d, Service: service, Env: env}, tx.Commit(ctx)
+}
+
+func (s *Store) ReportCronRun(ctx context.Context, id string, r Report) error {
+	if r.Status != "succeeded" && r.Status != "failed" {
+		return errors.New("invalid cron run status")
+	}
+	tx, err := s.DB.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+	run, err := scanCron(tx.QueryRow(ctx, `SELECT `+cronColumns+` FROM cron_runs WHERE id=$1 FOR UPDATE`, id))
+	if err != nil {
+		return err
+	}
+	if run.Status == "succeeded" || run.Status == "failed" {
+		if run.Status == r.Status {
+			return nil
+		}
+		return ErrConflict
+	}
+	if err = checkAttempt(ctx, tx, "cron_runs", id, r.Attempt, false); err != nil {
+		return err
+	}
+	env, err := s.deploymentEnv(ctx, tx, run.DeploymentID)
+	if err != nil {
+		return err
+	}
+	for _, value := range env {
+		if value != "" {
+			r.Logs = strings.ReplaceAll(r.Logs, value, "[REDACTED]")
+			r.Message = strings.ReplaceAll(r.Message, value, "[REDACTED]")
+		}
+	}
+	if len(r.Logs) > 16000 {
+		r.Logs = r.Logs[len(r.Logs)-16000:]
+	}
+	if len(r.Message) > 1800 {
+		r.Message = r.Message[:1800]
+	}
+	_, err = tx.Exec(ctx, `UPDATE cron_runs SET status=$2,exit_code=$3,logs=$4,error=$5,finished_at=now(),updated_at=now() WHERE id=$1`, id, r.Status, r.ExitCode, strings.ToValidUTF8(r.Logs, ""), strings.ToValidUTF8(r.Message, ""))
+	if err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
 }
 func (s *Store) Report(ctx context.Context, id string, r Report) error {
 	tx, err := s.DB.Begin(ctx)
@@ -371,7 +479,7 @@ func (s *Store) Report(ctx context.Context, id string, r Report) error {
 	return tx.Commit(ctx)
 }
 func (s *Store) State(ctx context.Context) (State, error) {
-	state := State{Environments: []Environment{}, Actions: []Action{}, Projects: []Project{}, Services: []Service{}, Deployments: []Deployment{}, Events: []Event{}}
+	state := State{Environments: []Environment{}, Actions: []Action{}, Projects: []Project{}, Services: []Service{}, Deployments: []Deployment{}, Events: []Event{}, CronRuns: []CronRun{}}
 	// One consistent snapshot avoids briefly pairing a new active pointer with old history.
 	tx, err := s.DB.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.RepeatableRead, AccessMode: pgx.ReadOnly})
 	if err != nil {
@@ -474,6 +582,23 @@ func (s *Store) State(ctx context.Context) (State, error) {
 			return state, err
 		}
 		state.Actions = append(state.Actions, a)
+	}
+	err = rows.Err()
+	rows.Close()
+	if err != nil {
+		return state, err
+	}
+	rows, err = tx.Query(ctx, `SELECT `+cronColumns+` FROM cron_runs ORDER BY scheduled_for DESC LIMIT 200`)
+	if err != nil {
+		return state, err
+	}
+	for rows.Next() {
+		run, e := scanCron(rows)
+		if e != nil {
+			rows.Close()
+			return state, e
+		}
+		state.CronRuns = append(state.CronRuns, run)
 	}
 	err = rows.Err()
 	rows.Close()

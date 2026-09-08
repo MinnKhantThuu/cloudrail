@@ -140,7 +140,7 @@ Railway ကိုကြည့်ပြီး canvas ပုံသဏ္ဌာန�
 - [ ] **UX-3:** GitHub/Docker/Empty source + web/worker/cron creation and runtime။
   - [x] UX-3.1 source/workload axes + generic create API/form; isolated API, full Go/vet, frontend, mocked Chrome and hosted CI run 34279315566 passed.
   - [x] UX-3.2 route-free long-running worker runtime; unit/browser coverage and hosted real-Docker acceptance passed in CI run 34280088388.
-  - [ ] UX-3.3 cron schedule/claim/overlap/history/recovery.
+  - [ ] UX-3.3 cron schedule/claim/overlap/history/recovery; implementation, isolated PostgreSQL, unit and mocked browser proof passed locally; hosted real-Docker proof pending.
   - [ ] UX-3.4 commands/restart policy + real-container matrix.
 - [ ] **UX-4:** Database templates, first-class volumes/backups and S3-compatible bucket resource။
 - [ ] **UX-5:** Secret/reference variables, real canvas links, private/public networking and TCP follow-up။
@@ -228,7 +228,7 @@ Current phase:
 
 ## 7. လက်ရှိ checkpoint
 
-- **Current:** Phase 2.4 UX-0 product contract, UX-1 resource API and UX-2 canvas shell are complete locally. UX-3.1 generic compute creation and UX-3.2 route-free worker runtime are complete; UX-3.3 cron runtime is next. Phase 6 evidence remains preserved: exact alpha.4 commit `302aec4` is still live at `https://console.172-104-38-63.sslip.io`; the new canvas is not deployed there yet. GitHub App delivery, renewal and 48-hour observation remain pending.
+- **Current:** Phase 2.4 UX-0 product contract, UX-1 resource API and UX-2 canvas shell are complete locally. UX-3.1 generic compute creation and UX-3.2 route-free worker runtime are complete. UX-3.3 cron runtime is implemented and locally tested; hosted real-Docker proof is pending. Phase 6 evidence remains preserved: exact alpha.4 commit `302aec4` is still live at `https://console.172-104-38-63.sslip.io`; the new canvas is not deployed there yet. GitHub App delivery, renewal and 48-hour observation remain pending.
 - **Phase 0:** User approved sequential continuation through all phases.
 - **Phase 2 evidence:** Go race tests + vet, frontend build, real Docker acceptance, Chrome desktop/mobile journey passed (31.9s). See [Phase 2 flow](phase-2-flow.md).
 - **UX:** UX-2 renders the environment graph as a pan/zoom/fit canvas with persisted node drag, URL-restored selection, actual reference/attachment edges, click drawers, shared Create/right-click/Cmd-Ctrl-K palette and phone full-screen drawer. Production build and mocked Chrome journeys passed; screenshots were visually inspected. UX-3.1 enables worker/cron resource creation and records source type independently from workload mode. UX-3.2 deploys and recovers route-free long-running workers with lifecycle controls; hosted real-Docker CI passed. Cron runtime remains; Redis/MySQL/Mongo/volume/bucket create options stay disabled with their phase shown. Public deployment and user review remain pending.

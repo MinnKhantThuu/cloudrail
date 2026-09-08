@@ -46,6 +46,12 @@ The agent checks that a worker process stays running instead of probing HTTP, re
 
 Hosted [CI run 34280088388](https://github.com/MinnKhantThuu/cloudrail/actions/runs/34280088388) passed checks, runtime, maintenance, backup and independent-host recovery for UX-3.2 at `71d9f5c`. The stronger stopped-container recovery assertion is queued with the completion checkpoint commit.
 
+## Scheduled cron runtime — UX-3.3 candidate
+
+Cron services now store a validated five-field UTC schedule and calculated next run. The transactional claimer pins each occurrence to the active deployment, advances the next occurrence past the current time, allows one unfinished run per service and retries the same run identity after interruption. The Docker runtime creates an isolated no-restart container, records bounded stdout/stderr and exit code, and can resume a created, running or exited container after an agent restart. Completed containers are removed opportunistically.
+
+The Settings drawer exposes schedule editing, next execution and run history. Full Go tests, `go vet`, the isolated PostgreSQL API/claim/history tests, frontend build and two mocked Chrome canvas journeys passed locally. The cron drawer screenshot was visually inspected. A disposable CI acceptance forces a due execution with the pinned `hello-world` image, verifies no public route and injects an exited run while the agent is offline to prove restart recovery. Its hosted result is pending, so UX-3.3 is not marked complete yet.
+
 The final dependency scan found reachable advisories in pgx v5.7.6 and x/text v0.24.0. They were updated to **pgx v5.9.2** and **x/text v0.39.0**. `govulncheck v1.7.0` then reported zero affected code paths and zero vulnerabilities in imported packages; it still lists advisories elsewhere in required modules that the application does not call. This is not an external security audit or a container-image scan. [Go pgx advisory](https://pkg.go.dev/vuln/GO-2026-5004), [Go x/text advisory](https://pkg.go.dev/vuln/GO-2026-5970). `npm audit` reported zero known vulnerabilities in the locked frontend dependency tree.
 
 ## Repeat the checks

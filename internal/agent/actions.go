@@ -19,6 +19,9 @@ func (r *Runner) RunAction(ctx context.Context, w deployment.Work, client *Clien
 		if err := r.setRoute(w.Service, nil); err != nil {
 			return err
 		}
+		if w.Service.WorkloadMode == "cron" {
+			return nil
+		}
 		if a.Kind == "stop" || a.Kind == "restart" {
 			if err := r.Runtime.Stop(ctx, d.ID); err != nil {
 				return err

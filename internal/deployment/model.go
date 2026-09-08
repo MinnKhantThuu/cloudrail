@@ -28,19 +28,35 @@ type Project struct {
 	CreatedAt time.Time `json:"createdAt"`
 }
 type Service struct {
-	URL          string    `json:"url"`
-	Settings     Settings  `json:"settings"`
-	ID           string    `json:"id"`
-	ProjectID    string    `json:"projectId"`
-	Name         string    `json:"name"`
-	Environment  string    `json:"environment"`
-	Host         string    `json:"host"`
-	ActiveID     string    `json:"activeId"`
-	DesiredState string    `json:"desiredState"`
-	ResourceKind string    `json:"resourceKind"`
-	WorkloadMode string    `json:"workloadMode"`
-	Template     string    `json:"template"`
-	CreatedAt    time.Time `json:"createdAt"`
+	URL          string     `json:"url"`
+	Settings     Settings   `json:"settings"`
+	ID           string     `json:"id"`
+	ProjectID    string     `json:"projectId"`
+	Name         string     `json:"name"`
+	Environment  string     `json:"environment"`
+	Host         string     `json:"host"`
+	ActiveID     string     `json:"activeId"`
+	DesiredState string     `json:"desiredState"`
+	ResourceKind string     `json:"resourceKind"`
+	WorkloadMode string     `json:"workloadMode"`
+	Template     string     `json:"template"`
+	CronSchedule string     `json:"cronSchedule"`
+	CronNextRun  *time.Time `json:"cronNextRun,omitempty"`
+	CreatedAt    time.Time  `json:"createdAt"`
+}
+type CronRun struct {
+	ID           string     `json:"id"`
+	ServiceID    string     `json:"serviceId"`
+	DeploymentID string     `json:"deploymentId"`
+	ScheduledFor time.Time  `json:"scheduledFor"`
+	Status       string     `json:"status"`
+	ExitCode     *int       `json:"exitCode,omitempty"`
+	Logs         string     `json:"logs"`
+	Error        string     `json:"error"`
+	StartedAt    *time.Time `json:"startedAt,omitempty"`
+	FinishedAt   *time.Time `json:"finishedAt,omitempty"`
+	CreatedAt    time.Time  `json:"createdAt"`
+	UpdatedAt    time.Time  `json:"updatedAt"`
 }
 type ComputeSpec struct {
 	Name         string `json:"name"`
@@ -76,20 +92,23 @@ type State struct {
 	Services     []Service     `json:"services"`
 	Deployments  []Deployment  `json:"deployments"`
 	Events       []Event       `json:"events"`
+	CronRuns     []CronRun     `json:"cronRuns"`
 }
 type Work struct {
 	Attempt    string            `json:"attempt"`
 	Env        map[string]string `json:"environment"`
 	Action     *Action           `json:"action,omitempty"`
+	CronRun    *CronRun          `json:"cronRun,omitempty"`
 	Deployment Deployment        `json:"deployment"`
 	Service    Service           `json:"service"`
 	Previous   *Deployment       `json:"previous,omitempty"`
 }
 type Report struct {
-	Attempt string `json:"-"`
-	Status  string `json:"status"`
-	Message string `json:"message"`
-	Logs    string `json:"logs"`
+	Attempt  string `json:"-"`
+	Status   string `json:"status"`
+	Message  string `json:"message"`
+	Logs     string `json:"logs"`
+	ExitCode *int   `json:"exitCode,omitempty"`
 }
 type Spec struct {
 	Image      string `json:"image"`
@@ -138,4 +157,5 @@ func ID() string {
 func Terminal(status string) bool {
 	return status == "active" || status == "failed" || status == "superseded"
 }
-func Container(id string) string { return "cloudrail-app-" + id }
+func Container(id string) string     { return "cloudrail-app-" + id }
+func CronContainer(id string) string { return "cloudrail-cron-" + id }

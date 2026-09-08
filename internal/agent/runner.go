@@ -2,6 +2,7 @@ package agent
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"strings"
@@ -16,6 +17,13 @@ type Runtime interface {
 	Stop(context.Context, string) error
 	Remove(context.Context, string) error
 	Logs(context.Context, string) string
+}
+type CronRuntime interface {
+	RunOnce(context.Context, deployment.Deployment, string) (int, string, error)
+	RemoveCron(context.Context, string) error
+}
+type CronReporter interface {
+	ReportCronRun(context.Context, string, deployment.Report) error
 }
 type Router interface {
 	Set(deployment.Service, *deployment.Deployment) error
@@ -121,6 +129,18 @@ func (r *Runner) Run(ctx context.Context, w deployment.Work) error {
 	if err = r.report(ctx, d, "starting", "Starting isolated candidate container"); err != nil {
 		return err
 	}
+	if w.Service.WorkloadMode == "cron" {
+		if err = r.setRoute(w.Service, nil); err != nil {
+			return r.fail(ctx, w, fmt.Errorf("route cleanup failed: %w", err))
+		}
+		if err = r.report(ctx, d, "active", "Cron release is ready for its next scheduled run"); err != nil {
+			return err
+		}
+		if w.Previous != nil {
+			_ = r.Runtime.Remove(ctx, w.Previous.ID)
+		}
+		return nil
+	}
 	if d.Settings.VolumeName != "" && w.Previous != nil {
 		if err = r.Routes.Set(w.Service, nil); err != nil {
 			return err
@@ -170,6 +190,43 @@ func (r *Runner) Run(ctx context.Context, w deployment.Work) error {
 		if err = r.Runtime.Stop(ctx, w.Previous.ID); err != nil {
 			slog.Warn("old release cleanup deferred", "deployment", w.Previous.ID, "error", err)
 		}
+	}
+	return nil
+}
+
+func (r *Runner) RunCron(ctx context.Context, w deployment.Work, client CronReporter) error {
+	if w.CronRun == nil {
+		return errors.New("cron work has no run")
+	}
+	runtime, ok := r.Runtime.(CronRuntime)
+	if !ok {
+		return errors.New("runtime does not support one-shot jobs")
+	}
+	w.Deployment.Env = w.Env
+	exit, logs, err := runtime.RunOnce(ctx, w.Deployment, w.CronRun.ID)
+	if ctx.Err() != nil {
+		return ctx.Err()
+	}
+	report := deployment.Report{Status: "succeeded", Logs: logs, ExitCode: &exit}
+	if err != nil || exit != 0 {
+		report.Status = "failed"
+		if err != nil {
+			report.Message = "Cron run failed: " + err.Error()
+		} else {
+			report.Message = fmt.Sprintf("Cron process exited with code %d", exit)
+		}
+	}
+	if r.Redact != nil {
+		report.Logs = r.Redact(report.Logs)
+		report.Message = r.Redact(report.Message)
+	}
+	if err = client.ReportCronRun(ctx, w.CronRun.ID, report); err != nil {
+		return err
+	}
+	cleanup, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if err = runtime.RemoveCron(cleanup, w.CronRun.ID); err != nil {
+		slog.Warn("cron container cleanup deferred", "run", w.CronRun.ID, "error", err)
 	}
 	return nil
 }

@@ -87,7 +87,7 @@ func main() {
 			jobClient := *client
 			jobClient.Attempt = w.Attempt
 			runner.Reporter = &jobClient
-			if w.Action == nil {
+			if w.Action == nil && w.CronRun == nil {
 				go jobClient.WatchCancellation(jobCtx, w.Deployment.ID, stop)
 			}
 			w.Deployment.Env = w.Env
@@ -98,10 +98,12 @@ func main() {
 			runner.Redact = agent.Redactor(values...)
 			if w.Action != nil {
 				err = runner.RunAction(jobCtx, *w, &jobClient)
+			} else if w.CronRun != nil {
+				err = runner.RunCron(jobCtx, *w, &jobClient)
 			} else {
 				err = runner.Run(jobCtx, *w)
 			}
-			if jobCtx.Err() != nil && ctx.Err() == nil && w.Action == nil {
+			if jobCtx.Err() != nil && ctx.Err() == nil && w.Action == nil && w.CronRun == nil {
 				recovery, end := context.WithTimeout(ctx, 30*time.Second)
 				// Cancellation can also mean the bounded attempt timed out. Both must clean the candidate.
 				err = runner.RecoverCancellation(recovery, *w)
@@ -129,11 +131,28 @@ func main() {
 						stop()
 					}
 					if d.Status == "active" {
+						var cron bool
+						for _, service := range state.Services {
+							if service.ActiveID == d.ID && service.WorkloadMode == "cron" {
+								cron = true
+								break
+							}
+						}
+						if cron {
+							continue
+						}
 						op, stop := context.WithTimeout(ctx, 10*time.Second)
 						logs := redact(runtime.Logs(op, d.ID))
 						if logs != d.Logs {
 							_ = client.Report(op, d.ID, deployment.Report{Logs: logs})
 						}
+						stop()
+					}
+				}
+				for _, run := range state.CronRuns {
+					if run.Status == "succeeded" || run.Status == "failed" {
+						op, stop := context.WithTimeout(ctx, 10*time.Second)
+						_ = runtime.RemoveCron(op, run.ID)
 						stop()
 					}
 				}

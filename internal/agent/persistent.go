@@ -31,7 +31,10 @@ func (r *Runner) candidateReady(ctx context.Context, d deployment.Deployment, s 
 		return runtime.Running(op, d)
 	}
 	if s.WorkloadMode == "cron" {
-		return errors.New("cron schedule must be configured before activation")
+		if s.CronSchedule == "" || s.CronNextRun == nil {
+			return errors.New("cron schedule must be configured before activation")
+		}
+		return nil
 	}
 	return r.check(ctx, fmt.Sprintf("http://%s:%d%s", deployment.Container(d.ID), d.Port, d.HealthPath), s, "")
 }

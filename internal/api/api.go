@@ -202,6 +202,10 @@ func (a *API) Handler(webDir string) http.Handler {
 		}
 		v, err := a.Store.Enqueue(r.Context(), r.PathValue("id"), spec, r.Header.Get("Idempotency-Key"))
 		if err != nil {
+			if errors.Is(err, deployment.ErrCronSchedule) {
+				problem(w, 400, err.Error())
+				return
+			}
 			dbError(w, err)
 			return
 		}

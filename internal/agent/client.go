@@ -69,6 +69,10 @@ func (c *Client) Report(ctx context.Context, id string, r deployment.Report) err
 	_, err := c.call(ctx, "POST", "/internal/deployments/"+id+"/report", r, nil)
 	return err
 }
+func (c *Client) ReportCronRun(ctx context.Context, id string, r deployment.Report) error {
+	_, err := c.call(ctx, "POST", "/internal/cron-runs/"+id+"/report", r, nil)
+	return err
+}
 func (c *Client) State(ctx context.Context) (deployment.State, error) {
 	var s deployment.State
 	_, err := c.call(ctx, "GET", "/internal/state", nil, &s)

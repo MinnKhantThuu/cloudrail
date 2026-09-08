@@ -6,6 +6,8 @@ import (
 	"errors"
 	"net/http"
 	"strings"
+
+	"github.com/jackc/pgx/v5"
 )
 
 func (a *API) ownerOnly(next http.Handler) http.Handler {
@@ -189,6 +191,24 @@ func (a *API) workspaceRoutes(public, admin, agent *http.ServeMux) {
 		}
 		write(w, 202, v)
 	})
+	admin.HandleFunc("PUT /api/services/{id}/cron", func(w http.ResponseWriter, r *http.Request) {
+		var body struct {
+			Schedule string `json:"schedule"`
+		}
+		if !decode(w, r, &body) {
+			return
+		}
+		service, err := a.Store.SaveCronSchedule(r.Context(), r.PathValue("id"), body.Schedule)
+		if err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				dbError(w, err)
+			} else {
+				problem(w, 400, err.Error())
+			}
+			return
+		}
+		write(w, 200, service)
+	})
 	agent.HandleFunc("POST /internal/actions/{id}/report", func(w http.ResponseWriter, r *http.Request) {
 		var report deployment.Report
 		if !decode(w, r, &report) {
@@ -200,6 +220,22 @@ func (a *API) workspaceRoutes(public, admin, agent *http.ServeMux) {
 		}
 		report.Attempt = r.Header.Get("X-Cloudrail-Attempt")
 		if err := a.Store.ReportAction(r.Context(), r.PathValue("id"), report); err != nil {
+			dbError(w, err)
+			return
+		}
+		write(w, 200, map[string]bool{"ok": true})
+	})
+	agent.HandleFunc("POST /internal/cron-runs/{id}/report", func(w http.ResponseWriter, r *http.Request) {
+		var report deployment.Report
+		if !decode(w, r, &report) {
+			return
+		}
+		if len(report.Message) > 1800 || len(report.Logs) > 16384 {
+			problem(w, 400, "Report exceeds size limit")
+			return
+		}
+		report.Attempt = r.Header.Get("X-Cloudrail-Attempt")
+		if err := a.Store.ReportCronRun(r.Context(), r.PathValue("id"), report); err != nil {
 			dbError(w, err)
 			return
 		}

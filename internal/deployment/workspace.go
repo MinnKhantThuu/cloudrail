@@ -183,7 +183,7 @@ func (s *Store) EnqueueAction(ctx context.Context, id, kind string, backup ...st
 		}
 	}
 	var busy bool
-	err = tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM deployments WHERE service_id=$1 AND status NOT IN ('active','failed','superseded')) OR EXISTS(SELECT 1 FROM service_actions WHERE service_id=$1 AND status IN ('queued','running'))`, id).Scan(&busy)
+	err = tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM deployments WHERE service_id=$1 AND status NOT IN ('active','failed','superseded')) OR EXISTS(SELECT 1 FROM service_actions WHERE service_id=$1 AND status IN ('queued','running')) OR EXISTS(SELECT 1 FROM cron_runs WHERE service_id=$1 AND status IN ('queued','running'))`, id).Scan(&busy)
 	if err != nil {
 		return a, err
 	}

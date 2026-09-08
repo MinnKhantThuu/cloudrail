@@ -96,7 +96,11 @@ func (c *Client) Pull(ctx context.Context, d deployment.Deployment) error {
 
 type inspection struct {
 	Config struct{ Labels map[string]string }
-	State  struct{ Running bool }
+	State  struct {
+		Running  bool
+		ExitCode int
+		Status   string
+	}
 }
 
 func (c *Client) Ensure(ctx context.Context, d deployment.Deployment) error {
@@ -214,6 +218,163 @@ func (c *Client) Running(ctx context.Context, d deployment.Deployment) error {
 		case <-ticker.C:
 		}
 	}
+}
+
+func (c *Client) RunOnce(ctx context.Context, d deployment.Deployment, runID string) (int, string, error) {
+	name := deployment.CronContainer(runID)
+	resp, err := c.request(ctx, "GET", "/containers/"+name+"/json", nil)
+	if err != nil {
+		return 0, "", err
+	}
+	created := false
+	if resp.StatusCode == http.StatusOK {
+		var state inspection
+		err = json.NewDecoder(resp.Body).Decode(&state)
+		resp.Body.Close()
+		if err != nil {
+			return 0, "", err
+		}
+		if state.Config.Labels["cloudrail.cron-run"] != runID {
+			return 0, "", errors.New("cron container name is owned by another workload")
+		}
+		if !state.State.Running && state.State.Status != "created" {
+			return state.State.ExitCode, c.containerLogs(ctx, name), nil
+		}
+		created = state.State.Status == "created"
+	} else if resp.StatusCode == http.StatusNotFound {
+		resp.Body.Close()
+		if err = freeDisk(512 << 20); err != nil {
+			return 0, "", err
+		}
+		network := c.Network
+		endpoints := map[string]any{network: map[string]any{}}
+		if d.Settings.Network != "" {
+			if err = c.network(ctx, d.Settings.Network); err != nil {
+				return 0, "", err
+			}
+			network = d.Settings.Network
+			endpoints = map[string]any{network: map[string]any{}}
+		}
+		keys := make([]string, 0, len(d.Env))
+		for key := range d.Env {
+			keys = append(keys, key)
+		}
+		sort.Strings(keys)
+		env := make([]string, 0, len(keys))
+		for _, key := range keys {
+			env = append(env, key+"="+d.Env[key])
+		}
+		memory, cpu := d.Settings.MemoryMB, d.Settings.CPUMillis
+		if memory == 0 {
+			memory = 256
+		}
+		if cpu == 0 {
+			cpu = 1000
+		}
+		host := map[string]any{"NetworkMode": network, "Memory": int64(memory) * 1024 * 1024, "NanoCpus": int64(cpu) * 1_000_000, "PidsLimit": 256, "CapDrop": []string{"NET_RAW"}, "SecurityOpt": []string{"no-new-privileges:true"}, "RestartPolicy": map[string]string{"Name": "no"}, "LogConfig": map[string]any{"Type": "json-file", "Config": map[string]string{"max-size": "5m", "max-file": "2"}}}
+		if d.Settings.VolumeName != "" {
+			if err = c.volume(ctx, d.Settings.VolumeName, d.ServiceID); err != nil {
+				return 0, "", err
+			}
+			host["Mounts"] = []map[string]any{{"Type": "volume", "Source": d.Settings.VolumeName, "Target": d.Settings.MountPath}}
+		}
+		body := map[string]any{"Image": d.Image, "Env": env, "Labels": map[string]string{"cloudrail.managed": "true", "cloudrail.cron-run": runID, "cloudrail.deployment": d.ID, "cloudrail.service": d.ServiceID}, "HostConfig": host, "NetworkingConfig": map[string]any{"EndpointsConfig": endpoints}}
+		resp, err = c.request(ctx, "POST", "/containers/create?name="+name, body)
+		if err != nil {
+			return 0, "", err
+		}
+		if resp.StatusCode != http.StatusCreated {
+			return 0, "", responseError(resp)
+		}
+		resp.Body.Close()
+		created = true
+	} else {
+		return 0, "", responseError(resp)
+	}
+	if created {
+		resp, err = c.request(ctx, "POST", "/containers/"+name+"/start", nil)
+		if err != nil {
+			return 0, "", err
+		}
+		if resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusNotModified {
+			return 0, "", responseError(resp)
+		}
+		resp.Body.Close()
+	}
+	ticker := time.NewTicker(250 * time.Millisecond)
+	defer ticker.Stop()
+	for {
+		resp, err = c.request(ctx, "GET", "/containers/"+name+"/json", nil)
+		if err != nil {
+			return 0, "", err
+		}
+		if resp.StatusCode != http.StatusOK {
+			return 0, "", responseError(resp)
+		}
+		var state inspection
+		err = json.NewDecoder(resp.Body).Decode(&state)
+		resp.Body.Close()
+		if err != nil {
+			return 0, "", err
+		}
+		if !state.State.Running {
+			return state.State.ExitCode, c.containerLogs(ctx, name), nil
+		}
+		select {
+		case <-ctx.Done():
+			logCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			logs := c.containerLogs(logCtx, name)
+			cancel()
+			return 0, logs, ctx.Err()
+		case <-ticker.C:
+		}
+	}
+}
+
+func (c *Client) RemoveCron(ctx context.Context, runID string) error {
+	resp, err := c.request(ctx, "DELETE", "/containers/"+deployment.CronContainer(runID)+"?force=true", nil)
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusNotFound {
+		return responseError(resp)
+	}
+	resp.Body.Close()
+	return nil
+}
+
+func (c *Client) containerLogs(ctx context.Context, name string) string {
+	resp, err := c.request(ctx, "GET", "/containers/"+name+"/logs?stdout=true&stderr=true&tail=200&timestamps=true", nil)
+	if err != nil {
+		return ""
+	}
+	if resp.StatusCode != http.StatusOK {
+		resp.Body.Close()
+		return ""
+	}
+	defer resp.Body.Close()
+	var result strings.Builder
+	var header [8]byte
+	r := io.LimitReader(resp.Body, 256<<10)
+	for {
+		if _, err = io.ReadFull(r, header[:]); err != nil {
+			break
+		}
+		n := binary.BigEndian.Uint32(header[4:])
+		if n > 256<<10 {
+			break
+		}
+		b := make([]byte, n)
+		if _, err = io.ReadFull(r, b); err != nil {
+			break
+		}
+		result.Write(b)
+	}
+	logs := result.String()
+	if len(logs) > 16000 {
+		logs = logs[len(logs)-16000:]
+	}
+	return strings.ToValidUTF8(logs, "")
 }
 func (c *Client) Stop(ctx context.Context, id string) error {
 	resp, err := c.request(ctx, "POST", "/containers/"+deployment.Container(id)+"/stop?t=5", nil)

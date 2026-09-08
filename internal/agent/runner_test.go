@@ -66,6 +66,31 @@ type fakeReporter struct {
 	reports   []deployment.Report
 	activeErr error
 }
+type fakeCronReporter struct {
+	report deployment.Report
+	id     string
+}
+
+func (f *fakeCronReporter) ReportCronRun(_ context.Context, id string, report deployment.Report) error {
+	f.id, f.report = id, report
+	return nil
+}
+
+type fakeCronRuntime struct {
+	fakeRuntime
+	exit int
+	logs string
+	err  error
+}
+
+func (f fakeCronRuntime) RunOnce(_ context.Context, _ deployment.Deployment, id string) (int, string, error) {
+	*f.calls = append(*f.calls, "cron:"+id)
+	return f.exit, f.logs, f.err
+}
+func (f fakeCronRuntime) RemoveCron(_ context.Context, id string) error {
+	*f.calls = append(*f.calls, "remove-cron:"+id)
+	return nil
+}
 
 func (f *fakeReporter) Report(_ context.Context, _ string, r deployment.Report) error {
 	*f.calls = append(*f.calls, "report:"+r.Status)
@@ -131,6 +156,36 @@ func TestWorkerActivatesWithoutPublicRoute(t *testing.T) {
 	}
 	requireOrder(t, calls, "ensure", "running:new", "route:none", "report:active", "stop:old")
 	forbidden(t, calls, "route:new", "route:old", "check:", "check:new")
+}
+func TestCronReleaseActivatesWithoutStartingAContainer(t *testing.T) {
+	calls := []string{}
+	r, _ := setup(&calls)
+	w := work()
+	next := time.Now().Add(time.Minute)
+	w.Service.WorkloadMode = "cron"
+	w.Service.CronSchedule = "* * * * *"
+	w.Service.CronNextRun = &next
+	if err := r.Run(context.Background(), w); err != nil {
+		t.Fatal(err)
+	}
+	requireOrder(t, calls, "pull", "report:starting", "route:none", "report:active", "remove:old")
+	forbidden(t, calls, "ensure", "route:new", "check:", "check:new", "stop:old")
+}
+
+func TestCronRunReportsExitAndLogs(t *testing.T) {
+	calls := []string{}
+	r, _ := setup(&calls)
+	r.Runtime = fakeCronRuntime{fakeRuntime: fakeRuntime{calls: &calls}, exit: 7, logs: "job output"}
+	reporter := &fakeCronReporter{}
+	w := work()
+	w.CronRun = &deployment.CronRun{ID: "run-1"}
+	if err := r.RunCron(context.Background(), w, reporter); err != nil {
+		t.Fatal(err)
+	}
+	if reporter.id != "run-1" || reporter.report.Status != "failed" || reporter.report.ExitCode == nil || *reporter.report.ExitCode != 7 || reporter.report.Logs != "job output" {
+		t.Fatalf("wrong report: %#v", reporter.report)
+	}
+	requireOrder(t, calls, "cron:run-1", "remove-cron:run-1")
 }
 func TestFailedWorkerCandidateRestoresPreviousProcess(t *testing.T) {
 	calls := []string{}

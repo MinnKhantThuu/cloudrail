@@ -30,3 +30,4 @@
 .password-label { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .password-label label { margin: 0; }
 .password-label .text-button { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; }
+.cron-history pre{max-height:130px;overflow:auto;white-space:pre-wrap;margin:8px 0 0;padding:8px;background:#100e15;border-radius:5px;color:#a99bb5;font:9px/1.6 ui-monospace,SFMono-Regular,monospace}.resource-status.succeeded{color:#72d6a6}.resource-status.running,.resource-status.queued{color:#e0b976}.resource-status.failed{color:#f18e9d}

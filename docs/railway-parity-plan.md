@@ -202,7 +202,7 @@ flowchart LR
 
 ### UX-3 — Compute creation and deployment flow
 
-**Status:** In progress. UX-3.1 generic compute creation and UX-3.2 route-free worker runtime passed hosted CI. Cron runtime remains.
+**Status:** In progress. UX-3.1 generic compute creation and UX-3.2 route-free worker runtime passed hosted CI. UX-3.3 cron implementation and local tests are ready; hosted real-Docker proof is pending.
 
 **Scope:** GitHub Repository, Docker Image, Empty Service create paths; web/API, background worker, cron modes; build/start/pre-deploy command; healthcheck/restart policy; deployment state presentation။
 
@@ -210,7 +210,7 @@ Substeps:
 
 - [x] **UX-3.1:** Source/workload axes, generic create API and canvas creation form။
 - [x] **UX-3.2:** Route-free long-running worker deployment and lifecycle actions; unit, browser and hosted real-Docker proof passed။
-- [ ] **UX-3.3:** UTC cron schedules, due-run claim, overlap guard, history and restart recovery။
+- [ ] **UX-3.3:** UTC cron schedules, due-run claim, overlap guard, history and restart recovery; implementation/local proof ready, hosted real-Docker proof pending။
 - [ ] **UX-3.4:** Start/pre-deploy commands, restart policy and complete real-container acceptance matrix။
 
 **Visible result:** Canvas `Create +` ကနေ backend, frontend, worker, cron ကိုတကယ်ဖန်တီးပြီး deploy/run လို့ရမည်။

@@ -25,6 +25,8 @@ func (c *Client) Reconcile(ctx context.Context, r *Runner) error {
 			if e == nil {
 				e = r.Runtime.Stop(op, w.Deployment.ID)
 			}
+		} else if w.Service.WorkloadMode == "cron" {
+			e = r.setRoute(w.Service, nil)
 		} else {
 			e = r.Runtime.Ensure(op, w.Deployment)
 			if e == nil {

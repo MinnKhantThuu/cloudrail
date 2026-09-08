@@ -12,7 +12,7 @@ Use the HttpOnly `cloudrail_session` cookie (24 hours, SameSite Strict, Secure o
 
 | Method | Path | Body/result |
 | --- | --- | --- |
-| GET | `/api/state` | Projects, environments, services, deployments, actions and events; variable values excluded |
+| GET | `/api/state` | Projects, environments, services, deployments, actions, cron run history and events; variable values excluded |
 | POST | `/api/projects` | `{name}` → 201 project |
 | POST | `/api/projects/:id/environments` | `{name}` → 201 environment |
 | GET | `/api/projects/:id/environments/:environment/canvas` | Unified `{projectId,environment,resources,links}` graph; no secret values |
@@ -20,6 +20,7 @@ Use the HttpOnly `cloudrail_session` cookie (24 hours, SameSite Strict, Secure o
 | POST | `/api/projects/:id/resources` | `{name,environment,sourceType,workloadMode}` → 201 compute resource |
 | POST | `/api/projects/:id/services` | `{name,environment}` → 201 HTTP service; default environment `production` |
 | POST | `/api/services/:id/deployments` | `{image,port,healthPath}` → 202 deployment; optional `Idempotency-Key` |
+| PUT | `/api/services/:id/cron` | `{schedule}` → cron service with next UTC run; five-field expressions only |
 | POST | `/api/deployments/:id/cancel` | `{}` → cancellation request |
 | GET | `/api/services/:id/variables` | `{names:[...]}`; never returns values |
 | PUT | `/api/services/:id/variables/:name` | `{value}` for subsequent deployments |
@@ -28,11 +29,11 @@ Use the HttpOnly `cloudrail_session` cookie (24 hours, SameSite Strict, Secure o
 
 Images require `repository@sha256:<64 hex>`. Readiness accepts 2xx at an absolute path without query/fragment; redirects do not count. Reusing an idempotency key with the same request returns the original job; different content conflicts. Settings/variables are immutable snapshots per deployment. Redeploy creates a new ID and snapshot.
 
-Web deployments require HTTP readiness and receive a Traefik route. Worker deployments require the process to remain running through the readiness window and never receive a public URL or route; healthy replacement activates before the prior worker stops, and failed candidates preserve the prior process. `port` and `healthPath` remain required compatibility fields until the deployment request contract is generalized. Cron resources cannot activate until a schedule is configured in UX-3.3.
+Web deployments require HTTP readiness and receive a Traefik route. Worker deployments require the process to remain running through the readiness window and never receive a public URL or route; healthy replacement activates before the prior worker stops, and failed candidates preserve the prior process. Cron deployments require a five-field UTC schedule, prepare the pinned release without a long-running service container or public route, and start an isolated one-shot container when due. Only one unfinished run is allowed per cron service. Missed intervals coalesce into one run, and state returns the latest 200 runs with bounded logs and exit codes. `port` and `healthPath` remain required compatibility fields until the deployment request contract is generalized.
 
 Canvas resource keys use `service:<id>`, `volume:<id>` and `bucket:<id>`. Service nodes report `kind`, `workloadMode`, `sourceType`, optional `template`, current status and known public/private address. Canvas links are returned only for recorded volume attachments or service variable references. Layout updates reject unknown or duplicate resource keys.
 
-Compute `sourceType` is `github`, `image` or `empty`; `workloadMode` is `web`, `worker` or `cron`. These axes are stored separately, so a GitHub or image source can later run as any workload mode. The legacy `/services` route creates an empty web resource. Worker execution and cron scheduling are enabled in the following UX-3 runtime substeps; creating the resource does not claim those runtime proofs.
+Compute `sourceType` is `github`, `image` or `empty`; `workloadMode` is `web`, `worker` or `cron`. These axes are stored separately, so a GitHub or image source can later run as any workload mode. The legacy `/services` route creates an empty web resource.
 
 States: `queued → pulling → starting → checking → routing → active`; failures/cancellation end in `failed`, retired releases become `superseded`. A running cancellation cleans its candidate and restores the prior route. At most 10 nonterminal deployments per service. Database deployments are restricted to the pinned PostgreSQL template.
 
@@ -72,6 +73,6 @@ Source: `{repository,installation,branch,root,builder,dockerfile,buildCommand,st
 
 `POST /enroll` uses the installation enrollment token over the private Compose management network and signs a CSR. The agent then uses TLS 1.3/client certificates on 8443. Every `/internal/*` request verifies the installation CA and current non-revoked identity; plaintext/Bearer-only access is rejected.
 
-Internal routes cover heartbeat, deployment/action/build claims and reports, cancellation, reconciliation, backup metadata and authenticated source archives. Reports require `X-Cloudrail-Attempt`, matching the claim and deadline. Deployment/action jobs allow at most 3 claims within a 10-minute overall deadline. Builds have a 15-minute attempt/45-minute overall limit. One agent owns the persistent execution lock; this is not distributed scheduling.
+Internal routes cover heartbeat, deployment/action/build/cron claims and reports, cancellation, reconciliation, backup metadata and authenticated source archives. Reports require `X-Cloudrail-Attempt`, matching the claim and deadline. Deployment/action/cron jobs allow at most 3 claims within a 10-minute overall deadline. Builds have a 15-minute attempt/45-minute overall limit. One agent owns the persistent execution lock; this is a single-node scheduler.
 
 Traefik routes directly to applications. Public installations expose 80/443; API/registry loopback ports, control database, BuildKit socket and internal TLS remain private.

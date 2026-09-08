@@ -113,6 +113,21 @@ func TestCanvasGraphAndPersistedLayout(t *testing.T) {
 	if w.Code != http.StatusCreated {
 		t.Fatalf("cron create response: %d %s", w.Code, w.Body.String())
 	}
+	var cronService deployment.Service
+	if err = json.Unmarshal(w.Body.Bytes(), &cronService); err != nil {
+		t.Fatal(err)
+	}
+	w = request(http.MethodPut, "/api/services/"+cronService.ID+"/cron", map[string]string{"schedule": "@hourly"})
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("descriptor cron schedule accepted: %d %s", w.Code, w.Body.String())
+	}
+	w = request(http.MethodPut, "/api/services/"+cronService.ID+"/cron", map[string]string{"schedule": "*/15 * * * *"})
+	if w.Code != http.StatusOK {
+		t.Fatalf("cron schedule response: %d %s", w.Code, w.Body.String())
+	}
+	if err = json.Unmarshal(w.Body.Bytes(), &cronService); err != nil || cronService.CronSchedule != "*/15 * * * *" || cronService.CronNextRun == nil {
+		t.Fatalf("cron schedule contract is wrong: %#v %v", cronService, err)
+	}
 	w = request(http.MethodPost, "/api/projects/"+project.ID+"/resources", deployment.ComputeSpec{Name: "bad", Environment: "production", WorkloadMode: "daemon", SourceType: "image"})
 	if w.Code != http.StatusBadRequest {
 		t.Fatalf("invalid workload accepted: %d %s", w.Code, w.Body.String())

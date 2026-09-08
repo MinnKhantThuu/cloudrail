@@ -11,15 +11,18 @@ const state = {
   services: [
     { id: 'app-1', projectId: 'project-1', name: 'storefront-api', environment: 'production', host: 'api.example.test', url: 'https://api.example.test', activeId: 'deploy-1', desiredState: 'running', resourceKind: 'service', workloadMode: 'web', template: '', createdAt: '2026-09-09T00:00:00Z', settings: { kind: 'http', memoryMB: 256, cpuMillis: 1000, mountPath: '', volumeName: '', network: 'cloudrail' } },
     { id: 'worker-1', projectId: 'project-1', name: 'email-queue', environment: 'production', host: 'worker.example.test', url: '', activeId: 'deploy-worker', desiredState: 'running', resourceKind: 'service', workloadMode: 'worker', template: '', createdAt: '2026-09-09T00:00:00Z', settings: { kind: 'http', memoryMB: 256, cpuMillis: 1000, mountPath: '', volumeName: '', network: 'cloudrail' } },
+    { id: 'cron-1', projectId: 'project-1', name: 'nightly-cleanup', environment: 'production', host: 'cron.example.test', url: '', activeId: 'deploy-cron', desiredState: 'running', resourceKind: 'service', workloadMode: 'cron', template: '', cronSchedule: '0 2 * * *', cronNextRun: '2026-09-10T02:00:00Z', createdAt: '2026-09-09T00:00:00Z', settings: { kind: 'http', memoryMB: 256, cpuMillis: 1000, mountPath: '', volumeName: '', network: 'cloudrail' } },
     { id: 'db-1', projectId: 'project-1', name: 'postgres', environment: 'production', host: '', url: '', activeId: 'deploy-db', desiredState: 'running', resourceKind: 'database', workloadMode: 'web', template: 'postgres', createdAt: '2026-09-09T00:00:00Z', settings: { kind: 'postgres', memoryMB: 384, cpuMillis: 1000, mountPath: '/var/lib/postgresql/data', volumeName: 'postgres-data', network: 'cloudrail' } },
   ],
   deployments: [
     { id: 'deploy-1', serviceId: 'app-1', image: 'ghcr.io/example/storefront@sha256:abc', port: 8080, healthPath: '/health', status: 'active', error: '', logs: 'Starting up\nListening on :8080', createdAt: '2026-09-09T00:00:00Z', updatedAt: '2026-09-09T00:01:00Z' },
     { id: 'deploy-worker', serviceId: 'worker-1', image: 'ghcr.io/example/worker@sha256:abc', port: 80, healthPath: '/', status: 'active', error: '', logs: 'Waiting for jobs', createdAt: '2026-09-09T00:00:00Z', updatedAt: '2026-09-09T00:01:00Z' },
+    { id: 'deploy-cron', serviceId: 'cron-1', image: 'ghcr.io/example/cleanup@sha256:abc', port: 80, healthPath: '/', status: 'active', error: '', logs: '', createdAt: '2026-09-09T00:00:00Z', updatedAt: '2026-09-09T00:01:00Z' },
     { id: 'deploy-db', serviceId: 'db-1', image: 'postgres@sha256:def', port: 5432, healthPath: '/', status: 'active', error: '', logs: '', createdAt: '2026-09-09T00:00:00Z', updatedAt: '2026-09-09T00:01:00Z' },
   ],
   events: [{ id: 1, deploymentId: 'deploy-1', stage: 'active', message: 'Traffic switched to this release.', createdAt: '2026-09-09T00:01:00Z' }],
   actions: [],
+  cronRuns: [{ id: 'run-1', serviceId: 'cron-1', deploymentId: 'deploy-cron', scheduledFor: '2026-09-09T02:00:00Z', status: 'succeeded', exitCode: 0, logs: 'cleanup complete', error: '', startedAt: '2026-09-09T02:00:00Z', finishedAt: '2026-09-09T02:00:02Z' }],
 };
 
 const graph = {
@@ -27,6 +30,7 @@ const graph = {
   resources: [
     { key: 'service:app-1', id: 'app-1', kind: 'service', name: 'storefront-api', status: 'active', workloadMode: 'web', sourceType: 'github', publicAddress: 'https://api.example.test', privateAddress: 'storefront-api.internal', position: { x: 130, y: 150 } },
     { key: 'service:worker-1', id: 'worker-1', kind: 'service', name: 'email-queue', status: 'active', workloadMode: 'worker', sourceType: 'image', privateAddress: 'email-queue.internal', position: { x: 130, y: 390 } },
+    { key: 'service:cron-1', id: 'cron-1', kind: 'service', name: 'nightly-cleanup', status: 'active', workloadMode: 'cron', sourceType: 'image', privateAddress: 'nightly-cleanup.internal', position: { x: 410, y: 470 } },
     { key: 'service:db-1', id: 'db-1', kind: 'database', name: 'postgres', status: 'active', workloadMode: 'database', template: 'PostgreSQL', privateAddress: 'postgres.internal:5432', position: { x: 610, y: 150 } },
     { key: 'volume:volume-1', id: 'volume-1', kind: 'volume', name: 'postgres-data', status: 'attached', template: 'local', position: { x: 610, y: 380 } },
   ],
@@ -74,12 +78,21 @@ test('canvas exposes resources, connections, creation and saved layout', async (
   await expect(page.getByRole('button', { name: 'postgres resource' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'postgres-data resource' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'email-queue resource' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'nightly-cleanup resource' })).toBeVisible();
   await expect(page.locator('.canvas-links path')).toHaveCount(3);
   await expect(page.locator('.detail-pane')).toHaveCount(0);
 
   await page.getByRole('button', { name: 'storefront-api resource' }).click();
   await expect(page.getByRole('region', { name: 'storefront-api details' })).toBeVisible();
   await expect.poll(() => new URL(page.url()).searchParams.get('resource')).toBe('service:app-1');
+  await page.getByLabel('Close service details').click();
+
+  await page.getByRole('button', { name: 'nightly-cleanup resource' }).click();
+  await expect(page.getByRole('region', { name: 'nightly-cleanup details' })).toContainText('0 2 * * * UTC');
+  await page.getByRole('tab', { name: 'Settings' }).click();
+  await expect(page.getByLabel('Cron expression')).toHaveValue('0 2 * * *');
+  await expect(page.getByText('cleanup complete')).toBeVisible();
+  await page.screenshot({ path: screenshots + 'cron-settings-desktop.png', fullPage: true });
   await page.getByLabel('Close service details').click();
 
   await page.getByRole('button', { name: 'email-queue resource' }).click();
