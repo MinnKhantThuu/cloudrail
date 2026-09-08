@@ -211,11 +211,13 @@ Substeps:
 - [x] **UX-3.1:** Source/workload axes, generic create API and canvas creation form။
 - [x] **UX-3.2:** Route-free long-running worker deployment and lifecycle actions; unit, browser and hosted real-Docker proof passed။
 - [x] **UX-3.3:** UTC cron schedules, due-run claim, overlap guard, history and restart recovery; local and hosted real-Docker proof passed။
-- [ ] **UX-3.4:** Start/pre-deploy commands, restart policy and complete real-container acceptance matrix။
+- [ ] **UX-3.4:** Start/pre-deploy commands, restart policy and complete real-container acceptance matrix; implementation/local proof ready, hosted Docker matrix pending။
 
 **Visible result:** Canvas `Create +` ကနေ backend, frontend, worker, cron ကိုတကယ်ဖန်တီးပြီး deploy/run လို့ရမည်။
 
 **Completion:** GitHub/Docker/empty flow တစ်မျိုးချင်း real container test၊ worker long-run test၊ cron due/overlap/restart test၊ failed deploy traffic preservation အောင်ရမည်။
+
+Research basis: Railway official [Start Command](https://docs.railway.com/deployments/start-command), [Pre-Deploy Command](https://docs.railway.com/deployments/pre-deploy-command) and [Restart Policy](https://docs.railway.com/deployments/restart-policy) behavior. Cloudrail keeps the same user-level controls while applying them through its single-node Docker runtime.
 
 ### UX-4 — Databases, volumes and buckets
 

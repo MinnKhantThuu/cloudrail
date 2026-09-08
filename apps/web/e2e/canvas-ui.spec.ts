@@ -40,7 +40,7 @@ const graph = {
   ],
 };
 
-async function mockWorkspace(page: import('@playwright/test').Page, savedLayouts: unknown[]) {
+async function mockWorkspace(page: import('@playwright/test').Page, savedLayouts: unknown[], savedRuntime: unknown[] = []) {
   const canvas = structuredClone(graph);
   await page.route('**/*', async route => {
     const request = route.request();
@@ -59,6 +59,10 @@ async function mockWorkspace(page: import('@playwright/test').Page, savedLayouts
     }
     if (url.pathname.endsWith('/canvas')) return route.fulfill({ json: canvas });
     if (url.pathname.endsWith('/metrics')) return route.fulfill({ json: { memoryBytes: 71303168, cpuPercent: 1.8, status: 'running' } });
+    if (url.pathname.endsWith('/runtime') && request.method() === 'PUT') {
+      savedRuntime.push(request.postDataJSON());
+      return route.fulfill({ json: request.postDataJSON() });
+    }
     if (url.pathname === '/api/backups') return route.fulfill({ json: [] });
     if (url.pathname.endsWith('/variables')) return route.fulfill({ json: { names: [] } });
     if (url.pathname.startsWith('/api/')) return route.fulfill({ json: {} });
@@ -68,9 +72,10 @@ async function mockWorkspace(page: import('@playwright/test').Page, savedLayouts
 
 test('canvas exposes resources, connections, creation and saved layout', async ({ page }) => {
   const savedLayouts: unknown[] = [];
+  const savedRuntime: unknown[] = [];
   const errors: string[] = [];
   page.on('pageerror', error => errors.push(error.message));
-  await mockWorkspace(page, savedLayouts);
+  await mockWorkspace(page, savedLayouts, savedRuntime);
   await page.goto('/');
 
   await expect(page.getByRole('region', { name: 'Project canvas' })).toBeVisible();
@@ -97,6 +102,16 @@ test('canvas exposes resources, connections, creation and saved layout', async (
 
   await page.getByRole('button', { name: 'email-queue resource' }).click();
   await expect(page.getByRole('region', { name: 'email-queue details' })).toContainText('Route-free worker process is active');
+  await page.getByRole('tab', { name: 'Settings' }).click();
+  await page.getByLabel('Start command override').fill('node worker.js');
+  await page.getByLabel('Pre-deploy command').fill('node migrate.js');
+  await expect(page.getByLabel('Pre-deploy timeout (seconds)')).toHaveValue('300');
+  await page.getByLabel('Restart policy').selectOption('always');
+  await expect(page.getByLabel('Maximum retries')).toBeDisabled();
+  await page.getByRole('button', { name: 'Save runtime settings' }).click();
+  await expect(page.getByText('Runtime settings saved. Deploy again to apply.')).toBeVisible();
+  expect(savedRuntime).toEqual([{ startCommand: 'node worker.js', preDeployCommand: 'node migrate.js', preDeployTimeoutSeconds: 300, restartPolicy: 'always', restartMaxRetries: 0 }]);
+  await page.screenshot({ path: screenshots + 'runtime-settings-desktop.png', fullPage: true });
   await page.getByLabel('Close service details').click();
 
   await page.getByRole('button', { name: 'postgres-data resource' }).click();

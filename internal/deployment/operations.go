@@ -10,17 +10,24 @@ import (
 	"path"
 	"regexp"
 	"strings"
+
+	"github.com/jackc/pgx/v5"
 )
 
 const PostgresImage = "postgres@sha256:ef257d85f76e48da1c64832459b59fcaba1a4dac97bf5d7450c77753542eee94"
 
 type Settings struct {
-	Kind       string `json:"kind"`
-	MemoryMB   int    `json:"memoryMB"`
-	CPUMillis  int    `json:"cpuMillis"`
-	MountPath  string `json:"mountPath"`
-	VolumeName string `json:"volumeName"`
-	Network    string `json:"network"`
+	Kind                    string `json:"kind"`
+	MemoryMB                int    `json:"memoryMB"`
+	CPUMillis               int    `json:"cpuMillis"`
+	MountPath               string `json:"mountPath"`
+	VolumeName              string `json:"volumeName"`
+	Network                 string `json:"network"`
+	StartCommand            string `json:"startCommand,omitempty"`
+	PreDeployCommand        string `json:"preDeployCommand,omitempty"`
+	PreDeployTimeoutSeconds int    `json:"preDeployTimeoutSeconds,omitempty"`
+	RestartPolicy           string `json:"restartPolicy,omitempty"`
+	RestartMaxRetries       int    `json:"restartMaxRetries,omitempty"`
 }
 
 func PrivateNetwork(project, environment string) string {
@@ -52,7 +59,76 @@ func (c Settings) Validate() error {
 			}
 		}
 	}
+	if len(c.StartCommand) > 1024 || len(c.PreDeployCommand) > 1024 || strings.ContainsRune(c.StartCommand+c.PreDeployCommand, 0) {
+		return errors.New("runtime command is too long or contains a null byte")
+	}
+	if c.PreDeployCommand == "" {
+		if c.PreDeployTimeoutSeconds != 0 {
+			return errors.New("pre-deploy timeout requires a command")
+		}
+	} else if c.PreDeployTimeoutSeconds < 1 || c.PreDeployTimeoutSeconds > 3600 {
+		return errors.New("pre-deploy timeout must be 1–3600 seconds")
+	}
+	if c.RestartPolicy != "" && c.RestartPolicy != "on-failure" && c.RestartPolicy != "always" && c.RestartPolicy != "never" {
+		return errors.New("choose On failure, Always or Never restart policy")
+	}
+	if c.RestartMaxRetries < 0 || c.RestartMaxRetries > 100 {
+		return errors.New("restart retries must be between 0 and 100")
+	}
+	if c.RestartPolicy == "on-failure" && c.RestartMaxRetries < 1 {
+		return errors.New("On failure policy requires 1–100 retries")
+	}
 	return nil
+}
+
+type RuntimeSettings struct {
+	StartCommand            string `json:"startCommand"`
+	PreDeployCommand        string `json:"preDeployCommand"`
+	PreDeployTimeoutSeconds int    `json:"preDeployTimeoutSeconds"`
+	RestartPolicy           string `json:"restartPolicy"`
+	RestartMaxRetries       int    `json:"restartMaxRetries"`
+}
+
+func (s *Store) SaveRuntimeSettings(ctx context.Context, id string, runtime RuntimeSettings) (Settings, error) {
+	tx, err := s.DB.Begin(ctx)
+	if err != nil {
+		return Settings{}, err
+	}
+	defer tx.Rollback(ctx)
+	var raw []byte
+	var settings Settings
+	if err = tx.QueryRow(ctx, `SELECT settings FROM services WHERE id=$1 AND settings->>'kind'='http' FOR UPDATE`, id).Scan(&raw); err != nil {
+		return settings, err
+	}
+	if err = json.Unmarshal(raw, &settings); err != nil {
+		return settings, err
+	}
+	settings.StartCommand = strings.TrimSpace(runtime.StartCommand)
+	settings.PreDeployCommand = strings.TrimSpace(runtime.PreDeployCommand)
+	settings.PreDeployTimeoutSeconds = runtime.PreDeployTimeoutSeconds
+	settings.RestartPolicy = runtime.RestartPolicy
+	settings.RestartMaxRetries = runtime.RestartMaxRetries
+	if settings.RestartPolicy == "" {
+		settings.RestartPolicy = "on-failure"
+	}
+	if settings.RestartPolicy == "on-failure" && settings.RestartMaxRetries == 0 {
+		settings.RestartMaxRetries = 10
+	}
+	if settings.PreDeployCommand == "" {
+		settings.PreDeployTimeoutSeconds = 0
+	}
+	if err = settings.Validate(); err != nil {
+		return settings, err
+	}
+	raw, _ = json.Marshal(settings)
+	tag, err := tx.Exec(ctx, `UPDATE services SET settings=$2 WHERE id=$1`, id, raw)
+	if err != nil {
+		return settings, err
+	}
+	if tag.RowsAffected() != 1 {
+		return settings, pgx.ErrNoRows
+	}
+	return settings, tx.Commit(ctx)
 }
 func (s *Store) Settings(ctx context.Context, id string) (Settings, error) {
 	var raw []byte

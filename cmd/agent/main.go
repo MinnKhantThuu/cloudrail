@@ -128,6 +128,7 @@ func main() {
 					if d.Status == "superseded" || d.Status == "failed" {
 						op, stop := context.WithTimeout(ctx, 10*time.Second)
 						_ = runtime.Remove(op, d.ID)
+						_ = runtime.RemovePreDeploy(op, d.ID)
 						stop()
 					}
 					if d.Status == "active" {

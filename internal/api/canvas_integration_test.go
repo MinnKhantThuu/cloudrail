@@ -92,9 +92,21 @@ func TestCanvasGraphAndPersistedLayout(t *testing.T) {
 		handler.ServeHTTP(w, r)
 		return w
 	}
+	w := request(http.MethodPut, "/api/services/"+application.ID+"/runtime", deployment.RuntimeSettings{StartCommand: "node server.js", PreDeployCommand: "node migrate.js", PreDeployTimeoutSeconds: 120, RestartPolicy: "on-failure", RestartMaxRetries: 7})
+	if w.Code != http.StatusOK {
+		t.Fatalf("runtime settings response: %d %s", w.Code, w.Body.String())
+	}
+	var runtimeSettings deployment.Settings
+	if err = json.Unmarshal(w.Body.Bytes(), &runtimeSettings); err != nil || runtimeSettings.StartCommand != "node server.js" || runtimeSettings.PreDeployTimeoutSeconds != 120 || runtimeSettings.RestartMaxRetries != 7 {
+		t.Fatalf("runtime settings contract is wrong: %#v %v", runtimeSettings, err)
+	}
+	w = request(http.MethodPut, "/api/services/"+application.ID+"/runtime", deployment.RuntimeSettings{PreDeployTimeoutSeconds: 120, RestartPolicy: "sometimes"})
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("invalid runtime settings accepted: %d %s", w.Code, w.Body.String())
+	}
 
 	canvasPath := "/api/projects/" + project.ID + "/environments/production/canvas"
-	w := request(http.MethodPost, "/api/projects/"+project.ID+"/resources", deployment.ComputeSpec{Name: "queue", Environment: "production", WorkloadMode: "worker", SourceType: "github"})
+	w = request(http.MethodPost, "/api/projects/"+project.ID+"/resources", deployment.ComputeSpec{Name: "queue", Environment: "production", WorkloadMode: "worker", SourceType: "github"})
 	if w.Code != http.StatusCreated {
 		t.Fatalf("worker create response: %d %s", w.Code, w.Body.String())
 	}

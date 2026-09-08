@@ -77,7 +77,7 @@ func (s *Store) CreateCompute(ctx context.Context, projectID string, spec Comput
 		domain = "localhost"
 	}
 	v.Host = v.ID + "." + domain
-	v.Settings = Settings{Kind: "http", MemoryMB: 256, CPUMillis: 1000, Network: PrivateNetwork(projectID, spec.Environment)}
+	v.Settings = Settings{Kind: "http", MemoryMB: 256, CPUMillis: 1000, Network: PrivateNetwork(projectID, spec.Environment), RestartPolicy: "on-failure", RestartMaxRetries: 10}
 	settings, _ := json.Marshal(v.Settings)
 	err = tx.QueryRow(ctx, `INSERT INTO services(id,project_id,name,host,environment,settings,resource_kind,workload_mode) VALUES($1,$2,$3,$4,$5,$6,'service',$7) RETURNING created_at`, v.ID, projectID, spec.Name, v.Host, spec.Environment, settings, spec.WorkloadMode).Scan(&v.CreatedAt)
 	if err != nil {
@@ -123,18 +123,27 @@ func scanSvc(row pgx.Row) (Service, error) {
 	return v, err
 }
 func (s *Store) Enqueue(ctx context.Context, serviceID string, spec Spec, keys ...string) (Deployment, error) {
+	return s.enqueueWithStart(ctx, serviceID, spec, nil, keys...)
+}
+func (s *Store) EnqueueBuilt(ctx context.Context, serviceID string, spec Spec, startCommand string, keys ...string) (Deployment, error) {
+	return s.enqueueWithStart(ctx, serviceID, spec, &startCommand, keys...)
+}
+func (s *Store) enqueueWithStart(ctx context.Context, serviceID string, spec Spec, startCommand *string, keys ...string) (Deployment, error) {
 	tx, err := s.DB.Begin(ctx)
 	if err != nil {
 		return Deployment{}, err
 	}
 	defer tx.Rollback(ctx)
-	d, err := s.enqueueTx(ctx, tx, serviceID, spec, keys...)
+	d, err := s.enqueueTxWithStart(ctx, tx, serviceID, spec, startCommand, keys...)
 	if err != nil {
 		return d, err
 	}
 	return d, tx.Commit(ctx)
 }
 func (s *Store) enqueueTx(ctx context.Context, tx pgx.Tx, serviceID string, spec Spec, keys ...string) (Deployment, error) {
+	return s.enqueueTxWithStart(ctx, tx, serviceID, spec, nil, keys...)
+}
+func (s *Store) enqueueTxWithStart(ctx context.Context, tx pgx.Tx, serviceID string, spec Spec, startCommand *string, keys ...string) (Deployment, error) {
 	var err error
 	// Locking the owning service makes the per-service queue limit race-safe.
 	var owner string
@@ -147,6 +156,13 @@ func (s *Store) enqueueTx(ctx context.Context, tx pgx.Tx, serviceID string, spec
 	var config Settings
 	if err = json.Unmarshal(settings, &config); err != nil {
 		return Deployment{}, err
+	}
+	if startCommand != nil {
+		config.StartCommand = strings.TrimSpace(*startCommand)
+		if err = config.Validate(); err != nil {
+			return Deployment{}, err
+		}
+		settings, _ = json.Marshal(config)
 	}
 	if workload == "cron" && schedule == "" {
 		return Deployment{}, ErrCronSchedule
@@ -162,6 +178,12 @@ func (s *Store) enqueueTx(ctx context.Context, tx pgx.Tx, serviceID string, spec
 		return Deployment{}, ErrConflict
 	}
 	payload, _ := json.Marshal(spec)
+	if startCommand != nil {
+		payload, _ = json.Marshal(struct {
+			Spec         Spec   `json:"spec"`
+			StartCommand string `json:"startCommand"`
+		}{Spec: spec, StartCommand: *startCommand})
+	}
 	digest := sha256.Sum256(payload)
 	hash := hex.EncodeToString(digest[:])
 	if key != "" {

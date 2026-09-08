@@ -141,7 +141,7 @@ Railway ကိုကြည့်ပြီး canvas ပုံသဏ္ဌာန�
   - [x] UX-3.1 source/workload axes + generic create API/form; isolated API, full Go/vet, frontend, mocked Chrome and hosted CI run 34279315566 passed.
   - [x] UX-3.2 route-free long-running worker runtime; unit/browser coverage and hosted real-Docker acceptance passed in CI run 34280088388.
   - [x] UX-3.3 cron schedule/claim/overlap/history/recovery; isolated PostgreSQL, unit, mocked browser and hosted real-Docker proof passed in CI run 34282653529.
-  - [ ] UX-3.4 commands/restart policy + real-container matrix.
+  - [ ] UX-3.4 commands/restart policy + real-container matrix; implementation, API/integration/unit/browser proof passed locally; hosted Docker matrix pending.
 - [ ] **UX-4:** Database templates, first-class volumes/backups and S3-compatible bucket resource။
 - [ ] **UX-5:** Secret/reference variables, real canvas links, private/public networking and TCP follow-up။
 - [ ] **UX-6:** Deployments/Variables/Metrics/Settings drawer and environment log explorer။

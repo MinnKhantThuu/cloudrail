@@ -54,6 +54,12 @@ The Settings drawer exposes schedule editing, next execution and run history. Fu
 
 Hosted [CI run 34282653529](https://github.com/MinnKhantThuu/cloudrail/actions/runs/34282653529) passed race tests, vet, dependency checks, frontend build, runtime browser/real-Docker acceptance, maintenance, backup and independent-host recovery for UX-3.3 at `6f7c76e`.
 
+## Deployment commands and restart policy — UX-3.4 candidate
+
+Compute settings now validate and snapshot a shell start-command override, isolated pre-deploy command with a 1–3600 second timeout, and `on-failure`, `always` or `never` restart behavior. GitHub build deployments copy the build's start-command snapshot. Docker overrides the image entrypoint only when a command is supplied; pre-deploy receives deployment variables and private networking but no service volume. A failed or timed-out pre-deploy records its bounded logs, removes its temporary container and restores the prior release.
+
+The Settings drawer edits these values and each deployment card shows its command/restart snapshot. Full Go tests/vet, isolated PostgreSQL API and snapshot tests, frontend build and mocked Chrome interactions pass locally. The queued hosted matrix uses pinned Alpine containers to verify the command, pre-deploy success/failure/timeout, active-release preservation and all three Docker restart-policy mappings. UX-3.4 and UX-3 remain open until that matrix and the complete workflow pass.
+
 The final dependency scan found reachable advisories in pgx v5.7.6 and x/text v0.24.0. They were updated to **pgx v5.9.2** and **x/text v0.39.0**. `govulncheck v1.7.0` then reported zero affected code paths and zero vulnerabilities in imported packages; it still lists advisories elsewhere in required modules that the application does not call. This is not an external security audit or a container-image scan. [Go pgx advisory](https://pkg.go.dev/vuln/GO-2026-5004), [Go x/text advisory](https://pkg.go.dev/vuln/GO-2026-5970). `npm audit` reported zero known vulnerabilities in the locked frontend dependency tree.
 
 ## Repeat the checks

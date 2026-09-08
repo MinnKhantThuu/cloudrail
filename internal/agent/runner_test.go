@@ -91,6 +91,14 @@ func (f fakeCronRuntime) RemoveCron(_ context.Context, id string) error {
 	*f.calls = append(*f.calls, "remove-cron:"+id)
 	return nil
 }
+func (f fakeCronRuntime) PreDeploy(_ context.Context, d deployment.Deployment) (string, error) {
+	*f.calls = append(*f.calls, "predeploy:"+d.ID)
+	return f.logs, f.err
+}
+func (f fakeCronRuntime) RemovePreDeploy(_ context.Context, id string) error {
+	*f.calls = append(*f.calls, "remove-predeploy:"+id)
+	return nil
+}
 
 func (f *fakeReporter) Report(_ context.Context, _ string, r deployment.Report) error {
 	*f.calls = append(*f.calls, "report:"+r.Status)
@@ -186,6 +194,24 @@ func TestCronRunReportsExitAndLogs(t *testing.T) {
 		t.Fatalf("wrong report: %#v", reporter.report)
 	}
 	requireOrder(t, calls, "cron:run-1", "remove-cron:run-1")
+}
+
+func TestFailedPreDeployPreservesOldReleaseAndLogs(t *testing.T) {
+	calls := []string{}
+	r, reporter := setup(&calls)
+	r.Runtime = fakeCronRuntime{fakeRuntime: fakeRuntime{calls: &calls}, logs: "migration failed", err: errors.New("exit 2")}
+	w := work()
+	w.Deployment.Settings.PreDeployCommand = "migrate"
+	w.Deployment.Settings.PreDeployTimeoutSeconds = 30
+	if err := r.Run(context.Background(), w); err != nil {
+		t.Fatal(err)
+	}
+	requireOrder(t, calls, "pull", "report:predeploy", "predeploy:new", "remove-predeploy:new", "route:old", "check:old", "remove:new", "report:failed")
+	forbidden(t, calls, "ensure", "route:new", "stop:old")
+	last := reporter.reports[len(reporter.reports)-1]
+	if last.Status != "failed" || !strings.Contains(last.Logs, "migration failed") {
+		t.Fatalf("pre-deploy logs missing: %#v", last)
+	}
 }
 func TestFailedWorkerCandidateRestoresPreviousProcess(t *testing.T) {
 	calls := []string{}

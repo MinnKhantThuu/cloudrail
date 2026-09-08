@@ -103,6 +103,32 @@ type inspection struct {
 	}
 }
 
+func restartPolicy(settings deployment.Settings) map[string]any {
+	policy := settings.RestartPolicy
+	if policy == "" {
+		policy = "on-failure"
+	}
+	switch policy {
+	case "always":
+		return map[string]any{"Name": "unless-stopped", "MaximumRetryCount": 0}
+	case "never":
+		return map[string]any{"Name": "no", "MaximumRetryCount": 0}
+	default:
+		maximum := settings.RestartMaxRetries
+		if maximum == 0 {
+			maximum = 10
+		}
+		return map[string]any{"Name": "on-failure", "MaximumRetryCount": maximum}
+	}
+}
+
+func commandOverride(command string) []string {
+	if command == "" {
+		return nil
+	}
+	return []string{command}
+}
+
 func (c *Client) Ensure(ctx context.Context, d deployment.Deployment) error {
 	name := deployment.Container(d.ID)
 	resp, err := c.request(ctx, "GET", "/containers/"+name+"/json", nil)
@@ -155,7 +181,7 @@ func (c *Client) Ensure(ctx context.Context, d deployment.Deployment) error {
 		if cpu == 0 {
 			cpu = 1000
 		}
-		host := map[string]any{"NetworkMode": network, "Memory": int64(memory) * 1024 * 1024, "NanoCpus": int64(cpu) * 1_000_000, "PidsLimit": 256, "CapDrop": []string{"NET_RAW"}, "SecurityOpt": []string{"no-new-privileges:true"}, "RestartPolicy": map[string]string{"Name": "unless-stopped"}, "LogConfig": map[string]any{"Type": "json-file", "Config": map[string]string{"max-size": "5m", "max-file": "2"}}}
+		host := map[string]any{"NetworkMode": network, "Memory": int64(memory) * 1024 * 1024, "NanoCpus": int64(cpu) * 1_000_000, "PidsLimit": 256, "CapDrop": []string{"NET_RAW"}, "SecurityOpt": []string{"no-new-privileges:true"}, "RestartPolicy": restartPolicy(d.Settings), "LogConfig": map[string]any{"Type": "json-file", "Config": map[string]string{"max-size": "5m", "max-file": "2"}}}
 		if d.Settings.VolumeName != "" {
 			if err = c.volume(ctx, d.Settings.VolumeName, d.ServiceID); err != nil {
 				return err
@@ -163,6 +189,10 @@ func (c *Client) Ensure(ctx context.Context, d deployment.Deployment) error {
 			host["Mounts"] = []map[string]any{{"Type": "volume", "Source": d.Settings.VolumeName, "Target": d.Settings.MountPath}}
 		}
 		body := map[string]any{"Image": d.Image, "Env": env, "Labels": map[string]string{"cloudrail.managed": "true", "cloudrail.deployment": d.ID, "cloudrail.service": d.ServiceID, "cloudrail.port": strconv.Itoa(d.Port), "cloudrail.kind": d.Settings.Kind, "cloudrail.health-path": d.HealthPath}, "HostConfig": host, "NetworkingConfig": map[string]any{"EndpointsConfig": endpoints}}
+		if command := commandOverride(d.Settings.StartCommand); command != nil {
+			body["Entrypoint"] = []string{"/bin/sh", "-lc"}
+			body["Cmd"] = command
+		}
 		if d.Settings.Kind == "postgres" {
 			body["Healthcheck"] = map[string]any{"Test": []string{"CMD", "pg_isready", "-h", "127.0.0.1", "-U", "app", "-d", "app"}, "Interval": int64(2 * time.Second), "Timeout": int64(time.Second), "Retries": 30}
 		}
@@ -221,7 +251,22 @@ func (c *Client) Running(ctx context.Context, d deployment.Deployment) error {
 }
 
 func (c *Client) RunOnce(ctx context.Context, d deployment.Deployment, runID string) (int, string, error) {
-	name := deployment.CronContainer(runID)
+	return c.runOneShot(ctx, d, deployment.CronContainer(runID), "cloudrail.cron-run", runID, d.Settings.StartCommand, true)
+}
+
+func (c *Client) PreDeploy(ctx context.Context, d deployment.Deployment) (string, error) {
+	name := "cloudrail-predeploy-" + d.ID
+	exit, logs, err := c.runOneShot(ctx, d, name, "cloudrail.predeploy", d.ID, d.Settings.PreDeployCommand, false)
+	if err != nil {
+		return logs, err
+	}
+	if exit != 0 {
+		return logs, fmt.Errorf("pre-deploy process exited with code %d", exit)
+	}
+	return logs, nil
+}
+
+func (c *Client) runOneShot(ctx context.Context, d deployment.Deployment, name, labelKey, labelValue, command string, mountVolume bool) (int, string, error) {
 	resp, err := c.request(ctx, "GET", "/containers/"+name+"/json", nil)
 	if err != nil {
 		return 0, "", err
@@ -234,8 +279,8 @@ func (c *Client) RunOnce(ctx context.Context, d deployment.Deployment, runID str
 		if err != nil {
 			return 0, "", err
 		}
-		if state.Config.Labels["cloudrail.cron-run"] != runID {
-			return 0, "", errors.New("cron container name is owned by another workload")
+		if state.Config.Labels[labelKey] != labelValue {
+			return 0, "", errors.New("one-shot container name is owned by another workload")
 		}
 		if !state.State.Running && state.State.Status != "created" {
 			return state.State.ExitCode, c.containerLogs(ctx, name), nil
@@ -272,13 +317,17 @@ func (c *Client) RunOnce(ctx context.Context, d deployment.Deployment, runID str
 			cpu = 1000
 		}
 		host := map[string]any{"NetworkMode": network, "Memory": int64(memory) * 1024 * 1024, "NanoCpus": int64(cpu) * 1_000_000, "PidsLimit": 256, "CapDrop": []string{"NET_RAW"}, "SecurityOpt": []string{"no-new-privileges:true"}, "RestartPolicy": map[string]string{"Name": "no"}, "LogConfig": map[string]any{"Type": "json-file", "Config": map[string]string{"max-size": "5m", "max-file": "2"}}}
-		if d.Settings.VolumeName != "" {
+		if mountVolume && d.Settings.VolumeName != "" {
 			if err = c.volume(ctx, d.Settings.VolumeName, d.ServiceID); err != nil {
 				return 0, "", err
 			}
 			host["Mounts"] = []map[string]any{{"Type": "volume", "Source": d.Settings.VolumeName, "Target": d.Settings.MountPath}}
 		}
-		body := map[string]any{"Image": d.Image, "Env": env, "Labels": map[string]string{"cloudrail.managed": "true", "cloudrail.cron-run": runID, "cloudrail.deployment": d.ID, "cloudrail.service": d.ServiceID}, "HostConfig": host, "NetworkingConfig": map[string]any{"EndpointsConfig": endpoints}}
+		body := map[string]any{"Image": d.Image, "Env": env, "Labels": map[string]string{"cloudrail.managed": "true", labelKey: labelValue, "cloudrail.deployment": d.ID, "cloudrail.service": d.ServiceID}, "HostConfig": host, "NetworkingConfig": map[string]any{"EndpointsConfig": endpoints}}
+		if override := commandOverride(command); override != nil {
+			body["Entrypoint"] = []string{"/bin/sh", "-lc"}
+			body["Cmd"] = override
+		}
 		resp, err = c.request(ctx, "POST", "/containers/create?name="+name, body)
 		if err != nil {
 			return 0, "", err
@@ -306,6 +355,12 @@ func (c *Client) RunOnce(ctx context.Context, d deployment.Deployment, runID str
 	for {
 		resp, err = c.request(ctx, "GET", "/containers/"+name+"/json", nil)
 		if err != nil {
+			if ctx.Err() != nil {
+				logCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+				logs := c.containerLogs(logCtx, name)
+				cancel()
+				return 0, logs, ctx.Err()
+			}
 			return 0, "", err
 		}
 		if resp.StatusCode != http.StatusOK {
@@ -333,6 +388,18 @@ func (c *Client) RunOnce(ctx context.Context, d deployment.Deployment, runID str
 
 func (c *Client) RemoveCron(ctx context.Context, runID string) error {
 	resp, err := c.request(ctx, "DELETE", "/containers/"+deployment.CronContainer(runID)+"?force=true", nil)
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusNotFound {
+		return responseError(resp)
+	}
+	resp.Body.Close()
+	return nil
+}
+
+func (c *Client) RemovePreDeploy(ctx context.Context, deploymentID string) error {
+	resp, err := c.request(ctx, "DELETE", "/containers/cloudrail-predeploy-"+deploymentID+"?force=true", nil)
 	if err != nil {
 		return err
 	}

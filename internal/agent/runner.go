@@ -25,6 +25,10 @@ type CronRuntime interface {
 type CronReporter interface {
 	ReportCronRun(context.Context, string, deployment.Report) error
 }
+type PreDeployRuntime interface {
+	PreDeploy(context.Context, deployment.Deployment) (string, error)
+	RemovePreDeploy(context.Context, string) error
+}
 type Router interface {
 	Set(deployment.Service, *deployment.Deployment) error
 }
@@ -72,7 +76,9 @@ func (r *Runner) check(ctx context.Context, target string, s deployment.Service,
 	return r.Check(c, target, s.Host, id)
 }
 func (r *Runner) fail(ctx context.Context, w deployment.Work, cause error) error {
-	logs := r.Runtime.Logs(ctx, w.Deployment.ID)
+	return r.failWithLogs(ctx, w, cause, r.Runtime.Logs(ctx, w.Deployment.ID))
+}
+func (r *Runner) failWithLogs(ctx context.Context, w deployment.Work, cause error, logs string) error {
 	// A shared volume must have only one writer, including during recovery.
 	if w.Deployment.Settings.VolumeName != "" {
 		if e := r.Runtime.Remove(ctx, w.Deployment.ID); e != nil {
@@ -125,6 +131,34 @@ func (r *Runner) Run(ctx context.Context, w deployment.Work) error {
 			return ctx.Err()
 		}
 		return r.fail(ctx, w, fmt.Errorf("image pull failed: %w", err))
+	}
+	if d.Settings.PreDeployCommand != "" {
+		runtime, ok := r.Runtime.(PreDeployRuntime)
+		if !ok {
+			return r.fail(ctx, w, errors.New("runtime does not support pre-deploy commands"))
+		}
+		if err = r.Reporter.Report(ctx, d.ID, deployment.Report{Status: "predeploy", Message: "Running pre-deploy command in an isolated container"}); err != nil {
+			return err
+		}
+		timeout := time.Duration(d.Settings.PreDeployTimeoutSeconds) * time.Second
+		if timeout <= 0 {
+			timeout = 5 * time.Minute
+		}
+		preCtx, stop := context.WithTimeout(ctx, timeout)
+		logs, preErr := runtime.PreDeploy(preCtx, d)
+		stop()
+		if preErr != nil {
+			if ctx.Err() != nil {
+				return ctx.Err()
+			}
+			cleanup, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			_ = runtime.RemovePreDeploy(cleanup, d.ID)
+			cancel()
+			return r.failWithLogs(ctx, w, fmt.Errorf("pre-deploy command failed: %w", preErr), logs)
+		}
+		if err = runtime.RemovePreDeploy(ctx, d.ID); err != nil {
+			return err
+		}
 	}
 	if err = r.report(ctx, d, "starting", "Starting isolated candidate container"); err != nil {
 		return err

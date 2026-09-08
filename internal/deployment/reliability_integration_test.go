@@ -127,6 +127,10 @@ func TestPostgresReliability(t *testing.T) {
 	if _, e = s.CreateDatabase(ctx, p.ID, "invalid-target", "absent-environment"); e == nil {
 		t.Fatal("database without environment accepted")
 	}
+	built, e := s.EnqueueBuilt(ctx, v.ID, spec, "node worker.js")
+	if e != nil || built.Settings.StartCommand != "node worker.js" {
+		t.Fatalf("built deployment did not snapshot its start command: %#v %v", built.Settings, e)
+	}
 	var remaining int
 	if e = s.DB.QueryRow(ctx, `SELECT count(*) FROM services WHERE name='invalid-target'`).Scan(&remaining); e != nil || remaining != 0 {
 		t.Fatal("failed database creation left partial state")

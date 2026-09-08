@@ -233,7 +233,7 @@ func (s *Store) Flush(ctx context.Context) error {
 		return e
 	}
 	for _, b := range items {
-		d, e := s.Deployments.Enqueue(ctx, b.ServiceID, deployment.Spec{Image: b.Image, Port: b.Config.Port, HealthPath: b.Config.HealthPath}, "build:"+b.ID)
+		d, e := s.Deployments.EnqueueBuilt(ctx, b.ServiceID, deployment.Spec{Image: b.Image, Port: b.Config.Port, HealthPath: b.Config.HealthPath}, b.Config.StartCommand, "build:"+b.ID)
 		if e != nil {
 			return e
 		}

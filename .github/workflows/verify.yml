@@ -76,6 +76,7 @@ jobs:
       - run: python3 scripts/acceptance.py
       - run: python3 scripts/compute-acceptance.py
       - run: python3 scripts/cron-acceptance.py
+      - run: python3 scripts/runtime-controls-acceptance.py
       - run: npm run test:browser --prefix apps/web -- workspace.spec.ts
       - if: always()
         run: bash scripts/compose.sh logs --tail=80 server agent

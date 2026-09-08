@@ -1,12 +1,30 @@
 package docker
 
 import (
+	"cloudrail/internal/deployment"
 	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
 )
+
+func TestRuntimeCommandAndRestartPolicy(t *testing.T) {
+	if got := commandOverride("node server.js"); len(got) != 1 || got[0] != "node server.js" {
+		t.Fatalf("unexpected command override: %#v", got)
+	}
+	for _, scenario := range []struct {
+		policy string
+		max    int
+		name   string
+		count  int
+	}{{"", 0, "on-failure", 10}, {"on-failure", 4, "on-failure", 4}, {"always", 12, "unless-stopped", 0}, {"never", 12, "no", 0}} {
+		got := restartPolicy(deployment.Settings{RestartPolicy: scenario.policy, RestartMaxRetries: scenario.max})
+		if got["Name"] != scenario.name || got["MaximumRetryCount"] != scenario.count {
+			t.Fatalf("policy %#v produced %#v", scenario, got)
+		}
+	}
+}
 
 func TestProxyReadinessRequiresCorrectRelease(t *testing.T) {
 	for _, scenario := range []struct {

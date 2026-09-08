@@ -4,6 +4,7 @@ import (
 	"cloudrail/internal/deployment"
 	"context"
 	"encoding/json"
+	"errors"
 	"net"
 	"net/http"
 	"os"
@@ -11,12 +12,30 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/jackc/pgx/v5"
 )
 
 var safeID = regexp.MustCompile(`^[a-f0-9]{24}$`)
 var checksumPattern = regexp.MustCompile(`^[a-f0-9]{64}$`)
 
 func (a *API) operationRoutes(admin, agent *http.ServeMux) {
+	admin.HandleFunc("PUT /api/services/{id}/runtime", func(w http.ResponseWriter, r *http.Request) {
+		var body deployment.RuntimeSettings
+		if !decode(w, r, &body) {
+			return
+		}
+		settings, err := a.Store.SaveRuntimeSettings(r.Context(), r.PathValue("id"), body)
+		if err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				dbError(w, err)
+			} else {
+				problem(w, 400, err.Error())
+			}
+			return
+		}
+		write(w, 200, settings)
+	})
 	admin.HandleFunc("PUT /api/services/{id}/settings", func(w http.ResponseWriter, r *http.Request) {
 		var b struct {
 			MemoryMB  int    `json:"memoryMB"`

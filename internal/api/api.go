@@ -230,7 +230,7 @@ func (a *API) Handler(webDir string) http.Handler {
 			return
 		}
 		switch report.Status {
-		case "", "pulling", "starting", "checking", "routing", "active", "failed":
+		case "", "pulling", "predeploy", "starting", "checking", "routing", "active", "failed":
 		default:
 			problem(w, 400, "Invalid deployment stage")
 			return

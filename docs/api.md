@@ -21,6 +21,7 @@ Use the HttpOnly `cloudrail_session` cookie (24 hours, SameSite Strict, Secure o
 | POST | `/api/projects/:id/services` | `{name,environment}` → 201 HTTP service; default environment `production` |
 | POST | `/api/services/:id/deployments` | `{image,port,healthPath}` → 202 deployment; optional `Idempotency-Key` |
 | PUT | `/api/services/:id/cron` | `{schedule}` → cron service with next UTC run; five-field expressions only |
+| PUT | `/api/services/:id/runtime` | `{startCommand,preDeployCommand,preDeployTimeoutSeconds,restartPolicy,restartMaxRetries}` |
 | POST | `/api/deployments/:id/cancel` | `{}` → cancellation request |
 | GET | `/api/services/:id/variables` | `{names:[...]}`; never returns values |
 | PUT | `/api/services/:id/variables/:name` | `{value}` for subsequent deployments |
@@ -28,6 +29,8 @@ Use the HttpOnly `cloudrail_session` cookie (24 hours, SameSite Strict, Secure o
 | POST | `/api/services/:id/actions` | `{kind:"start"\|"stop"\|"restart"\|"backup"\|"restore",backupId?}` → 202 |
 
 Images require `repository@sha256:<64 hex>`. Readiness accepts 2xx at an absolute path without query/fragment; redirects do not count. Reusing an idempotency key with the same request returns the original job; different content conflicts. Settings/variables are immutable snapshots per deployment. Redeploy creates a new ID and snapshot.
+
+Start/pre-deploy commands are at most 1024 characters and run through `/bin/sh -lc` inside the selected image. Pre-deploy executes after pull and before the candidate starts, in a separate container with variables/private networking and without the service volume. Its timeout is 1–3600 seconds; failure or timeout blocks the candidate and preserves the active release. Restart policy is `on-failure` with 1–100 retries, `always`, or `never`; existing services without an explicit policy retain the 10-retry default. A GitHub source's start-command override is copied from that build's configuration into its deployment snapshot.
 
 Web deployments require HTTP readiness and receive a Traefik route. Worker deployments require the process to remain running through the readiness window and never receive a public URL or route; healthy replacement activates before the prior worker stops, and failed candidates preserve the prior process. Cron deployments require a five-field UTC schedule, prepare the pinned release without a long-running service container or public route, and start an isolated one-shot container when due. Only one unfinished run is allowed per cron service. Missed intervals coalesce into one run, and state returns the latest 200 runs with bounded logs and exit codes. `port` and `healthPath` remain required compatibility fields until the deployment request contract is generalized.
 
