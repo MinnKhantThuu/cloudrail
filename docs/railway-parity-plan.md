@@ -1,7 +1,7 @@
 # Cloudrail — Railway-inspired product and delivery plan
 
 Updated: 2026-09-09  
-Status: **UX-0 through UX-2 implemented and locally verified; UX-3 is in progress with generic compute creation and worker runtime complete, cron runtime next.**
+Status: **UX-0 through UX-2 implemented and locally verified; UX-3 is in progress with generic compute creation, worker runtime and cron runtime complete, deployment controls next.**
 
 ဒီစာတမ်းက Cloudrail ကို “service card နှစ်မျိုးပါတဲ့ dashboard” အဖြစ်မတည်ဆောက်ဘဲ Railway လို **project canvas ကနေ application stack တစ်ခုလုံးဆောက်၊ ချိတ်၊ deploy နဲ့ operate လုပ်နိုင်တဲ့ self-hosted PaaS** အဖြစ်ပြောင်းရန် canonical feature plan ဖြစ်သည်။ Phase အစဉ်နဲ့ overall progress ကို `ROADMAP.md` ကပဲ ဆက်ထိန်းမည်။
 
@@ -202,7 +202,7 @@ flowchart LR
 
 ### UX-3 — Compute creation and deployment flow
 
-**Status:** In progress. UX-3.1 generic compute creation and UX-3.2 route-free worker runtime passed hosted CI. UX-3.3 cron implementation and local tests are ready; hosted real-Docker proof is pending.
+**Status:** In progress. UX-3.1 generic compute creation, UX-3.2 route-free worker runtime and UX-3.3 recoverable cron runtime passed hosted CI. Deployment controls remain.
 
 **Scope:** GitHub Repository, Docker Image, Empty Service create paths; web/API, background worker, cron modes; build/start/pre-deploy command; healthcheck/restart policy; deployment state presentation။
 
@@ -210,7 +210,7 @@ Substeps:
 
 - [x] **UX-3.1:** Source/workload axes, generic create API and canvas creation form။
 - [x] **UX-3.2:** Route-free long-running worker deployment and lifecycle actions; unit, browser and hosted real-Docker proof passed။
-- [ ] **UX-3.3:** UTC cron schedules, due-run claim, overlap guard, history and restart recovery; implementation/local proof ready, hosted real-Docker proof pending။
+- [x] **UX-3.3:** UTC cron schedules, due-run claim, overlap guard, history and restart recovery; local and hosted real-Docker proof passed။
 - [ ] **UX-3.4:** Start/pre-deploy commands, restart policy and complete real-container acceptance matrix။
 
 **Visible result:** Canvas `Create +` ကနေ backend, frontend, worker, cron ကိုတကယ်ဖန်တီးပြီး deploy/run လို့ရမည်။
