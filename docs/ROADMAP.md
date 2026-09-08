@@ -87,7 +87,7 @@ Public HTTPS installer/config ရှိပြီး local TLS proof ရှိသ
 | **4 — GitHub deployment** | Repo ကနေ app တင်လို့ရအောင်လုပ်ခြင်း | Repo/branch ရွေး၊ push-to-deploy၊ build logs | **Local code + public GitHub build proof ပြီး; live App install/webhook pending** |
 | **5 — VPS operating features** | Public URL နဲ့ persistent app တွေကိုထိန်းနိုင်အောင်လုပ်ခြင်း | Installer၊ domain/HTTPS၊ metrics၊ volumes၊ DB backup/restore | **Code + local verification ပြီး; clean public VPS/ACME pending** |
 | **6 — AWS pilot** | ကိုယ်ပိုင် application တစ်ခုနဲ့တကယ်သုံးစမ်းခြင်း | AWS ပေါ် end-to-end deployed app နဲ့ measured cost | **Preparation ပြီး; real pilot pending account/domain** |
-| **7 — Open-source beta** | တခြားသူ install/update လုပ်လို့ရတဲ့ release ပြင်ခြင်း | Versioned release၊ docs၊ clean install/upgrade proof | **Public source + docs တင်ပြီး; hosted CI/clean VPS/beta gates ဆက်စစ်နေ** |
+| **7 — Open-source beta** | တခြားသူ install/update လုပ်လို့ရတဲ့ release ပြင်ခြင်း | Versioned release၊ docs၊ clean install/upgrade proof | **Public source/docs တင်ပြီး; hosted CI evidence ရရှိ; public VPS/upgrade/beta gates pending** |
 
 **လက်ရှိ Phase 7 local alpha packaging/verification ပြီးထားသည်။ Phase 6 real AWS pilot ကို credentials/domain မရှိသေးသဖြင့် pending ထားသည်။**
 
@@ -203,7 +203,7 @@ Current phase:
 
 ## 7. လက်ရှိ checkpoint
 
-- **Current:** Phase 7 — public source and English/Myanmar user guides published; hosted CI fresh-runner issues are being corrected. AWS pilot and beta gates remain pending.
+- **Current:** Phase 7 — public source, English/Myanmar guides and private vulnerability reporting published. Fresh Ubuntu CI checks and Docker/browser journey passed. Public VPS/AWS pilot, cross-version upgrade and beta gates remain pending.
 - **Phase 0:** User approved sequential continuation through all phases.
 - **Phase 2 evidence:** Go race tests + vet, frontend build, real Docker acceptance, Chrome desktop/mobile journey passed (31.9s). See [Phase 2 flow](phase-2-flow.md).
 - **UX:** Automated browser verification and agent visual inspection; user final UX review pending.
@@ -213,5 +213,5 @@ Current phase:
 - **Account gap:** GitHub App installation/delivered webhook and AWS/domain are pending user account details.
 - **Phase 5 evidence:** PostgreSQL and HTTP volume persistence/backup/restore passed, including nonempty restore rejection; actual Docker limits/metrics and domain route passed. Local HTTPS with a trusted test certificate passed. Database UI journey passed (13.1s). Ubuntu installer syntax/public Compose validation passed; clean host + ACME issuance pending.
 - **Phase 6 preparation:** Lightsail CloudFormation template + read-only account/catalog planner and cost/runbook complete. CLI response shape checked; authenticated validation/provisioning pending.
-- **Phase 7 preparation:** Versioned source and Linux amd64/arm64 archives, checksums/notices, CI definitions, current quickstart/API/architecture/security/contributing/update/recovery docs. Final Go race/vet + isolated DB tests + real Docker acceptance passed after dependency fixes. All 3 Chrome desktop/mobile journeys passed (42.8s). Archive checksums/notices and deterministic source/credential-exclusion checks passed; Hosted CI is now running; independent public-host upgrade proof remains pending.
-- **Next external inputs:** AWS profile/region + DNS domain + GitHub App/repository + selected pilot application. Existing credentials must stay outside chat. See [AWS runbook](aws-pilot.md), [release gates](release.md), [current verification](verification-current.md).
+- **Phase 7 preparation:** Versioned source and Linux amd64/arm64 archives, checksums/notices, CI definitions, current quickstart/API/architecture/security/contributing/update/recovery docs. Final Go race/vet + isolated DB tests + real Docker acceptance passed after dependency fixes. All 3 Chrome desktop/mobile journeys passed (42.8s). Archive checksums/notices and deterministic source/credential-exclusion checks passed; [Hosted CI run 34201850332](https://github.com/MinnKhantThuu/cloudrail/actions/runs/34201850332) passed checks and runtime jobs on a fresh Ubuntu 24.04 runner. This verifies the local Compose quickstart on Linux amd64; public installer/ACME and cross-version host upgrade remain pending.
+- **Next external inputs:** AWS profile/region + DNS domain + application GitHub App/repository + selected pilot application. Existing credentials must stay outside chat. See [AWS runbook](aws-pilot.md), [release gates](release.md), [current verification](verification-current.md).

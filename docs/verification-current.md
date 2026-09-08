@@ -64,3 +64,11 @@ The local 30 GB Docker VM approached capacity during source builds. Only Cloudra
 ## Unverified external gates
 
 Real GitHub App installation/push delivery; AWS account/catalog/provisioning; public DNS/ACME/renewal; clean Ubuntu installation on both architectures; full host reboot/disaster recovery; cross-version upgrade; owner final UX review; actual billing observation; signed/versioned releases; consult [GitHub Actions](https://github.com/MinnKhantThuu/cloudrail/actions/workflows/verify.yml) for current hosted CI results. See [AWS pilot](aws-pilot.md) and [release gates](release.md). Source publication is tracked in the roadmap. No AWS resource was created by publishing the repository.
+
+## Public repository and fresh-runner verification
+
+Source and guides are public at [MinnKhantThuu/cloudrail](https://github.com/MinnKhantThuu/cloudrail). Anonymous repository access, raw README/guides/image contents and GitHub README rendering were checked. Private vulnerability reporting is enabled. Staged source and release manifests were scanned against local installation credentials; keys, backups, test logins and `.data` were excluded.
+
+The first hosted run exposed two CI fixture issues: PostgreSQL health-command quoting and an assumed cached sample image. Both were corrected. [Run 34201850332](https://github.com/MinnKhantThuu/cloudrail/actions/runs/34201850332), commit `a38a390`, passed the checks and runtime jobs: Go race/vet with isolated PostgreSQL, dependency scan, frontend build/audit, package checks/build, fresh Docker Compose startup, workspace/deployment/recovery acceptance and the Chrome workspace journey.
+
+This is independent Linux amd64 Docker quickstart evidence on Ubuntu 24.04. It does not verify the public VPS installer, real GitHub App delivery, DNS/ACME, AWS billing or cross-version host update/recovery. The deploy-dialog copy was also checked locally against actual PostgreSQL/stateless service resource settings.

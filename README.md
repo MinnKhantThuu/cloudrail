@@ -22,7 +22,7 @@ Cloudrail turns a Linux Docker server into a workspace for deploying your applic
 
 Inspired by the developer experience of Railway and the self-hosting model of Coolify, Cloudrail uses original application code and UI. It is not affiliated with either project.
 
-**Status: early alpha (`0.1.0-alpha.1`).** Designed for **one owner, one Linux node and trusted repositories**. Local deployment, recovery, database and browser journeys have been tested. Public Ubuntu installation, DNS-issued HTTPS, a real GitHub App push and an AWS pilot still require end-to-end verification. Public source availability does not mean production readiness. See [verification](docs/verification-current.md).
+**Status: early alpha (`0.1.0-alpha.1`).** Designed for **one owner, one Linux node and trusted repositories**. Local deployment, recovery, database and browser journeys have been tested, along with a fresh Ubuntu CI Docker quickstart. Public Ubuntu installation, DNS-issued HTTPS, a real GitHub App push and an AWS pilot still require end-to-end verification. Public source availability does not mean production readiness. See [verification](docs/verification-current.md).
 
 ## Features
 

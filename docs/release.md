@@ -56,7 +56,7 @@ bash scripts/verify-control-restore.sh .data/updates/TIMESTAMP/control-backup
 - One owner/node, trusted builds; no hostile multi-tenancy, RBAC, scheduling or HA.
 - Tested source matrix: public Go Dockerfile (`traefik/whoami`) and Node/Express Railpack template. Other languages/private dependencies are not yet verified.
 - Real GitHub App install/webhook delivery, public DNS/ACME and AWS application pilot are pending account/domain access.
-- Public installer declares Ubuntu 24.04/26.04 amd64/arm64 targets; neither a clean public host nor both architectures have received full installer/runtime proof. Local Linux arm64 runtime and cross-compiled amd64 binaries have different evidence levels.
+- Public installer declares Ubuntu 24.04/26.04 amd64/arm64 targets; neither a clean public host nor both architectures have received full installer/runtime proof. Local Linux arm64 runtime and a fresh Ubuntu CI amd64 Compose/browser journey have passed; public installer and cross-version host recovery are still unverified.
 - State is retained deliberately: registry/backups/history need operator retention. No scheduled off-server backup or automatic database major upgrade.
 - A node certificate eventually needs operator re-enrollment; keep identity recovery material. Backup archives include private application data.
 - Final owner UX walkthrough, independent fresh install → update → recover, dependency/image security review, signed release assets remain beta gates. Source hosting and private vulnerability reporting use [the GitHub repository](https://github.com/MinnKhantThuu/cloudrail).
