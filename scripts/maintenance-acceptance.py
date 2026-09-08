@@ -103,6 +103,7 @@ try:
     directory = newest()
     record = json.loads((directory / 'record.json').read_text())
     assert record['phase'] == 'updated' and record['backupComplete']
+    migrated = record.get('afterSchema') != record['schema']
     version = (ROOT / 'VERSION').read_text().strip()
     for role in ('server', 'agent'):
         assert command('docker', 'exec', 'cloudrail-' + role + '-1', 'cat', '/usr/share/cloudrail/VERSION').stdout.strip() == version
@@ -122,12 +123,18 @@ try:
         c.json('/api/state')
     finally:
         sql('DROP TABLE ' + table)
-    command('bash', 'scripts/rollback.sh', str(directory))
-    for role in ('server', 'agent'):
-        current = command('docker', 'inspect', 'cloudrail-' + role + '-1', '--format', '{{.Image}}').stdout.strip()
-        assert current == record['images'][role]['id']
-    verify_operation()
-    print('PASS incompatible rollback refused; compatible rollback restores exact prior images', flush=True)
+    if migrated:
+        rejected = command('bash', 'scripts/rollback.sh', str(directory), success=False)
+        assert 'schema changed' in rejected.stderr
+        verify_operation()
+        print('PASS schema-changing update rejects image-only rollback and keeps the new runtime operational', flush=True)
+    else:
+        command('bash', 'scripts/rollback.sh', str(directory))
+        for role in ('server', 'agent'):
+            current = command('docker', 'inspect', 'cloudrail-' + role + '-1', '--format', '{{.Image}}').stdout.strip()
+            assert current == record['images'][role]['id']
+        verify_operation()
+        print('PASS incompatible rollback refused; compatible rollback restores exact prior images', flush=True)
 
     # The previous runtime must recover automatically if snapshot preparation fails.
     backup = ROOT / 'scripts/backup-control-plane.sh'
