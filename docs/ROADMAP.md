@@ -18,7 +18,7 @@ Public customer signup၊ billing၊ arbitrary customer code၊ autoscaling၊ K
 
 | အပိုင်း | လက်ရှိအခြေအနေ |
 | --- | --- |
-| Phase 0–3 — flow, workspace, node/jobs | Existing backend/core code ပြီး; Phase 2 UX-0–UX-3 compute flow ပြီး၊ UX-4.1 Redis template next |
+| Phase 0–3 — flow, workspace, node/jobs | Existing backend/core code ပြီး; Phase 2 UX-0–UX-3 နဲ့ UX-4.1 Redis ပြီး၊ UX-4.2 volumes next |
 | Phase 4 — GitHub source builds | Public Dockerfile/Railpack live builds ပြီး; real GitHub App delivery pending |
 | Phase 5 — operating features | Code + local DB/volume tests ပြီး; clean Linode amd64 install, real ACME issuance နဲ့ reboot အောင် |
 | Phase 6 — Linode pilot | Owner + Railpack app live; failure/reboot/separate-host restore အောင်; GitHub App/observation pending |
@@ -82,7 +82,7 @@ Public HTTPS installer/config ရှိပြီး local TLS proof ရှိသ
 | --- | --- | --- | --- |
 | **0 — Scope & flow** | ဘာဆောက်မယ်၊ ဘယ်လိုသုံးမယ်၊ ဘယ်အစဉ်လိုက်သွားမယ် ရှင်းလင်းခြင်း | Roadmap၊ screen map၊ current/target flow | **အစဉ်အတိုင်း ဆက်လုပ်ရန် အတည်ပြုပြီး** |
 | **1 — Local deployment prototype** | Image deployment နဲ့ failed replacement ကိုသက်သေပြခြင်း | Local image တင်/ဖွင့်၊ logs/history ကြည့်နိုင် | **Code + local verification ပြီး** |
-| **2 — Workspace & core UX** | Railway ရဲ့ resource model နဲ့နေ့စဉ် flow အတိုင်း ပြန်တည်ဆောက်ခြင်း | Project canvas၊ generic compute/data/storage resources၊ links၊ resource drawer | **UX-0–UX-3 ပြီး; UX-4.1 Redis template next** |
+| **2 — Workspace & core UX** | Railway ရဲ့ resource model နဲ့နေ့စဉ် flow အတိုင်း ပြန်တည်ဆောက်ခြင်း | Project canvas၊ generic compute/data/storage resources၊ links၊ resource drawer | **UX-0–UX-3 နဲ့ UX-4.1 ပြီး; UX-4.2 volumes next** |
 | **3 — Reliable node & jobs** | Restart/disconnect/overlap ဖြစ်ချိန် state မှန်အောင်လုပ်ခြင်း | Node online/offline၊ recoverable jobs၊ ရှင်းလင်းတဲ့ failure state | **Code + local failure/recovery checks ပြီး** |
 | **4 — GitHub deployment** | Repo ကနေ app တင်လို့ရအောင်လုပ်ခြင်း | Repo/branch ရွေး၊ push-to-deploy၊ build logs | **Local code + public GitHub build proof ပြီး; live App install/webhook pending** |
 | **5 — VPS operating features** | Public URL နဲ့ persistent app တွေကိုထိန်းနိုင်အောင်လုပ်ခြင်း | Installer၊ domain/HTTPS၊ metrics၊ volumes၊ DB backup/restore | **Single clean Linode amd64 installer + public DNS/ACME + reboot အောင်; renewal pending** |
@@ -143,7 +143,7 @@ Railway ကိုကြည့်ပြီး canvas ပုံသဏ္ဌာန�
   - [x] UX-3.3 cron schedule/claim/overlap/history/recovery; isolated PostgreSQL, unit, mocked browser and hosted real-Docker proof passed in CI run 34282653529.
   - [x] UX-3.4 commands/restart policy + real-container matrix; hosted CI run 34286036519 passed after migration and cleanup-order coverage.
 - [ ] **UX-4:** Database templates, first-class volumes/backups and S3-compatible bucket resource။
-  - [ ] UX-4.1 template registry + one-click Redis service with persistence/reboot proof.
+  - [x] UX-4.1 versioned template registry + one-click Redis service; encrypted variables, private binding, AOF volume and agent-recovery proof passed in CI run 34288941666.
   - [ ] UX-4.2 first-class volume create/attach/detach with writer and path guards.
   - [ ] UX-4.3 Redis/application volume backup and empty-target restore flow.
   - [ ] UX-4.4 S3-compatible bucket create/configure/credential lifecycle.
@@ -154,7 +154,7 @@ Railway ကိုကြည့်ပြီး canvas ပုံသဏ္ဌာန�
 - [ ] **UX-8:** Templates, Compose import and basic CLI/config as code။
 - [ ] **UX-9:** Public Linode pilot update, docs/release and separate user UX acceptance।
 
-**Next selected substep:** UX-4.1 — template registry and one-click Redis service with persistence/reboot proof।
+**Next selected substep:** UX-4.2 — first-class volume create/attach/detach with writer and path guards။
 
 **UX-2 local visible outcome:** Project overview သည် card grid/list မဟုတ်တော့ဘဲ actual service/database/volume/bucket resources နဲ့ real relations ကို canvas ပေါ်တွင်မြင်၊ နေရာရွှေ့၊ click လုပ်ပြီး drawer ထဲဝင်နိုင်သည်။ Public Linode မှာ alpha.4 UI ပဲရှိသေးပြီး user review မရသေး။
 
@@ -233,10 +233,10 @@ Current phase:
 
 ## 7. လက်ရှိ checkpoint
 
-- **Current:** Phase 2.4 UX-0 product contract, UX-1 resource API, UX-2 canvas shell and UX-3 compute creation/runtime are complete. UX-4.1 Redis template is next. Phase 6 evidence remains preserved: exact alpha.4 commit `302aec4` is still live at `https://console.172-104-38-63.sslip.io`; the new canvas is not deployed there yet. GitHub App delivery, renewal and 48-hour observation remain pending.
+- **Current:** Phase 2.4 UX-0 through UX-3 and UX-4.1 Redis are complete. UX-4.2 first-class volume management is selected next. Phase 6 evidence remains preserved: exact alpha.4 commit `302aec4` is still live at `https://console.172-104-38-63.sslip.io`; the new canvas is not deployed there yet. GitHub App delivery, renewal and 48-hour observation remain pending.
 - **Phase 0:** User approved sequential continuation through all phases.
 - **Phase 2 evidence:** Go race tests + vet, frontend build, real Docker acceptance, Chrome desktop/mobile journey passed (31.9s). See [Phase 2 flow](phase-2-flow.md).
-- **UX:** UX-2 renders the environment graph as a pan/zoom/fit canvas with persisted node drag, URL-restored selection, actual reference/attachment edges, click drawers, shared Create/right-click/Cmd-Ctrl-K palette and phone full-screen drawer. Production build and mocked Chrome journeys passed; screenshots were visually inspected. UX-3 adds GitHub/Docker/empty sources, web/worker/cron modes, recoverable schedules, start/pre-deploy commands and restart policies. Hosted CI run 34286036519 passed the complete browser, real-Docker, maintenance, backup and independent-host recovery workflow. Redis/MySQL/Mongo/volume/bucket create options stay disabled with their planned UX-4 substep shown. Public deployment and user review remain pending.
+- **UX:** UX-2 renders the environment graph as a pan/zoom/fit canvas with persisted node drag, URL-restored selection, actual reference/attachment edges, click drawers and shared create entry points. UX-3 adds GitHub/Docker/empty sources, web/worker/cron modes, schedules, commands and restart policies. UX-4.1 adds a safe versioned data-template catalog and one-click Redis 8.2.2 with generated encrypted credentials, `REDIS_URL` binding, private networking and persistent AOF storage. Hosted CI run 34288941666 passed race/vet/security/build, browser, real-Docker Redis recovery, maintenance and independent-host recovery. MySQL/Mongo/standalone-volume/bucket create options remain planned. Public deployment and user review remain pending.
 - **Local owner handoff:** Login correction passed fresh registration (3.7s) and the full dashboard/deploy/browser journey (32.4s). The assistant-created acceptance owner was backed up and removed, retaining projects/apps, so the user can create their own account at localhost:8080. Do not run acceptance helpers that create an owner on this handed-over installation; use disposable CI installations for further registration/maintenance tests.
 - **Remote:** Public source committed/pushed to [MinnKhantThuu/cloudrail](https://github.com/MinnKhantThuu/cloudrail), main branch. Private vulnerability reporting enabled. [v0.1.0-alpha.4](https://github.com/MinnKhantThuu/cloudrail/releases/tag/v0.1.0-alpha.4) is published with all four verified CI assets. The Linode dashboard and pilot app have public HTTPS URLs; no AWS resources or installed GitHub App exists yet.
 - **Phase 3 evidence:** mTLS heartbeat/revoke, dedup, cancellation, agent/container restart recovery, isolated PostgreSQL stale-attempt/retry tests and independent backup restore passed. See [Phase 3 flow](phase-3-flow.md).

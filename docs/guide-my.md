@@ -1,6 +1,6 @@
 # Cloudrail အသုံးပြုလမ်းညွှန်
 
-Cloudrail က ကိုယ်ပိုင် Linux server ပေါ်မှာ application တွေတင်ဖို့ open-source deployment platform ဖြစ်ပါတယ်။ Dashboard ကနေ project၊ environment၊ service တွေခွဲပြီး app တင်တာ၊ logs ကြည့်တာ၊ PostgreSQL database နဲ့ backups စီမံတာတွေ လုပ်နိုင်ပါတယ်။
+Cloudrail က ကိုယ်ပိုင် Linux server ပေါ်မှာ application တွေတင်ဖို့ open-source deployment platform ဖြစ်ပါတယ်။ Dashboard ကနေ project၊ environment၊ service တွေခွဲပြီး app တင်တာ၊ logs ကြည့်တာ၊ PostgreSQL/Redis data service နဲ့ persistent storage စီမံတာတွေ လုပ်နိုင်ပါတယ်။
 
 **လက်ရှိက alpha ဖြစ်ပါတယ်။** Owner တစ်ယောက်၊ server တစ်လုံးနဲ့ ကိုယ်ယုံကြည်ရတဲ့ repositories တွေအတွက် ရည်ရွယ်ထားပါတယ်။ Public source တင်ထားတာနဲ့ production verification ပြီးတယ်လို့ မဆိုလိုပါဘူး။ ဘယ်အပိုင်းတွေစမ်းပြီး၊ ဘာတွေကျန်သေးလဲကို [Roadmap](ROADMAP.md) နဲ့ [Verification](verification-current.md) မှာကြည့်နိုင်ပါတယ်။
 
@@ -42,6 +42,7 @@ Project ဖန်တီး
 | Worker service | Public URL မရှိတဲ့ background process |
 | Cron service | UTC schedule နဲ့ command တစ်ကြိမ်စီ run မယ့် job |
 | PostgreSQL service | Private network ထဲမှာသုံးတဲ့ database |
+| Redis service | Cache၊ queue နဲ့ key-value data အတွက် private data service |
 | Build | Source commit တစ်ခုကနေ image ထုတ်ခြင်း |
 | Deployment | Image တစ်ခုကို configuration snapshot နဲ့ run ဖို့ကြိုးစားမှု |
 
@@ -97,6 +98,15 @@ Database မှာ public port မဖွင့်ထားပါဘူး။ Pas
 ## ၈။ Backup နဲ့ restore
 
 PostgreSQL ရဲ့ **Settings → Create backup** ကနေ dump ထုတ်ပြီး download လုပ်နိုင်ပါတယ်။ Server ပြင်ပက လုံခြုံတဲ့နေရာမှာ copy သိမ်းပါ။ Restore လုပ်ဖို့ database အသစ်တစ်ခုဖန်တီးပြီး backup ကိုရွေးပါ။ Data ရှိပြီးသား database ကို overwrite လုပ်တာကို ပိတ်ထားပါတယ်။
+
+### Redis ထည့်ပြီး application နဲ့ချိတ်ရန်
+
+1. Application ရှိတဲ့ project/environment ထဲမှာ **New resource → Redis** ကိုရွေးပါ။
+2. နာမည်ပေးပြီး create လုပ်ရုံနဲ့ Redis 8.2.2၊ generated password နဲ့ `/data` volume ကို Cloudrail က အလိုအလျောက် deploy လုပ်ပေးပါတယ်။
+3. Redis node ကိုဖွင့်ပြီး **Settings → Connect an application** မှာ target application ကိုရွေးပါ။ Variable ကို `REDIS_URL` အတိုင်းထားပါ။
+4. Application ကို redeploy လုပ်ရင် private Redis connection ကိုရပါပြီ။ Secret တန်ဖိုးကို UI/API က ပြန်မပြပါဘူး။
+
+Redis data က container stop နဲ့ agent restart ပြီးလည်း volume ထဲမှာဆက်ရှိပါတယ်။ Redis backup/restore control ကို UX-4.3 မှာဆက်ထည့်မယ်။
 
 HTTP service ရဲ့ volume ကို backup လုပ်ဖို့ service ကိုအရင် Stop လုပ်ပါ။ Restore target ကလည်း stopped ဖြစ်ပြီး volume ဗလာဖြစ်ရပါတယ်။ Volume export အရွယ်အစားက 1 GB အထိဖြစ်ပါတယ်။
 

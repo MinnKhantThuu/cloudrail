@@ -13,7 +13,7 @@ This guide describes the current single-owner alpha. Start the [local quickstart
 | Web service | An application with a public route | web / api |
 | Worker service | A long-running process without a public route | queue consumer |
 | Cron service | A command run on a five-field UTC schedule | nightly cleanup |
-| Database service | Private PostgreSQL with persistent data | database |
+| Data service | Private PostgreSQL or Redis with persistent data | database/cache |
 | Build | Exact source commit converted to an image | GitHub SHA → digest |
 | Deployment | One attempt to run an image with a saved configuration | api release 4 |
 
@@ -114,6 +114,15 @@ Persistent services stop the previous container before starting the replacement.
 5. Deploy the HTTP application again so its new container receives that variable.
 
 The password stays hidden and the database hostname is usable only inside the private environment network. Connecting across environments is rejected. PostgreSQL initialization credentials are managed by the template, not editable as ordinary variables. The template's major version is fixed; upgrades require a separately tested migration.
+
+## Add Redis and connect an application
+
+1. Select **New resource → Redis** in the same project/environment as the application.
+2. Name the cache and create it. Cloudrail pins Redis 8.2.2, generates credentials, attaches `/data` and deploys it automatically.
+3. Open the Redis resource, go to **Settings → Connect an application**, select the application and keep `REDIS_URL` as the variable name.
+4. Redeploy the application so its next deployment receives the private reference.
+
+The canvas shows the Redis service, its volume and the application reference. The secret value never appears in the template catalog, service response or variable-name screen. Redis uses append-only persistence and returns after an agent restart. Portable Redis backup/restore is tracked separately in UX-4.3.
 
 ## Back up and restore
 

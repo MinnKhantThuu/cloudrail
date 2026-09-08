@@ -62,6 +62,12 @@ The Settings drawer edits these values and each deployment card shows its comman
 
 Hosted [CI run 34286036519](https://github.com/MinnKhantThuu/cloudrail/actions/runs/34286036519) passed race tests, vet, dependency checks, frontend build, owner/workspace browser journeys, all real-Docker deployment controls, maintenance, backup and independent-host recovery at `de3a228`. UX-3.4 and UX-3 are complete. Public Linode deployment and user UX acceptance remain separate.
 
+## UX-4.1 versioned data templates and Redis — 2026-09-09
+
+The data-service path now reads from a versioned built-in template registry instead of a PostgreSQL-only branch. The public catalog exposes safe metadata only. Service records snapshot the template key/version, pin the tested image/port and reject ad hoc template image replacement. PostgreSQL 17.6 remains backward compatible; Redis 8.2.2 creates generated encrypted credentials, `/data` storage, append-only persistence, private network alias and `REDIS_URL` application references.
+
+Local isolated-schema API/migration tests and the production frontend build passed. Mocked Chrome desktop/mobile tests created Redis from the canvas and the resulting screenshot was inspected. Hosted [CI run 34288941666](https://github.com/MinnKhantThuu/cloudrail/actions/runs/34288941666) passed all five jobs. Its Redis acceptance verified the pinned container became healthy without a public port, catalog/create/variable APIs exposed no credential value, application binding and canvas link existed, the named volume was mounted and a written key survived an explicit container stop plus agent restart. The public Linode remains on alpha.4, so this is fresh CI runtime evidence rather than current public deployment proof.
+
 The final dependency scan found reachable advisories in pgx v5.7.6 and x/text v0.24.0. They were updated to **pgx v5.9.2** and **x/text v0.39.0**. `govulncheck v1.7.0` then reported zero affected code paths and zero vulnerabilities in imported packages; it still lists advisories elsewhere in required modules that the application does not call. This is not an external security audit or a container-image scan. [Go pgx advisory](https://pkg.go.dev/vuln/GO-2026-5004), [Go x/text advisory](https://pkg.go.dev/vuln/GO-2026-5970). `npm audit` reported zero known vulnerabilities in the locked frontend dependency tree.
 
 ## Repeat the checks
