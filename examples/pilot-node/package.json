@@ -1,0 +1,12 @@
+{
+  "name": "cloudrail-pilot-node",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Dependency-free HTTP fixture for Cloudrail public pilot validation",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
