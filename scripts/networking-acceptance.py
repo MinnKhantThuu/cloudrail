@@ -130,6 +130,7 @@ client.json('/api/services/' + service['id'] + '/networking', {
 wait_route(service['id'], True)
 wait_public(custom_host, active['id'])
 state_service = next(value for value in client.json('/api/state')['services'] if value['id'] == service['id'])
-assert state_service['url'].endswith(custom_host) and state_service['settings']['targetPort'] == 80
+assert state_service['host'] == custom_host and custom_host in state_service['url']
+assert state_service['settings']['targetPort'] == 80
 assert state_service['settings']['privateHost'] == private_host
 print('PASS: generated/custom domain and public route restore preserve the private hostname', flush=True)
