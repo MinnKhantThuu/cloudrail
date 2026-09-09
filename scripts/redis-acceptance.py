@@ -63,6 +63,7 @@ assert details['HostConfig']['RestartPolicy']['Name'] == 'unless-stopped'
 networks = details['NetworkSettings']['Networks']
 assert len(networks) == 1 and next(iter(networks)).startswith('cloudrail-env-')
 assert 'db-' + cache['id'] in next(iter(networks.values()))['Aliases']
+assert cache['settings']['privateHost'] in next(iter(networks.values()))['Aliases']
 mount = next(item for item in details['Mounts'] if item['Destination'] == '/data')
 assert mount['Name'] == cache['settings']['volumeName']
 
@@ -76,7 +77,7 @@ assert 'REDIS_URL' in client.json('/api/services/' + app['id'] + '/variables')['
 canvas = client.json('/api/projects/' + project['id'] + '/environments/production/canvas')
 resource = next(item for item in canvas['resources'] if item['id'] == cache['id'])
 assert resource['template'] == 'redis' and resource['templateVersion'] == '8.2.2'
-assert resource['privateAddress'] == 'db-' + cache['id'] + ':6379'
+assert resource['privateAddress'] == cache['settings']['privateHost'] + ':6379'
 assert any(link['kind'] == 'variable-reference' and link['label'] == 'REDIS_URL → REDIS_URL' for link in canvas['links'])
 print('PASS: Redis is a private versioned canvas template with hidden generated credentials', flush=True)
 

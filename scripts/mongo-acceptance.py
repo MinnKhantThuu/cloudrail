@@ -94,7 +94,7 @@ client.json('/api/services/' + source['id'] + '/bindings', {'targetServiceId': a
 assert 'MONGO_URL' in client.json('/api/services/' + app['id'] + '/variables')['names']
 canvas = client.json('/api/projects/' + project['id'] + '/environments/production/canvas')
 resource = next(item for item in canvas['resources'] if item['id'] == source['id'])
-assert resource['template'] == 'mongo' and resource['privateAddress'] == 'db-' + source['id'] + ':27017'
+assert resource['template'] == 'mongo' and resource['privateAddress'] == source['settings']['privateHost'] + ':27017'
 assert any(link['kind'] == 'variable-reference' and link['label'] == 'MONGO_URL → MONGO_URL' for link in canvas['links'])
 
 mongo_eval(source_container, 'db.proof.insertOne({_id: 1, value: "persistent-document"})')

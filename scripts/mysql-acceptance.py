@@ -92,7 +92,7 @@ client.json('/api/services/' + source['id'] + '/bindings', {'targetServiceId': a
 assert 'MYSQL_URL' in client.json('/api/services/' + app['id'] + '/variables')['names']
 canvas = client.json('/api/projects/' + project['id'] + '/environments/production/canvas')
 resource = next(item for item in canvas['resources'] if item['id'] == source['id'])
-assert resource['template'] == 'mysql' and resource['privateAddress'] == 'db-' + source['id'] + ':3306'
+assert resource['template'] == 'mysql' and resource['privateAddress'] == source['settings']['privateHost'] + ':3306'
 assert any(link['kind'] == 'variable-reference' and link['label'] == 'MYSQL_URL → MYSQL_URL' for link in canvas['links'])
 
 sql(source_container, 'CREATE TABLE proof (id INT PRIMARY KEY, value VARCHAR(80)); INSERT INTO proof VALUES (1, "persistent-order");')
