@@ -148,13 +148,15 @@ Railway ကိုကြည့်ပြီး canvas ပုံသဏ္ဌာန�
   - [x] UX-4.3 Redis/application volume backup and empty-target restore; real Redis data recovery and non-empty target preservation passed in CI run 34292131015.
   - [x] UX-4.4 S3-compatible bucket create/bind/rotate/disconnect; real MinIO upload/download and credential-revocation proof passed in CI run 34294856835.
   - [ ] UX-4.5 MySQL and MongoDB templates with persistence/backup/recovery proof.
+    - [x] UX-4.5a MySQL 8.4.7 template, private binding, restart persistence and logical backup/empty-target restore passed in CI run 34298629858.
+    - [ ] UX-4.5b MongoDB template, private binding, persistence and logical backup/empty-target restore.
 - [ ] **UX-5:** Secret/reference variables, real canvas links, private/public networking and TCP follow-up။
 - [ ] **UX-6:** Deployments/Variables/Metrics/Settings drawer and environment log explorer။
 - [ ] **UX-7:** Environment duplicate/sync and staged change review/apply flow; PR environments later substep။
 - [ ] **UX-8:** Templates, Compose import and basic CLI/config as code။
 - [ ] **UX-9:** Public Linode pilot update, docs/release and separate user UX acceptance।
 
-**Next selected substep:** UX-4.5a — MySQL template, persistence, private binding and backup/recovery proof။
+**Next selected substep:** UX-4.5b — MongoDB template, persistence, private binding and backup/recovery proof။
 
 **UX-2 local visible outcome:** Project overview သည် card grid/list မဟုတ်တော့ဘဲ actual service/database/volume/bucket resources နဲ့ real relations ကို canvas ပေါ်တွင်မြင်၊ နေရာရွှေ့၊ click လုပ်ပြီး drawer ထဲဝင်နိုင်သည်။ Public Linode မှာ alpha.4 UI ပဲရှိသေးပြီး user review မရသေး။
 
