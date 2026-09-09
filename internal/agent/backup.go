@@ -175,7 +175,7 @@ func (r *Runner) RunBackup(ctx context.Context, w deployment.Work, c *Client) er
 				return e
 			}
 			defer runtime.Exec(ctx, w.Deployment.ID, []string{"rm", "-f", "/tmp/cloudrail-restore.dump"}, io.Discard)
-			return runtime.Exec(ctx, w.Deployment.ID, []string{"sh", "-lc", `MYSQL_PWD="$MYSQL_ROOT_PASSWORD" exec mysql -uroot "$MYSQL_DATABASE" < /tmp/cloudrail-restore.dump`}, io.Discard)
+			return runtime.Exec(ctx, w.Deployment.ID, []string{"sh", "-lc", `MYSQL_PWD="$MYSQL_PASSWORD" exec mysql -u"$MYSQL_USER" "$MYSQL_DATABASE" < /tmp/cloudrail-restore.dump`}, io.Discard)
 		}
 		var existing bytes.Buffer
 		if e = runtime.Exec(ctx, w.Deployment.ID, []string{"psql", "-U", "app", "-d", "app", "-Atc", "SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname NOT IN ('pg_catalog','information_schema') AND n.nspname NOT LIKE 'pg_toast%' AND c.relkind IN ('r','p','m','S','v')"}, &existing); e != nil {
