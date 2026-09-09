@@ -38,7 +38,7 @@ test('real dashboard: create, validate, deploy, inspect logs, recover, and use m
   await page.getByLabel('Variable name').fill('DEMO_VALUE');
 	await page.getByLabel('Secret value').fill('browser-secret-value');
   await page.getByRole('button', {name:'Save variable'}).click();
-	await expect(page.getByText('Secret saved. Deploy again to apply.')).toBeVisible();
+	await expect(page.getByText('Variable saved. Deploy again to apply it.')).toBeVisible();
 	await expect(page.getByLabel('Secret value')).toHaveValue('');
   await page.getByRole('tab', {name:/^Deployments/}).click();
   await page.getByRole('button', { name: 'Deploy', exact: true }).click();
