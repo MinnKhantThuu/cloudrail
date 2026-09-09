@@ -9,7 +9,7 @@ const state = {
   projects: [{ id: 'project-1', name: 'Commerce API', createdAt: '2026-09-09T00:00:00Z' }],
   environments: [{ projectId: 'project-1', name: 'production' }],
   services: [
-    { id: 'app-1', projectId: 'project-1', name: 'storefront-api', environment: 'production', host: 'api.example.test', url: 'https://api.example.test', activeId: 'deploy-1', desiredState: 'running', resourceKind: 'service', workloadMode: 'web', template: '', createdAt: '2026-09-09T00:00:00Z', settings: { kind: 'http', memoryMB: 256, cpuMillis: 1000, mountPath: '', volumeName: '', network: 'cloudrail' } },
+    { id: 'app-1', projectId: 'project-1', name: 'storefront-api', environment: 'production', host: 'api.example.test', url: 'https://api.example.test', activeId: 'deploy-1', desiredState: 'running', resourceKind: 'service', workloadMode: 'web', template: '', createdAt: '2026-09-09T00:00:00Z', settings: { kind: 'http', memoryMB: 256, cpuMillis: 1000, mountPath: '', volumeName: '', network: 'cloudrail', privateHost: 'storefront-api-app-1.internal', publicEnabled: true, targetPort: 8080 } },
     { id: 'worker-1', projectId: 'project-1', name: 'email-queue', environment: 'production', host: 'worker.example.test', url: '', activeId: 'deploy-worker', desiredState: 'running', resourceKind: 'service', workloadMode: 'worker', template: '', createdAt: '2026-09-09T00:00:00Z', settings: { kind: 'http', memoryMB: 256, cpuMillis: 1000, mountPath: '', volumeName: '', network: 'cloudrail' } },
     { id: 'cron-1', projectId: 'project-1', name: 'nightly-cleanup', environment: 'production', host: 'cron.example.test', url: '', activeId: 'deploy-cron', desiredState: 'running', resourceKind: 'service', workloadMode: 'cron', template: '', cronSchedule: '0 2 * * *', cronNextRun: '2026-09-10T02:00:00Z', createdAt: '2026-09-09T00:00:00Z', settings: { kind: 'http', memoryMB: 256, cpuMillis: 1000, mountPath: '', volumeName: '', network: 'cloudrail' } },
     { id: 'db-1', projectId: 'project-1', name: 'postgres', environment: 'production', host: '', url: '', activeId: 'deploy-db', desiredState: 'running', resourceKind: 'database', workloadMode: 'web', template: 'postgres', createdAt: '2026-09-09T00:00:00Z', settings: { kind: 'postgres', memoryMB: 384, cpuMillis: 1000, mountPath: '/var/lib/postgresql/data', volumeName: 'postgres-data', network: 'cloudrail' } },
@@ -28,7 +28,7 @@ const state = {
 const graph = {
   projectId: 'project-1', environment: 'production',
   resources: [
-    { key: 'service:app-1', id: 'app-1', kind: 'service', name: 'storefront-api', status: 'active', workloadMode: 'web', sourceType: 'github', publicAddress: 'https://api.example.test', privateAddress: 'storefront-api.internal', position: { x: 130, y: 150 } },
+    { key: 'service:app-1', id: 'app-1', kind: 'service', name: 'storefront-api', status: 'active', workloadMode: 'web', sourceType: 'github', publicAddress: 'https://api.example.test', privateAddress: 'storefront-api-app-1.internal:8080', position: { x: 130, y: 150 } },
     { key: 'service:worker-1', id: 'worker-1', kind: 'service', name: 'email-queue', status: 'active', workloadMode: 'worker', sourceType: 'image', privateAddress: 'email-queue.internal', position: { x: 130, y: 390 } },
     { key: 'service:cron-1', id: 'cron-1', kind: 'service', name: 'nightly-cleanup', status: 'active', workloadMode: 'cron', sourceType: 'image', privateAddress: 'nightly-cleanup.internal', position: { x: 410, y: 470 } },
     { key: 'service:db-1', id: 'db-1', kind: 'database', name: 'postgres', status: 'active', workloadMode: 'database', template: 'PostgreSQL', privateAddress: 'postgres.internal:5432', position: { x: 610, y: 150 } },
@@ -40,7 +40,7 @@ const graph = {
   ],
 };
 
-async function mockWorkspace(page: import('@playwright/test').Page, savedLayouts: unknown[], savedRuntime: unknown[] = [], savedCreates: unknown[] = [], savedAttachments: unknown[] = [], savedBucketActions: unknown[] = [], savedVariables: unknown[] = []) {
+async function mockWorkspace(page: import('@playwright/test').Page, savedLayouts: unknown[], savedRuntime: unknown[] = [], savedCreates: unknown[] = [], savedAttachments: unknown[] = [], savedBucketActions: unknown[] = [], savedVariables: unknown[] = [], savedNetworking: unknown[] = []) {
   const canvas = structuredClone(graph);
   const workspaceState = structuredClone(state);
   const variableState: Record<string, {names:string[];variables:{name:string;kind:string;value?:string;targetServiceId?:string;targetServiceName?:string;targetVariable?:string}[]}> = {
@@ -72,6 +72,23 @@ async function mockWorkspace(page: import('@playwright/test').Page, savedLayouts
     if (url.pathname.endsWith('/runtime') && request.method() === 'PUT') {
       savedRuntime.push(request.postDataJSON());
       return route.fulfill({ json: request.postDataJSON() });
+    }
+    const networking = url.pathname.match(/^\/api\/services\/([^/]+)\/networking$/);
+    if (networking && request.method() === 'PUT') {
+      const body = request.postDataJSON() as {publicEnabled:boolean;targetPort:number};
+      const service = workspaceState.services.find(item => item.id === networking[1]);
+      if (service) {
+        service.settings.publicEnabled = body.publicEnabled;
+        service.settings.targetPort = body.targetPort;
+        service.url = body.publicEnabled ? 'https://' + service.host : '';
+      }
+      const resource = canvas.resources.find(item => item.id === networking[1]);
+      if (resource) {
+        resource.privateAddress = `storefront-api-app-1.internal:${body.targetPort}`;
+        resource.publicAddress = body.publicEnabled ? 'https://api.example.test' : undefined;
+      }
+      savedNetworking.push(body);
+      return route.fulfill({ json: service?.settings || body });
     }
     if (url.pathname === '/api/projects/project-1/databases' && request.method() === 'POST') {
       const body = request.postDataJSON() as {name:string;environment:string;template:string};
@@ -169,9 +186,10 @@ test('canvas exposes resources, connections, creation and saved layout', async (
   const savedAttachments: unknown[] = [];
   const savedBucketActions: unknown[] = [];
   const savedVariables: unknown[] = [];
+  const savedNetworking: unknown[] = [];
   const errors: string[] = [];
   page.on('pageerror', error => errors.push(error.message));
-  await mockWorkspace(page, savedLayouts, savedRuntime, savedCreates, savedAttachments, savedBucketActions, savedVariables);
+  await mockWorkspace(page, savedLayouts, savedRuntime, savedCreates, savedAttachments, savedBucketActions, savedVariables, savedNetworking);
   await page.goto('/');
 
   await expect(page.getByRole('region', { name: 'Project canvas' })).toBeVisible();
@@ -207,6 +225,18 @@ test('canvas exposes resources, connections, creation and saved layout', async (
     { action: 'save', serviceId: 'app-1', name: 'WORKER_URL', kind: 'reference', targetServiceId: 'worker-1', targetVariable: 'API_ORIGIN' },
     { action: 'rename', serviceId: 'app-1', oldName: 'WORKER_URL', name: 'INTERNAL_API_URL' },
   ]);
+  await page.getByRole('tab', { name: 'Settings' }).click();
+  await expect(page.getByText('storefront-api-app-1.internal')).toBeVisible();
+  await page.getByLabel('Public HTTP/HTTPS').uncheck();
+  await page.getByLabel('Default target port').fill('9090');
+  await page.getByRole('button', { name: 'Save networking' }).click();
+  await expect(page.getByText('Networking saved. Routing will refresh automatically.')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Public domain' })).toHaveCount(0);
+  await page.getByLabel('Public HTTP/HTTPS').check();
+  await page.getByRole('button', { name: 'Save networking' }).click();
+  await expect(page.getByRole('heading', { name: 'Public domain' })).toBeVisible();
+  expect(savedNetworking).toEqual([{ publicEnabled: false, targetPort: 9090 }, { publicEnabled: true, targetPort: 9090 }]);
+  await page.screenshot({ path: screenshots + 'networking-settings-desktop.png', fullPage: true });
   await page.getByLabel('Close service details').click();
 
   await page.getByRole('button', { name: 'nightly-cleanup resource' }).click();

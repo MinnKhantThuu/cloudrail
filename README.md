@@ -33,7 +33,7 @@ Inspired by the developer experience of Railway and the self-hosting model of Co
 | Deployment | Digest-pinned images, readiness, start/pre-deploy commands, restart policies, history, cancellation and recovery |
 | Source builds | GitHub repository/branch configuration, Dockerfile and Railpack, build logs |
 | GitHub integration | Encrypted App credentials, signed push handlers and delivery deduplication |
-| Configuration | Encrypted runtime variables, CPU/RAM limits and custom hostname settings |
+| Configuration | Encrypted secret/plain/reference variables with canvas dependency links, stable private DNS, public route control, target port, CPU/RAM limits and custom hostname settings |
 | Persistent workloads | Named volumes, private PostgreSQL/Redis/MySQL/MongoDB services, S3-compatible buckets and hidden application connection bindings |
 | Operations | Container logs, node heartbeat, observed metrics, backup downloads and empty-target restore |
 | Installation | Local Docker Compose, provider-neutral Ubuntu VPS installer, Linode pilot runbook and optional AWS Lightsail template |

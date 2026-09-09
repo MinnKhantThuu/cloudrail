@@ -46,7 +46,7 @@ type Runner struct {
 }
 
 func webWorkload(s deployment.Service) bool {
-	return !deployment.IsDataKind(s.Settings.Kind) && (s.WorkloadMode == "" || s.WorkloadMode == "web")
+	return s.PublicHTTP()
 }
 
 func (r *Runner) setRoute(s deployment.Service, d *deployment.Deployment) error {
@@ -198,7 +198,7 @@ func (r *Runner) Run(ctx context.Context, w deployment.Work) error {
 		}
 		return r.fail(ctx, w, err)
 	}
-	activation := "Activating route-free worker release"
+	activation := "Activating private release"
 	if webWorkload(w.Service) {
 		activation = "Switching route and verifying through Traefik"
 	}
@@ -217,7 +217,11 @@ func (r *Runner) Run(ctx context.Context, w deployment.Work) error {
 		}
 	}
 	// Keep both containers if the acknowledgement fails. The same job is safe to resume.
-	if err = r.report(ctx, d, "active", "Deployment is serving through the proxy"); err != nil {
+	activeMessage := "Deployment is active on the private network"
+	if webWorkload(w.Service) {
+		activeMessage = "Deployment is serving through the proxy"
+	}
+	if err = r.report(ctx, d, "active", activeMessage); err != nil {
 		return err
 	}
 	if w.Previous != nil {

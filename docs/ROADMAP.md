@@ -18,7 +18,7 @@ Public customer signup၊ billing၊ arbitrary customer code၊ autoscaling၊ K
 
 | အပိုင်း | လက်ရှိအခြေအနေ |
 | --- | --- |
-| Phase 0–3 — flow, workspace, node/jobs | Existing backend/core code ပြီး; Phase 2 UX-0–UX-3 နဲ့ UX-4.1–UX-4.4 data/storage flow ပြီး၊ UX-4.5 database templates next |
+| Phase 0–3 — flow, workspace, node/jobs | Existing backend/core code ပြီး; Phase 2 UX-0–UX-4 နဲ့ UX-5.1 typed references ပြီး၊ UX-5.2 networking hosted verification pending |
 | Phase 4 — GitHub source builds | Public Dockerfile/Railpack live builds ပြီး; real GitHub App delivery pending |
 | Phase 5 — operating features | Code + local DB/volume tests ပြီး; clean Linode amd64 install, real ACME issuance နဲ့ reboot အောင် |
 | Phase 6 — Linode pilot | Owner + Railpack app live; failure/reboot/separate-host restore အောင်; GitHub App/observation pending |
@@ -130,7 +130,7 @@ Admin token login ကို owner account + secure session flow နဲ့ပြ�
 
 Encrypted runtime variables၊ port/readiness settings၊ restart/stop၊ historical image redeploy တို့ကို API နဲ့ UI အပြည့်ချိတ်မယ်။ Variable value ကို logs/API response တွေမှာ မတော်တဆမပေါ်အောင်စစ်မယ်။
 
-**2.4 Railway-inspired product and canvas recovery — UX-0 through UX-4 complete; UX-5 selected**
+**2.4 Railway-inspired product and canvas recovery — UX-0 through UX-4 and UX-5.1 complete; UX-5.2 selected**
 
 Railway ကိုကြည့်ပြီး canvas ပုံသဏ္ဌာန်တစ်ခုတည်းကူးမည်မဟုတ်။ Service/source/workload/template ခွဲခြားပုံ၊ compute/data/storage resource types၊ actual reference/attachment links၊ environments/staged changes၊ deployment/observability flow အားလုံးကိုအစဉ်လိုက်လုပ်မည်။ အသေးစိတ် scope, data model, API projection, canvas interaction, phase exit criteria နှင့် acceptance scenarios ကို [Railway-inspired product plan](railway-parity-plan.md) တွင်သတ်မှတ်ထားသည်။
 
@@ -151,12 +151,15 @@ Railway ကိုကြည့်ပြီး canvas ပုံသဏ္ဌာန�
     - [x] UX-4.5a MySQL 8.4.7 template, private binding, restart persistence and logical backup/empty-target restore passed in CI run 34298629858.
     - [x] UX-4.5b MongoDB 8.0.29 template, private binding, restart persistence and logical backup/empty-target restore passed in CI run 34300250908.
 - [ ] **UX-5:** Secret/reference variables, real canvas links, private/public networking and TCP follow-up။
+  - [x] UX-5.1 plain/secret/reference variable types, same-environment target selection, deploy-time recursive resolution, canvas dependency edges, rename/delete/cycle guards; local API/browser and hosted real-container reference steps passed in CI run 34302484093. Its later legacy workspace browser step failed on an outdated label and is corrected for rerun.
+  - [ ] UX-5.2 stable private service DNS, internal/public URL selection, generated/custom domain and target port; implementation, local PostgreSQL integration and desktop/mobile mocked browser proof passed, hosted real-Docker proof pending.
+  - [ ] UX-5.3 TCP proxy lifecycle and external connection proof.
 - [ ] **UX-6:** Deployments/Variables/Metrics/Settings drawer and environment log explorer။
 - [ ] **UX-7:** Environment duplicate/sync and staged change review/apply flow; PR environments later substep။
 - [ ] **UX-8:** Templates, Compose import and basic CLI/config as code။
 - [ ] **UX-9:** Public Linode pilot update, docs/release and separate user UX acceptance।
 
-**Next selected substep:** UX-5.1 — typed secret/reference variables, service-to-service references and environment isolation proof။
+**Current selected substep:** UX-5.2 — run hosted private-DNS isolation and public-route lifecycle acceptance, then record the verified checkpoint before UX-5.3 starts။
 
 **UX-2 local visible outcome:** Project overview သည် card grid/list မဟုတ်တော့ဘဲ actual service/database/volume/bucket resources နဲ့ real relations ကို canvas ပေါ်တွင်မြင်၊ နေရာရွှေ့၊ click လုပ်ပြီး drawer ထဲဝင်နိုင်သည်။ Public Linode မှာ alpha.4 UI ပဲရှိသေးပြီး user review မရသေး။
 
@@ -235,10 +238,10 @@ Current phase:
 
 ## 7. လက်ရှိ checkpoint
 
-- **Current:** Phase 2.4 UX-0 through UX-3 and UX-4.1 Redis are complete. UX-4.2 first-class volume management is selected next. Phase 6 evidence remains preserved: exact alpha.4 commit `302aec4` is still live at `https://console.172-104-38-63.sslip.io`; the new canvas is not deployed there yet. GitHub App delivery, renewal and 48-hour observation remain pending.
+- **Current:** Phase 2.4 UX-0 through UX-4 and UX-5.1 typed references are implemented. UX-5.2 private/public networking is implemented locally with hosted runtime verification pending. Phase 6 evidence remains preserved: exact alpha.4 commit `302aec4` is still live at `https://console.172-104-38-63.sslip.io`; the new canvas is not deployed there yet. GitHub App delivery, renewal and 48-hour observation remain pending.
 - **Phase 0:** User approved sequential continuation through all phases.
 - **Phase 2 evidence:** Go race tests + vet, frontend build, real Docker acceptance, Chrome desktop/mobile journey passed (31.9s). See [Phase 2 flow](phase-2-flow.md).
-- **UX:** UX-2 renders the environment graph as a pan/zoom/fit canvas with persisted node drag, URL-restored selection, actual reference/attachment edges, click drawers and shared create entry points. UX-3 adds GitHub/Docker/empty sources, web/worker/cron modes, schedules, commands and restart policies. UX-4.1 adds a safe versioned data-template catalog and one-click Redis 8.2.2 with generated encrypted credentials, `REDIS_URL` binding, private networking and persistent AOF storage. Hosted CI run 34288941666 passed race/vet/security/build, browser, real-Docker Redis recovery, maintenance and independent-host recovery. MySQL/Mongo/standalone-volume/bucket create options remain planned. Public deployment and user review remain pending.
+- **UX:** UX-2 renders the environment graph as a pan/zoom/fit canvas with persisted node drag, URL-restored selection, actual reference/attachment edges, click drawers and shared create entry points. UX-3 adds GitHub/Docker/empty sources, web/worker/cron modes, schedules, commands and restart policies. UX-4 provides PostgreSQL/Redis/MySQL/MongoDB templates, standalone volumes/backups and S3-compatible buckets. UX-5.1 adds typed variables, dependency edges and deploy-time reference resolution. CI run 34302484093 passed its real-container reference step plus checks/maintenance/recovery, but the later legacy workspace browser step failed on an outdated label; that test is corrected in UX-5.2. UX-5.2 now adds stable environment-scoped private hostnames, public route on/off, generated/custom domains and next-deploy target ports; hosted runtime proof remains pending. TCP exposure, public deployment and user review remain pending.
 - **Local owner handoff:** Login correction passed fresh registration (3.7s) and the full dashboard/deploy/browser journey (32.4s). The assistant-created acceptance owner was backed up and removed, retaining projects/apps, so the user can create their own account at localhost:8080. Do not run acceptance helpers that create an owner on this handed-over installation; use disposable CI installations for further registration/maintenance tests.
 - **Remote:** Public source committed/pushed to [MinnKhantThuu/cloudrail](https://github.com/MinnKhantThuu/cloudrail), main branch. Private vulnerability reporting enabled. [v0.1.0-alpha.4](https://github.com/MinnKhantThuu/cloudrail/releases/tag/v0.1.0-alpha.4) is published with all four verified CI assets. The Linode dashboard and pilot app have public HTTPS URLs; no AWS resources or installed GitHub App exists yet.
 - **Phase 3 evidence:** mTLS heartbeat/revoke, dedup, cancellation, agent/container restart recovery, isolated PostgreSQL stale-attempt/retry tests and independent backup restore passed. See [Phase 3 flow](phase-3-flow.md).

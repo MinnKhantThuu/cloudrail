@@ -85,11 +85,28 @@ Public URL မလိုတဲ့ long-running process ဆို **New resource �
 
 ## ၆။ Variables နဲ့ update လုပ်ခြင်း
 
-Service ရဲ့ **Variables** tab မှာ `DATABASE_URL`၊ `PORT` စတာတွေထည့်နိုင်ပါတယ်။ သိမ်းပြီးတဲ့ secret value ကို UI ကပြန်မဖော်ပြပါဘူး။ ပြောင်းချင်ရင် value အသစ်ထည့်ရပါတယ်။
+Service ရဲ့ **Variables** tab မှာ variable သုံးမျိုးရွေးနိုင်ပါတယ်။
 
-Variables နဲ့ resource settings ပြင်ပြီးရင် **deploy အသစ်လုပ်ပါ**။ Restart က လက်ရှိ deployment ရဲ့ configuration ကိုပဲပြန်သုံးပါတယ်။ Runtime variables တွေကို build အတွင်း မပို့ပါဘူး။ Private package build secrets ကို ဒီ alpha မှာ မပံ့ပိုးသေးပါဘူး။
+- **Secret** — password၊ token လိုတန်ဖိုးတွေ; encrypt လုပ်သိမ်းပြီး UI/API ကပြန်မဖော်ပြပါဘူး။
+- **Plain value** — UI မှာနောက်မှပြန်ကြည့်လိုတဲ့ hostname၊ feature flag လိုတန်ဖိုးတွေ; disk ထဲမှာ encrypt လုပ်သိမ်းထားပါတယ်။
+- **Service reference** — project/environment တူတဲ့ service နဲ့ အဲဒီ service ရဲ့ variable ကို dropdown နှစ်ဆင့်နဲ့ရွေးချိတ်ပါတယ်။ ဥပမာ Frontend ရဲ့ `API_URL` → Backend ရဲ့ `API_ORIGIN`။ ချိတ်ပြီးရင် canvas ပေါ် dependency line တကယ်ပေါ်ပါတယ်။
 
-## ၇။ Database ချိတ်ခြင်း
+Reference target value ပြောင်းပြီး source service ကို redeploy လုပ်ရင် value အသစ်ကို resolve လုပ်သုံးပါတယ်။ Variable rename လုပ်ရင် ချိတ်ထားတဲ့ references တွေပါ update ဖြစ်ပါတယ်။ တခြား service က reference လုပ်ထားတဲ့ target variable ကိုတော့ reference မဖြုတ်မချင်းဖျက်လို့မရပါဘူး။ Environment မတူတဲ့ reference နဲ့ circular reference ကိုပိတ်ထားပါတယ်။
+
+Variables နဲ့ resource settings ပြင်ပြီးရင် **deploy အသစ်လုပ်ပါ**။ Restart က လက်ရှိ deployment ရဲ့ configuration snapshot ကိုပဲပြန်သုံးပါတယ်။ Runtime variables တွေကို build အတွင်း မပို့ပါဘူး။ Private package build secrets ကို ဒီ alpha မှာ မပံ့ပိုးသေးပါဘူး။
+
+## ၇။ Private / public networking
+
+Web/API service ရဲ့ **Settings → Networking** မှာ အောက်ပါအတိုင်း စီမံနိုင်ပါတယ်။
+
+- **Private hostname** — `backend-a1b2c3.internal` လို stable address ဖြစ်ပြီး project environment တူတဲ့ containers ထဲကပဲ resolve လုပ်နိုင်ပါတယ်။ Deployment အသစ်တင်လည်း hostname မပြောင်းပါဘူး။ Port က active deployment မှာရွေးထားတဲ့ container port ဖြစ်ပါတယ်။
+- **Expose this service on HTTP/HTTPS** — ပိတ်လိုက်ရင် public URL နဲ့ Traefik route ကိုဖယ်ပေးပြီး private network ကနေတော့ ဆက်သုံးနိုင်ပါတယ်။ ပြန်ဖွင့်ရင် active deployment ကို public route ပြန်ချိတ်ပါတယ်။
+- **Default target port** — နောက်တစ်ကြိမ် Deploy dialog ဖွင့်တဲ့အခါ ဒီ port ကို default ထည့်ပေးပါတယ်။ Image က တကယ် listen လုပ်တဲ့ port နဲ့ကိုက်ရပါမယ်။
+- **Public domain** — service ဖန်တီးချိန် generated hostname ရပြီး custom hostname နဲ့အစားထိုးနိုင်ပါတယ်။ Public VPS mode မှာ DNS က server IP ကိုညွှန်ပြီးမှ save လုပ်နိုင်ပါတယ်။
+
+Worker service က environment private network ထဲမှာ run ပေမယ့် public HTTP route မရပါဘူး။ Cron job က scheduled one-shot container ဖြစ်လို့ stable listening address မပြပါဘူး။
+
+## ၈။ Database ချိတ်ခြင်း
 
 1. Application နဲ့ project/environment တူတဲ့နေရာမှာ **New resource → PostgreSQL** ဖန်တီးပါ။
 2. Active ဖြစ်ရင် database ရဲ့ **Settings** ကိုဖွင့်ပါ။
@@ -98,7 +115,7 @@ Variables နဲ့ resource settings ပြင်ပြီးရင် **deploy
 
 Database မှာ public port မဖွင့်ထားပါဘူး။ Password ကိုလည်း dashboard မှာ မဖော်ပြပါဘူး။ Environment မတူတဲ့ app ကို တိုက်ရိုက်ချိတ်တာကို ပိတ်ထားပါတယ်။
 
-## ၈။ Backup နဲ့ restore
+## ၉။ Backup နဲ့ restore
 
 PostgreSQL ရဲ့ **Settings → Create backup** ကနေ dump ထုတ်ပြီး download လုပ်နိုင်ပါတယ်။ Server ပြင်ပက လုံခြုံတဲ့နေရာမှာ copy သိမ်းပါ။ Restore လုပ်ဖို့ database အသစ်တစ်ခုဖန်တီးပြီး backup ကိုရွေးပါ။ Data ရှိပြီးသား database ကို overwrite လုပ်တာကို ပိတ်ထားပါတယ်။
 
@@ -146,13 +163,13 @@ UI က လက်ရှိ installation ထဲမှာကျန်နေတဲ�
 
 Alpha.3 မှာ server တစ်ခုလုံးအတွက် cold backup / host restore command ပါဝင်ပါတယ်။ Backup ယူနေချိန် apps တွေ ခဏရပ်မယ်။ Backup directory အပြည့်ကို server ပြင်ပမှာ encrypt လုပ်ပြီးသိမ်းပါ။ Restore က မူလ server ကိုရပ်ထားပြီး version/architecture တူတဲ့ Docker host ဗလာတစ်လုံးပေါ်မှာလုပ်ရပါတယ်။ လက်ရှိ server ကို overwrite လုပ်တဲ့ command မဟုတ်ပါဘူး။ [Host recovery အဆင့်ဆင့်](host-recovery.md) ကိုလိုက်ပါ။
 
-## ၉။ Deploy ပျက်သွားလျှင်
+## ၁၀။ Deploy ပျက်သွားလျှင်
 
 Failed deployment ရဲ့ error နဲ့ logs ကိုအရင်ကြည့်ပါ။ Stateless app အသစ် readiness မအောင်ရင် အရင် release ကို ဆက်သုံးနိုင်အောင်လုပ်ထားပါတယ်။ Persistent service ဆို writer နှစ်ခုမဖြစ်အောင် container အဟောင်းကိုရပ်ပြီးမှ အသစ်ကိုစပါတယ်၊ ဒါကြောင့် ခဏပြတ်နိုင်ပါတယ်။
 
 History က image အဟောင်းကို redeploy လုပ်ရင် deployment အသစ်တစ်ခုဖြစ်ပါတယ်။ **Database migration နဲ့ data ပြောင်းလဲမှုတွေကို image rollback က နောက်ပြန်မပြင်ပေးပါဘူး။** ပြဿနာအလိုက် [Troubleshooting](troubleshooting.md) မှာကြည့်ပါ။
 
-## ၁၀။ VPS / Linode ပေါ်တင်ခြင်း
+## ၁၁။ VPS / Linode ပေါ်တင်ခြင်း
 
 Local preview ကို public ဖွင့်ရုံနဲ့ VPS installation မပြီးပါဘူး။ Domain၊ wildcard DNS၊ ports 80/443၊ HTTPS နဲ့ backup တွေပါပြင်ဖို့ [VPS install guide](vps-operations.md) အတိုင်းလိုက်ပါ။
 

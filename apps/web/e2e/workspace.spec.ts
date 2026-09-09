@@ -36,10 +36,10 @@ test('real dashboard: create, validate, deploy, inspect logs, recover, and use m
   await expect(page.getByRole('region', { name: 'hello-api details' })).toBeVisible();
   await page.getByRole('tab', {name:'Variables',exact:true}).click();
   await page.getByLabel('Variable name').fill('DEMO_VALUE');
-  await page.getByLabel('New value').fill('browser-secret-value');
+	await page.getByLabel('Secret value').fill('browser-secret-value');
   await page.getByRole('button', {name:'Save variable'}).click();
-  await expect(page.getByText('Saved securely. Deploy again to apply.')).toBeVisible();
-  await expect(page.getByLabel('New value')).toHaveValue('');
+	await expect(page.getByText('Secret saved. Deploy again to apply.')).toBeVisible();
+	await expect(page.getByLabel('Secret value')).toHaveValue('');
   await page.getByRole('tab', {name:/^Deployments/}).click();
   await page.getByRole('button', { name: 'Deploy', exact: true }).click();
   dialog = page.getByRole('dialog');

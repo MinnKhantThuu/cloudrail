@@ -56,3 +56,22 @@ func TestWorkerNeverGetsPublicRoute(t *testing.T) {
 		t.Fatalf("worker route was written: %#v", files)
 	}
 }
+
+func TestInternalWebServiceRemovesPublicRoute(t *testing.T) {
+	dir := t.TempDir()
+	r := Routes{Directory: dir}
+	enabled := true
+	s := deployment.Service{ID: "api", Host: "api.localhost", WorkloadMode: "web", Settings: deployment.Settings{Kind: "http", PublicEnabled: &enabled}}
+	if err := r.Set(s, &deployment.Deployment{ID: "release", Port: 8080}); err != nil {
+		t.Fatal(err)
+	}
+	disabled := false
+	s.Settings.PublicEnabled = &disabled
+	if err := r.Set(s, &deployment.Deployment{ID: "release", Port: 8080}); err != nil {
+		t.Fatal(err)
+	}
+	files, err := os.ReadDir(dir)
+	if err != nil || len(files) != 0 {
+		t.Fatalf("internal-only route remained: %#v %v", files, err)
+	}
+}

@@ -77,7 +77,8 @@ func (s *Store) CreateCompute(ctx context.Context, projectID string, spec Comput
 		domain = "localhost"
 	}
 	v.Host = v.ID + "." + domain
-	v.Settings = Settings{Kind: "http", MemoryMB: 256, CPUMillis: 1000, Network: PrivateNetwork(projectID, spec.Environment), RestartPolicy: "on-failure", RestartMaxRetries: 10}
+	public := spec.WorkloadMode == "web"
+	v.Settings = Settings{Kind: "http", MemoryMB: 256, CPUMillis: 1000, Network: PrivateNetwork(projectID, spec.Environment), RestartPolicy: "on-failure", RestartMaxRetries: 10, PrivateHost: privateHostname(v.Name, v.ID), PublicEnabled: boolPointer(public), TargetPort: 80}
 	settings, _ := json.Marshal(v.Settings)
 	err = tx.QueryRow(ctx, `INSERT INTO services(id,project_id,name,host,environment,settings,resource_kind,workload_mode) VALUES($1,$2,$3,$4,$5,$6,'service',$7) RETURNING created_at`, v.ID, projectID, spec.Name, v.Host, spec.Environment, settings, spec.WorkloadMode).Scan(&v.CreatedAt)
 	if err != nil {
@@ -86,7 +87,7 @@ func (s *Store) CreateCompute(ctx context.Context, projectID string, spec Comput
 	if _, err = tx.Exec(ctx, `INSERT INTO service_sources(service_id,config,source_type) VALUES($1,'{}',$2)`, v.ID, spec.SourceType); err != nil {
 		return v, err
 	}
-	if v.WorkloadMode == "web" {
+	if v.PublicHTTP() {
 		v.URL = "http://" + v.Host + ":8088"
 		if os.Getenv("PUBLIC_MODE") == "true" {
 			v.URL = "https://" + v.Host
@@ -113,8 +114,9 @@ func scanSvc(row pgx.Row) (Service, error) {
 	err := row.Scan(&v.ID, &v.ProjectID, &v.Name, &v.Environment, &v.Host, &v.ActiveID, &v.CreatedAt, &v.DesiredState, &raw, &v.ResourceKind, &v.WorkloadMode, &v.Template, &v.TemplateVersion, &v.CronSchedule, &v.CronNextRun)
 	if err == nil {
 		err = json.Unmarshal(raw, &v.Settings)
+		normalizeServiceSettings(&v)
 	}
-	if v.ResourceKind != "database" && v.WorkloadMode == "web" {
+	if v.PublicHTTP() {
 		v.URL = "http://" + v.Host + ":8088"
 		if os.Getenv("PUBLIC_MODE") == "true" {
 			v.URL = "https://" + v.Host
@@ -146,10 +148,10 @@ func (s *Store) enqueueTx(ctx context.Context, tx pgx.Tx, serviceID string, spec
 func (s *Store) enqueueTxWithStart(ctx context.Context, tx pgx.Tx, serviceID string, spec Spec, startCommand *string, keys ...string) (Deployment, error) {
 	var err error
 	// Locking the owning service makes the per-service queue limit race-safe.
-	var owner string
+	var owner, name string
 	var settings []byte
 	var workload, schedule, templateKey, templateVersion string
-	err = tx.QueryRow(ctx, `SELECT id,settings,workload_mode,cron_schedule,template_key,template_version FROM services WHERE id=$1 FOR UPDATE`, serviceID).Scan(&owner, &settings, &workload, &schedule, &templateKey, &templateVersion)
+	err = tx.QueryRow(ctx, `SELECT id,name,settings,workload_mode,cron_schedule,template_key,template_version FROM services WHERE id=$1 FOR UPDATE`, serviceID).Scan(&owner, &name, &settings, &workload, &schedule, &templateKey, &templateVersion)
 	if err != nil {
 		return Deployment{}, err
 	}
@@ -157,13 +159,20 @@ func (s *Store) enqueueTxWithStart(ctx context.Context, tx pgx.Tx, serviceID str
 	if err = json.Unmarshal(settings, &config); err != nil {
 		return Deployment{}, err
 	}
+	service := Service{ID: owner, Name: name, WorkloadMode: workload, Settings: config}
+	normalizeServiceSettings(&service)
+	config = service.Settings
+	serviceConfig := config
+	serviceConfig.TargetPort = spec.Port
+	serviceSettings, _ := json.Marshal(serviceConfig)
+	config = serviceConfig
 	if startCommand != nil {
 		config.StartCommand = strings.TrimSpace(*startCommand)
 		if err = config.Validate(); err != nil {
 			return Deployment{}, err
 		}
-		settings, _ = json.Marshal(config)
 	}
+	settings, _ = json.Marshal(config)
 	if workload == "cron" && schedule == "" {
 		return Deployment{}, ErrCronSchedule
 	}
@@ -222,6 +231,9 @@ func (s *Store) enqueueTxWithStart(ctx context.Context, tx pgx.Tx, serviceID str
 	}
 	if count >= 10 {
 		return Deployment{}, errors.New("deployment queue is full (10 pending per service)")
+	}
+	if _, err = tx.Exec(ctx, `UPDATE services SET settings=$2 WHERE id=$1`, serviceID, serviceSettings); err != nil {
+		return Deployment{}, err
 	}
 	d, err := scanDep(tx.QueryRow(ctx, `INSERT INTO deployments(id,service_id,image,port,health_path,settings) VALUES($1,$2,$3,$4,$5,$6) RETURNING `+depColumns, ID(), serviceID, spec.Image, spec.Port, spec.HealthPath, settings))
 	if err != nil {

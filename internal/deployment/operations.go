@@ -28,6 +28,59 @@ type Settings struct {
 	PreDeployTimeoutSeconds int    `json:"preDeployTimeoutSeconds,omitempty"`
 	RestartPolicy           string `json:"restartPolicy,omitempty"`
 	RestartMaxRetries       int    `json:"restartMaxRetries,omitempty"`
+	PrivateHost             string `json:"privateHost,omitempty"`
+	PublicEnabled           *bool  `json:"publicEnabled,omitempty"`
+	TargetPort              int    `json:"targetPort,omitempty"`
+}
+
+func boolPointer(value bool) *bool { return &value }
+
+func privateHostname(name, id string) string {
+	slug := strings.ToLower(name)
+	slug = regexp.MustCompile(`[^a-z0-9-]+`).ReplaceAllString(slug, "-")
+	slug = strings.Trim(slug, "-")
+	if slug == "" {
+		slug = "service"
+	}
+	if len(slug) > 40 {
+		slug = strings.Trim(slug[:40], "-")
+	}
+	suffix := id
+	if len(suffix) > 6 {
+		suffix = suffix[:6]
+	}
+	return slug + "-" + suffix + ".internal"
+}
+
+func defaultTargetPort(kind string) int {
+	switch kind {
+	case "postgres":
+		return 5432
+	case "redis":
+		return 6379
+	case "mysql":
+		return 3306
+	case "mongo":
+		return 27017
+	default:
+		return 80
+	}
+}
+
+func normalizeServiceSettings(service *Service) {
+	if service.Settings.PrivateHost == "" {
+		service.Settings.PrivateHost = privateHostname(service.Name, service.ID)
+	}
+	if service.Settings.TargetPort == 0 {
+		service.Settings.TargetPort = defaultTargetPort(service.Settings.Kind)
+	}
+}
+
+func (service Service) PublicHTTP() bool {
+	if IsDataKind(service.Settings.Kind) || (service.WorkloadMode != "" && service.WorkloadMode != "web") {
+		return false
+	}
+	return service.Settings.PublicEnabled == nil || *service.Settings.PublicEnabled
 }
 
 func PrivateNetwork(project, environment string) string {
@@ -80,7 +133,51 @@ func (c Settings) Validate() error {
 	if c.RestartPolicy == "on-failure" && c.RestartMaxRetries < 1 {
 		return errors.New("On failure policy requires 1–100 retries")
 	}
+	if c.TargetPort < 0 || c.TargetPort > 65535 {
+		return errors.New("target port must be between 1 and 65535")
+	}
 	return nil
+}
+
+type NetworkingSettings struct {
+	PublicEnabled bool `json:"publicEnabled"`
+	TargetPort    int  `json:"targetPort"`
+}
+
+func (s *Store) SaveNetworking(ctx context.Context, id string, networking NetworkingSettings) (Settings, error) {
+	if networking.TargetPort < 1 || networking.TargetPort > 65535 {
+		return Settings{}, errors.New("target port must be between 1 and 65535")
+	}
+	tx, err := s.DB.Begin(ctx)
+	if err != nil {
+		return Settings{}, err
+	}
+	defer tx.Rollback(ctx)
+	var raw []byte
+	var name, workload string
+	var settings Settings
+	if err = tx.QueryRow(ctx, `SELECT name,workload_mode,settings FROM services WHERE id=$1 AND settings->>'kind'='http' FOR UPDATE`, id).Scan(&name, &workload, &raw); err != nil {
+		return settings, err
+	}
+	if workload != "" && workload != "web" {
+		return settings, errors.New("public networking is available for web services")
+	}
+	if err = json.Unmarshal(raw, &settings); err != nil {
+		return settings, err
+	}
+	service := Service{ID: id, Name: name, WorkloadMode: workload, Settings: settings}
+	normalizeServiceSettings(&service)
+	settings = service.Settings
+	settings.PublicEnabled = boolPointer(networking.PublicEnabled)
+	settings.TargetPort = networking.TargetPort
+	if err = settings.Validate(); err != nil {
+		return settings, err
+	}
+	raw, _ = json.Marshal(settings)
+	if _, err = tx.Exec(ctx, `UPDATE services SET settings=$2 WHERE id=$1`, id, raw); err != nil {
+		return settings, err
+	}
+	return settings, tx.Commit(ctx)
 }
 
 type RuntimeSettings struct {
@@ -222,7 +319,7 @@ func (s *Store) CreateDatabase(ctx context.Context, project, name, environment s
 	}
 	v := Service{ID: ID(), ProjectID: project, Name: name, Environment: environment, DesiredState: "running", ResourceKind: "database", WorkloadMode: "web", Template: template.Key, TemplateVersion: template.Version}
 	v.Host = v.ID + ".localhost"
-	v.Settings = Settings{Kind: template.Kind, MemoryMB: template.MemoryMB, CPUMillis: 1000, MountPath: template.MountPath, VolumeName: "cloudrail-volume-" + v.ID, Network: PrivateNetwork(project, environment), StartCommand: template.StartCommand, RestartPolicy: "always"}
+	v.Settings = Settings{Kind: template.Kind, MemoryMB: template.MemoryMB, CPUMillis: 1000, MountPath: template.MountPath, VolumeName: "cloudrail-volume-" + v.ID, Network: PrivateNetwork(project, environment), StartCommand: template.StartCommand, RestartPolicy: "always", PrivateHost: privateHostname(v.Name, v.ID), PublicEnabled: boolPointer(false), TargetPort: template.Port}
 	raw, _ := json.Marshal(v.Settings)
 	tx, e := s.DB.Begin(ctx)
 	if e != nil {

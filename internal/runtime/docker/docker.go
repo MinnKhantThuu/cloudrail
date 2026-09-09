@@ -168,11 +168,19 @@ func (c *Client) Ensure(ctx context.Context, d deployment.Deployment) error {
 			if err = c.network(ctx, d.Settings.Network); err != nil {
 				return err
 			}
-			endpoints[d.Settings.Network] = map[string]any{}
+			aliases := []string{d.Settings.PrivateHost}
+			if d.Settings.PrivateHost == "" {
+				aliases = []string{"svc-" + d.ServiceID + ".internal"}
+			}
+			endpoints[d.Settings.Network] = map[string]any{"Aliases": aliases}
 		}
 		if deployment.IsDataKind(d.Settings.Kind) {
 			network = d.Settings.Network
-			endpoints = map[string]any{network: map[string]any{"Aliases": []string{"db-" + d.ServiceID}}}
+			aliases := []string{"db-" + d.ServiceID}
+			if d.Settings.PrivateHost != "" {
+				aliases = append(aliases, d.Settings.PrivateHost)
+			}
+			endpoints = map[string]any{network: map[string]any{"Aliases": aliases}}
 		}
 		memory, cpu := d.Settings.MemoryMB, d.Settings.CPUMillis
 		if memory == 0 {

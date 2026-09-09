@@ -22,6 +22,7 @@ Use the HttpOnly `cloudrail_session` cookie (24 hours, SameSite Strict, Secure o
 | POST | `/api/services/:id/deployments` | `{image,port,healthPath}` → 202 deployment; optional `Idempotency-Key` |
 | PUT | `/api/services/:id/cron` | `{schedule}` → cron service with next UTC run; five-field expressions only |
 | PUT | `/api/services/:id/runtime` | `{startCommand,preDeployCommand,preDeployTimeoutSeconds,restartPolicy,restartMaxRetries}` |
+| PUT | `/api/services/:id/networking` | `{publicEnabled,targetPort}` for web services; the response includes its stable `privateHost` |
 | POST | `/api/deployments/:id/cancel` | `{}` → cancellation request |
 | GET | `/api/services/:id/variables` | `{names:[...]}`; never returns values |
 | PUT | `/api/services/:id/variables/:name` | `{value}` for subsequent deployments |

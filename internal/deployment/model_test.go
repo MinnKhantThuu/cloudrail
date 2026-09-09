@@ -39,3 +39,20 @@ func TestDeploymentSpecValidation(t *testing.T) {
 		}
 	}
 }
+
+func TestPrivateHostnameIsStableAndDNSCompatible(t *testing.T) {
+	got := privateHostname("Checkout API (EU)", "abcdef1234567890")
+	if got != "checkout-api-eu-abcdef.internal" {
+		t.Fatalf("unexpected private hostname: %q", got)
+	}
+	service := Service{ID: "abcdef1234567890", Name: "Checkout API (EU)", WorkloadMode: "web", Settings: Settings{Kind: "http"}}
+	normalizeServiceSettings(&service)
+	if service.Settings.PrivateHost != got || service.Settings.TargetPort != 80 || !service.PublicHTTP() {
+		t.Fatalf("legacy service defaults are wrong: %#v", service.Settings)
+	}
+	disabled := false
+	service.Settings.PublicEnabled = &disabled
+	if service.PublicHTTP() {
+		t.Fatal("internal-only web service was treated as public")
+	}
+}

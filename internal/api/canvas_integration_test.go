@@ -106,6 +106,18 @@ func TestCanvasGraphAndPersistedLayout(t *testing.T) {
 	if w.Code != http.StatusBadRequest {
 		t.Fatalf("invalid runtime settings accepted: %d %s", w.Code, w.Body.String())
 	}
+	w = request(http.MethodPut, "/api/services/"+application.ID+"/networking", deployment.NetworkingSettings{PublicEnabled: false, TargetPort: 8080})
+	if w.Code != http.StatusOK {
+		t.Fatalf("network settings response: %d %s", w.Code, w.Body.String())
+	}
+	var networking deployment.Settings
+	if err = json.Unmarshal(w.Body.Bytes(), &networking); err != nil || networking.PublicEnabled == nil || *networking.PublicEnabled || networking.TargetPort != 8080 || !strings.HasSuffix(networking.PrivateHost, ".internal") {
+		t.Fatalf("network settings contract is wrong: %#v %v", networking, err)
+	}
+	w = request(http.MethodPut, "/api/services/"+application.ID+"/networking", deployment.NetworkingSettings{PublicEnabled: true, TargetPort: 0})
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("invalid target port accepted: %d %s", w.Code, w.Body.String())
+	}
 	w = request(http.MethodGet, "/api/templates", nil)
 	if w.Code != http.StatusOK || !bytes.Contains(w.Body.Bytes(), []byte(`"key":"redis"`)) || !bytes.Contains(w.Body.Bytes(), []byte(`"key":"mysql"`)) || !bytes.Contains(w.Body.Bytes(), []byte(`"key":"mongo"`)) || bytes.Contains(w.Body.Bytes(), []byte("REDIS_PASSWORD")) || bytes.Contains(w.Body.Bytes(), []byte("MYSQL_PASSWORD")) || bytes.Contains(w.Body.Bytes(), []byte("MONGO_INITDB_ROOT_PASSWORD")) {
 		t.Fatalf("safe template catalog response: %d %s", w.Code, w.Body.String())
@@ -203,6 +215,10 @@ func TestCanvasGraphAndPersistedLayout(t *testing.T) {
 	}
 	if worker.ResourceKind != "service" || worker.WorkloadMode != "worker" || worker.URL != "" {
 		t.Fatalf("worker contract is wrong: %#v", worker)
+	}
+	w = request(http.MethodPut, "/api/services/"+worker.ID+"/networking", deployment.NetworkingSettings{PublicEnabled: true, TargetPort: 8080})
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("worker public networking was accepted: %d %s", w.Code, w.Body.String())
 	}
 	var workerSource string
 	if err = store.DB.QueryRow(ctx, `SELECT source_type FROM service_sources WHERE service_id=$1`, worker.ID).Scan(&workerSource); err != nil || workerSource != "github" {
@@ -358,19 +374,19 @@ func TestCanvasGraphAndPersistedLayout(t *testing.T) {
 			mongoResource = resource
 		}
 	}
-	if appResource == nil || appResource.Kind != "service" || appResource.WorkloadMode != "web" || appResource.SourceType != "empty" {
+	if appResource == nil || appResource.Kind != "service" || appResource.WorkloadMode != "web" || appResource.SourceType != "empty" || appResource.PublicAddress != "" || appResource.PrivateAddress != networking.PrivateHost+":8080" {
 		t.Fatalf("application projection is wrong: %#v", appResource)
 	}
 	if databaseResource == nil || databaseResource.Kind != "database" || databaseResource.Template != "postgres" || databaseResource.SourceType != "template" {
 		t.Fatalf("database projection is wrong: %#v", databaseResource)
 	}
-	if redisResource == nil || redisResource.Kind != "database" || redisResource.Template != "redis" || redisResource.TemplateVersion != "8.2.2" || redisResource.PrivateAddress != "db-"+redis.ID+":6379" {
+	if redisResource == nil || redisResource.Kind != "database" || redisResource.Template != "redis" || redisResource.TemplateVersion != "8.2.2" || redisResource.PrivateAddress != redis.Settings.PrivateHost+":6379" {
 		t.Fatalf("redis projection is wrong: %#v", redisResource)
 	}
-	if mysqlResource == nil || mysqlResource.Kind != "database" || mysqlResource.Template != "mysql" || mysqlResource.TemplateVersion != "8.4.7" || mysqlResource.PrivateAddress != "db-"+mysql.ID+":3306" {
+	if mysqlResource == nil || mysqlResource.Kind != "database" || mysqlResource.Template != "mysql" || mysqlResource.TemplateVersion != "8.4.7" || mysqlResource.PrivateAddress != mysql.Settings.PrivateHost+":3306" {
 		t.Fatalf("MySQL projection is wrong: %#v", mysqlResource)
 	}
-	if mongoResource == nil || mongoResource.Kind != "database" || mongoResource.Template != "mongo" || mongoResource.TemplateVersion != "8.0.29" || mongoResource.PrivateAddress != "db-"+mongo.ID+":27017" {
+	if mongoResource == nil || mongoResource.Kind != "database" || mongoResource.Template != "mongo" || mongoResource.TemplateVersion != "8.0.29" || mongoResource.PrivateAddress != mongo.Settings.PrivateHost+":27017" {
 		t.Fatalf("MongoDB projection is wrong: %#v", mongoResource)
 	}
 	var bucketResource *deployment.CanvasResource

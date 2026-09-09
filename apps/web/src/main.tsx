@@ -12,7 +12,7 @@ import { ProjectCanvas, type CanvasResource, type CreateIntent } from './project
 type Project = { id: string; name: string; createdAt: string };
 type Volume = { id:string; projectId:string; environment:string; name:string };
 type Bucket = { id:string; projectId:string; environment:string; name:string; provider:string; endpoint:string; region:string; bucketName:string; forcePathStyle:boolean; credentialVersion:number };
-type RuntimeConfig={kind:string;memoryMB:number;cpuMillis:number;mountPath:string;volumeName:string;network:string;startCommand?:string;preDeployCommand?:string;preDeployTimeoutSeconds?:number;restartPolicy?:string;restartMaxRetries?:number};
+type RuntimeConfig={kind:string;memoryMB:number;cpuMillis:number;mountPath:string;volumeName:string;network:string;startCommand?:string;preDeployCommand?:string;preDeployTimeoutSeconds?:number;restartPolicy?:string;restartMaxRetries?:number;privateHost?:string;publicEnabled?:boolean;targetPort?:number};
 type Service = { url:string;settings:RuntimeConfig;id: string; projectId: string; name: string; environment: string; host: string; activeId: string; desiredState: string; resourceKind:string; workloadMode:string; template:string; templateVersion?:string; cronSchedule:string; cronNextRun?:string; createdAt: string };
 type Deployment = { id: string; serviceId: string; image: string; port: number; healthPath: string; status: string; error: string; logs: string; settings?:RuntimeConfig; createdAt: string; updatedAt: string };
 type Event = { id: number; deploymentId: string; stage: string; message: string; createdAt: string };
@@ -125,7 +125,7 @@ function App({ onLogout }: { onLogout: () => void }) {
   const pending = data.deployments.filter(d => services.some(s => s.id === d.serviceId) && !terminal.includes(d.status)).length;
   const close = useCallback(() => { setModal(null); setFormError(''); }, []);
   const open = (kind: Modal, previous?: Deployment) => {
-    requestKey.current=crypto.randomUUID();setName(''); setFormError(''); setImage(previous?.image || (isDataService(service)?(active?.image||deployments[0]?.image||''):'')); setPort(String(previous?.port || (isDataService(service)?dataPort(service):80))); setHealth(previous?.healthPath || '/'); setModal(kind);
+    requestKey.current=crypto.randomUUID();setName(''); setFormError(''); setImage(previous?.image || (isDataService(service)?(active?.image||deployments[0]?.image||''):'')); setPort(String(previous?.port || (isDataService(service)?dataPort(service):(service?.settings.targetPort||80)))); setHealth(previous?.healthPath || '/'); setModal(kind);
   };
   const setLocationResource = useCallback((key: string, push = true) => {
     setSelectedKey(key);

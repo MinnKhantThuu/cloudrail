@@ -36,6 +36,22 @@ func (a *API) operationRoutes(admin, agent *http.ServeMux) {
 		}
 		write(w, 200, settings)
 	})
+	admin.HandleFunc("PUT /api/services/{id}/networking", func(w http.ResponseWriter, r *http.Request) {
+		var body deployment.NetworkingSettings
+		if !decode(w, r, &body) {
+			return
+		}
+		settings, err := a.Store.SaveNetworking(r.Context(), r.PathValue("id"), body)
+		if err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				dbError(w, err)
+			} else {
+				problem(w, 400, err.Error())
+			}
+			return
+		}
+		write(w, http.StatusOK, settings)
+	})
 	admin.HandleFunc("PUT /api/services/{id}/settings", func(w http.ResponseWriter, r *http.Request) {
 		var b struct {
 			MemoryMB  int    `json:"memoryMB"`

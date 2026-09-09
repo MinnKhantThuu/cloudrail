@@ -1,7 +1,7 @@
 # Cloudrail — Railway-inspired product and delivery plan
 
 Updated: 2026-09-09  
-Status: **UX-0 through UX-4 are implemented and verified; UX-5.1 typed variables and service references are next.**
+Status: **UX-0 through UX-4 and UX-5.1 are implemented; UX-5.2 private/public networking is implemented locally and hosted runtime verification is pending.**
 
 ဒီစာတမ်းက Cloudrail ကို “service card နှစ်မျိုးပါတဲ့ dashboard” အဖြစ်မတည်ဆောက်ဘဲ Railway လို **project canvas ကနေ application stack တစ်ခုလုံးဆောက်၊ ချိတ်၊ deploy နဲ့ operate လုပ်နိုင်တဲ့ self-hosted PaaS** အဖြစ်ပြောင်းရန် canonical feature plan ဖြစ်သည်။ Phase အစဉ်နဲ့ overall progress ကို `ROADMAP.md` ကပဲ ဆက်ထိန်းမည်။
 
@@ -246,6 +246,10 @@ Research basis: Railway treats databases as preconfigured container services wit
 **Visible result:** API → Postgres/Redis သို့မဟုတ် Frontend → Backend link ကို variable reference ရွေးပြီးချိတ်နိုင်မည်။ Link က canvas ပေါ်တကယ်ပေါ်မည်။
 
 **Completion:** Secret response/log ထဲမပေါ်ရ၊ rename/credential rotation မှာ references update ရ၊ environment isolation နဲ့ HTTP/TCP routing tests အောင်ရမည်။
+
+- [x] **UX-5.1:** Plain/secret/reference variable types၊ same-environment target selector၊ dependency edge၊ deploy-time recursive resolution၊ rename/delete/cycle guards။ Local PostgreSQL + desktop/mobile browser and fresh Ubuntu real-container reference steps passed in run 34302484093; that run's later legacy workspace browser step failed on an outdated variable label and is corrected with UX-5.2 pending rerun။
+- [ ] **UX-5.2:** Stable environment-scoped private DNS aliases၊ internal/public URL choice၊ generated/custom domain and target-port flow။ Code, PostgreSQL integration and desktop/mobile mocked browser proof passed locally; hosted real-Docker isolation/route proof pending။
+- [ ] **UX-5.3:** TCP proxy exposure, collision/lifecycle controls and real external connection proof။
 
 ### UX-6 — Operable service drawer and observability
 

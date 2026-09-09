@@ -78,6 +78,7 @@ jobs:
       - run: python3 scripts/cron-acceptance.py
       - run: python3 scripts/runtime-controls-acceptance.py
       - run: python3 scripts/reference-acceptance.py
+      - run: python3 scripts/networking-acceptance.py
       - run: python3 scripts/redis-acceptance.py
       - run: python3 scripts/first-class-volume-acceptance.py
       - run: python3 scripts/redis-backup-acceptance.py

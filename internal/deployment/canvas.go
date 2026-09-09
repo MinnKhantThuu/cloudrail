@@ -2,6 +2,7 @@ package deployment
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -112,7 +113,7 @@ func (s *Store) Canvas(ctx context.Context, project, environment string) (Canvas
 
 	rows, err = s.DB.Query(ctx, `
 		SELECT s.id,s.name,s.resource_kind,s.workload_mode,s.template_key,s.template_version,s.host,s.active_id,s.desired_state,
-		 COALESCE(source.source_type,''),COALESCE(latest.status,''),COALESCE(latest.port,0)
+		 COALESCE(source.source_type,''),COALESCE(latest.status,''),COALESCE(latest.port,0),s.settings
 		FROM services s
 		LEFT JOIN service_sources source ON source.service_id=s.id
 		LEFT JOIN LATERAL (
@@ -125,11 +126,20 @@ func (s *Store) Canvas(ctx context.Context, project, environment string) (Canvas
 	for rows.Next() {
 		var resource CanvasResource
 		var host, active, desired, latest string
+		var raw []byte
+		var settings Settings
 		var port int
-		if err = rows.Scan(&resource.ID, &resource.Name, &resource.Kind, &resource.WorkloadMode, &resource.Template, &resource.TemplateVersion, &host, &active, &desired, &resource.SourceType, &latest, &port); err != nil {
+		if err = rows.Scan(&resource.ID, &resource.Name, &resource.Kind, &resource.WorkloadMode, &resource.Template, &resource.TemplateVersion, &host, &active, &desired, &resource.SourceType, &latest, &port, &raw); err != nil {
 			rows.Close()
 			return graph, err
 		}
+		if err = json.Unmarshal(raw, &settings); err != nil {
+			rows.Close()
+			return graph, err
+		}
+		service := Service{ID: resource.ID, Name: resource.Name, ResourceKind: resource.Kind, WorkloadMode: resource.WorkloadMode, Settings: settings}
+		normalizeServiceSettings(&service)
+		settings = service.Settings
 		resource.Key = "service:" + resource.ID
 		resource.Status = deploymentStatus(latest, active, desired)
 		if resource.Template != "" {
@@ -139,12 +149,16 @@ func (s *Store) Canvas(ctx context.Context, project, environment string) (Canvas
 		} else if resource.SourceType == "" {
 			resource.SourceType = "empty"
 		}
-		if resource.Kind == "database" {
-			resource.PrivateAddress = "db-" + resource.ID
+		if resource.WorkloadMode != "cron" {
+			if port == 0 {
+				port = settings.TargetPort
+			}
+			resource.PrivateAddress = settings.PrivateHost
 			if port > 0 {
 				resource.PrivateAddress += fmt.Sprintf(":%d", port)
 			}
-		} else if resource.WorkloadMode == "web" && host != "" {
+		}
+		if service.PublicHTTP() && host != "" {
 			resource.PublicAddress = "http://" + host + ":8088"
 			if os.Getenv("PUBLIC_MODE") == "true" {
 				resource.PublicAddress = "https://" + host

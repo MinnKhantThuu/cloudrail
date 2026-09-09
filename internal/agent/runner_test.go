@@ -154,6 +154,19 @@ func TestReplacementActivatesBeforeRetiringOld(t *testing.T) {
 		}
 	}
 }
+
+func TestInternalWebReleaseSkipsPublicProxyCheck(t *testing.T) {
+	calls := []string{}
+	r, _ := setup(&calls)
+	w := work()
+	disabled := false
+	w.Service.Settings = deployment.Settings{Kind: "http", PublicEnabled: &disabled}
+	if err := r.Run(context.Background(), w); err != nil {
+		t.Fatal(err)
+	}
+	requireOrder(t, calls, "ensure", "check:", "route:none", "report:active", "stop:old")
+	forbidden(t, calls, "route:new", "check:new")
+}
 func TestWorkerActivatesWithoutPublicRoute(t *testing.T) {
 	calls := []string{}
 	r, _ := setup(&calls)
