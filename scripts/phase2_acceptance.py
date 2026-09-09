@@ -20,7 +20,7 @@ secret='phase2-private-'+str(int(time.time()))
 for svc in services:
  value=secret+'-'+svc['environment']
  client.json('/api/services/'+svc['id']+'/variables/APP_PRIVATE',{'value':value},method='PUT')
- names=client.json('/api/services/'+svc['id']+'/variables');assert names=={'names':['APP_PRIVATE']}
+ variables=client.json('/api/services/'+svc['id']+'/variables');assert variables['names']==['APP_PRIVATE'] and variables['variables']==[{'name':'APP_PRIVATE','kind':'secret'}]
 def wait(kind,id,wanted):
  for _ in range(180):
   state=client.json('/api/state');entry=next(x for x in state[kind] if x['id']==id)

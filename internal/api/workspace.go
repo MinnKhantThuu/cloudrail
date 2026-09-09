@@ -135,16 +135,23 @@ func (a *API) workspaceRoutes(public, admin, agent *http.ServeMux) {
 		write(w, 201, v)
 	})
 	admin.HandleFunc("GET /api/services/{id}/variables", func(w http.ResponseWriter, r *http.Request) {
-		names, err := a.Store.VariableNames(r.Context(), r.PathValue("id"))
+		items, err := a.Store.Variables(r.Context(), r.PathValue("id"))
 		if err != nil {
 			dbError(w, err)
 			return
 		}
-		write(w, 200, map[string]any{"names": names})
+		names := make([]string, len(items))
+		for index, item := range items {
+			names[index] = item.Name
+		}
+		write(w, 200, map[string]any{"names": names, "variables": items})
 	})
 	admin.HandleFunc("PUT /api/services/{id}/variables/{name}", func(w http.ResponseWriter, r *http.Request) {
 		var body struct {
-			Value string `json:"value"`
+			Value           string `json:"value"`
+			Kind            string `json:"kind"`
+			TargetServiceID string `json:"targetServiceId"`
+			TargetVariable  string `json:"targetVariable"`
 		}
 		if !decode(w, r, &body) {
 			return
@@ -153,8 +160,30 @@ func (a *API) workspaceRoutes(public, admin, agent *http.ServeMux) {
 			problem(w, 400, "Variable values cannot contain null bytes")
 			return
 		}
-		if err := a.Store.SetVariable(r.Context(), r.PathValue("id"), r.PathValue("name"), body.Value); err != nil {
-			problem(w, 400, "Could not save variable; check its name, size and service")
+		if body.Kind == "" {
+			body.Kind = "secret"
+		}
+		var err error
+		if body.Kind == "reference" {
+			err = a.Store.SetReference(r.Context(), r.PathValue("id"), r.PathValue("name"), body.TargetServiceID, body.TargetVariable)
+		} else {
+			err = a.Store.SetVariableTyped(r.Context(), r.PathValue("id"), r.PathValue("name"), body.Value, body.Kind)
+		}
+		if err != nil {
+			problem(w, 400, err.Error())
+			return
+		}
+		write(w, 200, map[string]bool{"ok": true})
+	})
+	admin.HandleFunc("POST /api/services/{id}/variables/{name}/rename", func(w http.ResponseWriter, r *http.Request) {
+		var body struct {
+			Name string `json:"name"`
+		}
+		if !decode(w, r, &body) {
+			return
+		}
+		if err := a.Store.RenameVariable(r.Context(), r.PathValue("id"), r.PathValue("name"), body.Name); err != nil {
+			problem(w, 400, err.Error())
 			return
 		}
 		write(w, 200, map[string]bool{"ok": true})
@@ -171,7 +200,7 @@ func (a *API) workspaceRoutes(public, admin, agent *http.ServeMux) {
 		}
 		err := a.Store.DeleteVariable(r.Context(), r.PathValue("id"), r.PathValue("name"))
 		if err != nil {
-			dbError(w, err)
+			problem(w, 400, err.Error())
 			return
 		}
 		write(w, 200, map[string]bool{"ok": true})

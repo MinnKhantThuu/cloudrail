@@ -303,5 +303,9 @@ func (s *Store) BindDatabase(ctx context.Context, database, target, name string)
 	}
 	_, e = s.DB.Exec(ctx, `INSERT INTO service_references(source_service_id,variable_name,target_service_id,target_variable) VALUES($1,$2,$3,$4)
 	 ON CONFLICT(source_service_id,variable_name) DO UPDATE SET target_service_id=EXCLUDED.target_service_id,target_variable=EXCLUDED.target_variable,created_at=now()`, target, name, database, targetVariable)
+	if e != nil {
+		return e
+	}
+	_, e = s.DB.Exec(ctx, `UPDATE service_variables SET kind='reference',updated_at=now() WHERE service_id=$1 AND name=$2`, target, name)
 	return e
 }

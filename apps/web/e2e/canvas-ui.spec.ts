@@ -40,9 +40,18 @@ const graph = {
   ],
 };
 
-async function mockWorkspace(page: import('@playwright/test').Page, savedLayouts: unknown[], savedRuntime: unknown[] = [], savedCreates: unknown[] = [], savedAttachments: unknown[] = [], savedBucketActions: unknown[] = []) {
+async function mockWorkspace(page: import('@playwright/test').Page, savedLayouts: unknown[], savedRuntime: unknown[] = [], savedCreates: unknown[] = [], savedAttachments: unknown[] = [], savedBucketActions: unknown[] = [], savedVariables: unknown[] = []) {
   const canvas = structuredClone(graph);
   const workspaceState = structuredClone(state);
+  const variableState: Record<string, {names:string[];variables:{name:string;kind:string;value?:string;targetServiceId?:string;targetServiceName?:string;targetVariable?:string}[]}> = {
+    'app-1': { names: ['DATABASE_URL','PUBLIC_ORIGIN','SESSION_SECRET'], variables: [
+      { name: 'DATABASE_URL', kind: 'reference', targetServiceId: 'db-1', targetServiceName: 'postgres', targetVariable: 'DATABASE_URL' },
+      { name: 'PUBLIC_ORIGIN', kind: 'plain', value: 'https://api.example.test' },
+      { name: 'SESSION_SECRET', kind: 'secret' },
+    ] },
+    'worker-1': { names: ['API_ORIGIN'], variables: [{ name: 'API_ORIGIN', kind: 'plain', value: 'http://email-queue.internal' }] },
+    'db-1': { names: ['DATABASE_URL'], variables: [{ name: 'DATABASE_URL', kind: 'secret' }] },
+  };
   await page.route('**/*', async route => {
     const request = route.request();
     const url = new URL(request.url());
@@ -114,7 +123,40 @@ async function mockWorkspace(page: import('@playwright/test').Page, savedLayouts
       return route.fulfill({ json: { ok: true } });
     }
     if (url.pathname === '/api/backups') return route.fulfill({ json: [] });
-    if (url.pathname.endsWith('/variables')) return route.fulfill({ json: { names: [] } });
+    const collection = url.pathname.match(/^\/api\/services\/([^/]+)\/variables$/);
+    if (collection && request.method() === 'GET') return route.fulfill({ json: variableState[collection[1]] || { names: [], variables: [] } });
+    const rename = url.pathname.match(/^\/api\/services\/([^/]+)\/variables\/([^/]+)\/rename$/);
+    if (rename && request.method() === 'POST') {
+      const oldName = decodeURIComponent(rename[2]); const body = request.postDataJSON() as {name:string}; const values = variableState[rename[1]];
+      const item = values.variables.find(variable => variable.name === oldName);
+      if (item) item.name = body.name;
+      values.names = values.variables.map(variable => variable.name);
+      for (const link of canvas.links) if (link.id === `reference:${rename[1]}:${oldName}`) { link.id = `reference:${rename[1]}:${body.name}`; link.label = `${body.name} → ${item?.targetVariable}`; }
+      savedVariables.push({ action: 'rename', serviceId: rename[1], oldName, ...body });
+      return route.fulfill({ json: { ok: true } });
+    }
+    const variable = url.pathname.match(/^\/api\/services\/([^/]+)\/variables\/([^/]+)$/);
+    if (variable && request.method() === 'PUT') {
+      const serviceId = variable[1], name = decodeURIComponent(variable[2]); const body = request.postDataJSON() as {kind:string;value?:string;targetServiceId?:string;targetVariable?:string};
+      const values = variableState[serviceId] || (variableState[serviceId] = { names: [], variables: [] });
+      values.variables = values.variables.filter(item => item.name !== name);
+      const targetService = workspaceState.services.find(item => item.id === body.targetServiceId);
+      values.variables.push({ name, kind: body.kind, value: body.kind === 'plain' ? body.value : undefined, targetServiceId: body.targetServiceId, targetServiceName: targetService?.name, targetVariable: body.targetVariable });
+      values.variables.sort((a,b) => a.name.localeCompare(b.name)); values.names = values.variables.map(item => item.name);
+      if (body.kind === 'reference') {
+        canvas.links = canvas.links.filter(item => item.id !== `reference:${serviceId}:${name}`);
+        canvas.links.push({ id: `reference:${serviceId}:${name}`, from: `service:${serviceId}`, to: `service:${body.targetServiceId}`, kind: 'variable-reference', label: `${name} → ${body.targetVariable}` });
+      }
+      savedVariables.push({ action: 'save', serviceId, name, ...body });
+      return route.fulfill({ json: { ok: true } });
+    }
+    if (variable && request.method() === 'DELETE') {
+      const serviceId = variable[1], name = decodeURIComponent(variable[2]); const values = variableState[serviceId];
+      values.variables = values.variables.filter(item => item.name !== name); values.names = values.variables.map(item => item.name);
+      canvas.links = canvas.links.filter(item => item.id !== `reference:${serviceId}:${name}`);
+      savedVariables.push({ action: 'delete', serviceId, name });
+      return route.fulfill({ json: { ok: true } });
+    }
     if (url.pathname.startsWith('/api/')) return route.fulfill({ json: {} });
     return route.continue();
   });
@@ -126,9 +168,10 @@ test('canvas exposes resources, connections, creation and saved layout', async (
   const savedCreates: unknown[] = [];
   const savedAttachments: unknown[] = [];
   const savedBucketActions: unknown[] = [];
+  const savedVariables: unknown[] = [];
   const errors: string[] = [];
   page.on('pageerror', error => errors.push(error.message));
-  await mockWorkspace(page, savedLayouts, savedRuntime, savedCreates, savedAttachments, savedBucketActions);
+  await mockWorkspace(page, savedLayouts, savedRuntime, savedCreates, savedAttachments, savedBucketActions, savedVariables);
   await page.goto('/');
 
   await expect(page.getByRole('region', { name: 'Project canvas' })).toBeVisible();
@@ -143,6 +186,27 @@ test('canvas exposes resources, connections, creation and saved layout', async (
   await page.getByRole('button', { name: 'storefront-api resource' }).click();
   await expect(page.getByRole('region', { name: 'storefront-api details' })).toBeVisible();
   await expect.poll(() => new URL(page.url()).searchParams.get('resource')).toBe('service:app-1');
+  await page.getByRole('tab', { name: 'Variables' }).click();
+  await expect(page.getByText('SESSION_SECRET')).toBeVisible();
+  await expect(page.getByText('••••••••')).toBeVisible();
+  await expect(page.getByText('https://api.example.test')).toBeVisible();
+  await page.getByLabel('Variable name').fill('WORKER_URL');
+  await page.getByLabel('Value type').selectOption('reference');
+  await page.getByLabel('Target service').selectOption('worker-1');
+  await page.getByLabel('Target variable').selectOption('API_ORIGIN');
+  await page.getByRole('button', { name: 'Connect reference' }).click();
+  await expect(page.getByText('Reference connected. The canvas link and next deployment will use it.')).toBeVisible();
+  await expect(page.getByText('email-queue · API_ORIGIN')).toBeVisible();
+  await expect.poll(async()=>page.locator('.canvas-links path').count()).toBe(4);
+  await page.getByRole('button', { name: 'Rename WORKER_URL' }).click();
+  await page.getByRole('textbox', { name: 'Rename WORKER_URL' }).fill('INTERNAL_API_URL');
+  await page.getByRole('button', { name: 'Rename', exact: true }).click();
+  await expect(page.getByText('Variable renamed. Connected references were updated.')).toBeVisible();
+  await expect(page.getByText('INTERNAL_API_URL')).toBeVisible();
+  expect(savedVariables).toEqual([
+    { action: 'save', serviceId: 'app-1', name: 'WORKER_URL', kind: 'reference', targetServiceId: 'worker-1', targetVariable: 'API_ORIGIN' },
+    { action: 'rename', serviceId: 'app-1', oldName: 'WORKER_URL', name: 'INTERNAL_API_URL' },
+  ]);
   await page.getByLabel('Close service details').click();
 
   await page.getByRole('button', { name: 'nightly-cleanup resource' }).click();
