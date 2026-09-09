@@ -165,7 +165,7 @@ func (r *Runner) RunBackup(ctx context.Context, w deployment.Work, c *Client) er
 				return errors.New("MySQL backup and target template versions do not match")
 			}
 			var existing bytes.Buffer
-			if e = runtime.Exec(ctx, w.Deployment.ID, []string{"sh", "-lc", `MYSQL_PWD="$MYSQL_PASSWORD" mysql -Nse "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='$MYSQL_DATABASE'"`}, &existing); e != nil {
+			if e = runtime.Exec(ctx, w.Deployment.ID, []string{"sh", "-lc", `MYSQL_PWD="$MYSQL_PASSWORD" mysql -u"$MYSQL_USER" -Nse "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='$MYSQL_DATABASE'"`}, &existing); e != nil {
 				return e
 			}
 			if strings.TrimSpace(existing.String()) != "0" {
