@@ -1,7 +1,7 @@
 # Cloudrail — Railway-inspired product and delivery plan
 
 Updated: 2026-09-09  
-Status: **UX-0 through UX-3 and UX-4.1 through UX-4.5a are implemented and verified; UX-4.5b MongoDB is next.**
+Status: **UX-0 through UX-4 are implemented and verified; UX-5.1 typed variables and service references are next.**
 
 ဒီစာတမ်းက Cloudrail ကို “service card နှစ်မျိုးပါတဲ့ dashboard” အဖြစ်မတည်ဆောက်ဘဲ Railway လို **project canvas ကနေ application stack တစ်ခုလုံးဆောက်၊ ချိတ်၊ deploy နဲ့ operate လုပ်နိုင်တဲ့ self-hosted PaaS** အဖြစ်ပြောင်းရန် canonical feature plan ဖြစ်သည်။ Phase အစဉ်နဲ့ overall progress ကို `ROADMAP.md` ကပဲ ဆက်ထိန်းမည်။
 
@@ -233,9 +233,9 @@ Substeps:
 - [x] **UX-4.2:** First-class volume create/attach/detach; a real volume retained its file while moving between applications, with single-writer, running-service, template and mount-path guards verified in CI run 34290515948။
 - [x] **UX-4.3:** Redis/application volume backups and compatible empty-target restore; template-version matching, restored-key proof and non-empty target preservation passed in CI run 34292131015။
 - [x] **UX-4.4:** S3-compatible bucket resource, encrypted credentials and real application binding; MinIO upload/download, credential rotation/revocation and disconnect passed in CI run 34294856835။
-- [ ] **UX-4.5:** MySQL and MongoDB templates with persistence, backup and recovery proof။
+- [x] **UX-4.5:** MySQL and MongoDB templates with persistence, backup and recovery proof။
   - [x] **UX-4.5a:** MySQL 8.4.7 template, private binding, persistence and logical backup/empty-target restore passed in CI run 34298629858।
-  - [ ] **UX-4.5b:** MongoDB 8.0.29 template, private binding, persistence and logical backup/empty-target restore; implementation and local checks in progress, hosted runtime proof pending။
+  - [x] **UX-4.5b:** MongoDB 8.0.29 template, private binding, persistence and logical backup/empty-target restore passed in CI run 34300250908။
 
 Research basis: Railway treats databases as preconfigured container services with variables and attached persistent volumes, creates them from the project canvas, and keeps buckets as private S3-compatible resources. See the official [Databases](https://docs.railway.com/databases), [Redis](https://docs.railway.com/databases/redis), [Volumes](https://docs.railway.com/volumes/reference) and [Storage Buckets](https://docs.railway.com/storage-buckets) documentation.
 

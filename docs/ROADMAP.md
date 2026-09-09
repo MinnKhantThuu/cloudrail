@@ -130,7 +130,7 @@ Admin token login ကို owner account + secure session flow နဲ့ပြ�
 
 Encrypted runtime variables၊ port/readiness settings၊ restart/stop၊ historical image redeploy တို့ကို API နဲ့ UI အပြည့်ချိတ်မယ်။ Variable value ကို logs/API response တွေမှာ မတော်တဆမပေါ်အောင်စစ်မယ်။
 
-**2.4 Railway-inspired product and canvas recovery — UX-0 through UX-3 complete; UX-4 in progress**
+**2.4 Railway-inspired product and canvas recovery — UX-0 through UX-4 complete; UX-5 selected**
 
 Railway ကိုကြည့်ပြီး canvas ပုံသဏ္ဌာန်တစ်ခုတည်းကူးမည်မဟုတ်။ Service/source/workload/template ခွဲခြားပုံ၊ compute/data/storage resource types၊ actual reference/attachment links၊ environments/staged changes၊ deployment/observability flow အားလုံးကိုအစဉ်လိုက်လုပ်မည်။ အသေးစိတ် scope, data model, API projection, canvas interaction, phase exit criteria နှင့် acceptance scenarios ကို [Railway-inspired product plan](railway-parity-plan.md) တွင်သတ်မှတ်ထားသည်။
 
@@ -142,25 +142,25 @@ Railway ကိုကြည့်ပြီး canvas ပုံသဏ္ဌာန�
   - [x] UX-3.2 route-free long-running worker runtime; unit/browser coverage and hosted real-Docker acceptance passed in CI run 34280088388.
   - [x] UX-3.3 cron schedule/claim/overlap/history/recovery; isolated PostgreSQL, unit, mocked browser and hosted real-Docker proof passed in CI run 34282653529.
   - [x] UX-3.4 commands/restart policy + real-container matrix; hosted CI run 34286036519 passed after migration and cleanup-order coverage.
-- [ ] **UX-4:** Database templates, first-class volumes/backups and S3-compatible bucket resource။
+- [x] **UX-4:** Database templates, first-class volumes/backups and S3-compatible bucket resource။
   - [x] UX-4.1 versioned template registry + one-click Redis service; encrypted variables, private binding, AOF volume and agent-recovery proof passed in CI run 34288941666.
   - [x] UX-4.2 first-class volume create/attach/detach; data-moving proof and writer/path/template guards passed in CI run 34290515948.
   - [x] UX-4.3 Redis/application volume backup and empty-target restore; real Redis data recovery and non-empty target preservation passed in CI run 34292131015.
   - [x] UX-4.4 S3-compatible bucket create/bind/rotate/disconnect; real MinIO upload/download and credential-revocation proof passed in CI run 34294856835.
-  - [ ] UX-4.5 MySQL and MongoDB templates with persistence/backup/recovery proof.
+  - [x] UX-4.5 MySQL and MongoDB templates with persistence/backup/recovery proof.
     - [x] UX-4.5a MySQL 8.4.7 template, private binding, restart persistence and logical backup/empty-target restore passed in CI run 34298629858.
-    - [ ] UX-4.5b MongoDB template, private binding, persistence and logical backup/empty-target restore.
+    - [x] UX-4.5b MongoDB 8.0.29 template, private binding, restart persistence and logical backup/empty-target restore passed in CI run 34300250908.
 - [ ] **UX-5:** Secret/reference variables, real canvas links, private/public networking and TCP follow-up။
 - [ ] **UX-6:** Deployments/Variables/Metrics/Settings drawer and environment log explorer။
 - [ ] **UX-7:** Environment duplicate/sync and staged change review/apply flow; PR environments later substep။
 - [ ] **UX-8:** Templates, Compose import and basic CLI/config as code။
 - [ ] **UX-9:** Public Linode pilot update, docs/release and separate user UX acceptance।
 
-**Next selected substep:** UX-4.5b — MongoDB template, persistence, private binding and backup/recovery proof။
+**Next selected substep:** UX-5.1 — typed secret/reference variables, service-to-service references and environment isolation proof။
 
 **UX-2 local visible outcome:** Project overview သည် card grid/list မဟုတ်တော့ဘဲ actual service/database/volume/bucket resources နဲ့ real relations ကို canvas ပေါ်တွင်မြင်၊ နေရာရွှေ့၊ click လုပ်ပြီး drawer ထဲဝင်နိုင်သည်။ Public Linode မှာ alpha.4 UI ပဲရှိသေးပြီး user review မရသေး။
 
-**Core completion after UX-6:** Canvas ကနေ GitHub/Docker/Empty service, web/worker/cron, PostgreSQL/Redis, volume, bucket and references ကိုတကယ်ဖန်တီး/operate လုပ်နိုင်ရမည်။ User review မရမချင်း UX accepted ဟုမမှတ်တမ်းတင်ရ။
+**Core completion after UX-6:** Canvas ကနေ GitHub/Docker/Empty service, web/worker/cron, PostgreSQL/Redis/MySQL/MongoDB, volume, bucket and references ကိုတကယ်ဖန်တီး/operate လုပ်နိုင်ရမည်။ User review မရမချင်း UX accepted ဟုမမှတ်တမ်းတင်ရ။
 
 **Exit:** User တစ်ယောက်က owner setup ကစပြီး project/environment/service ဆောက်၊ variables နဲ့ image deploy၊ restart/stop/redeploy လုပ်နိုင်ရ။ Staging ပြင်တာ production ကိုမထိရ။ Screen flow ကို user review လုပ်ပြီး usability ပြင်ဆင်ချက်တွေပြီးရ။
 
