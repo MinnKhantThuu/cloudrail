@@ -21,7 +21,7 @@ import {
 
 type Request = <T,>(path: string, body?: unknown, method?: string) => Promise<T>;
 
-export type CreateIntent = 'github' | 'image' | 'empty' | 'worker' | 'cron' | 'postgres' | 'redis' | 'volume';
+export type CreateIntent = 'github' | 'image' | 'empty' | 'worker' | 'cron' | 'postgres' | 'redis' | 'volume' | 'bucket';
 
 type Position = { x: number; y: number };
 export type CanvasResource = {
@@ -38,6 +38,11 @@ export type CanvasResource = {
   publicAddress?: string;
   privateAddress?: string;
   managedByTemplate?: boolean;
+  endpoint?: string;
+  region?: string;
+  bucketName?: string;
+  forcePathStyle?: boolean;
+  credentialVersion?: number;
 };
 type CanvasLink = { id: string; from: string; to: string; kind: string; label?: string };
 type CanvasGraph = { projectId: string; environment: string; resources: CanvasResource[]; links: CanvasLink[] };
@@ -49,7 +54,7 @@ const busyStatuses = ['queued', 'pulling', 'predeploy', 'starting', 'checking', 
 const statusLabels: Record<string, string> = {
   queued: 'Queued', pulling: 'Pulling', starting: 'Starting', checking: 'Checking', routing: 'Routing',
   active: 'Active', failed: 'Failed', superseded: 'Replaced', stopped: 'Stopped', empty: 'Not deployed',
-  available: 'Available', attached: 'Attached', crashed: 'Crashed',
+  available: 'Available', attached: 'Attached', connected: 'Connected', crashed: 'Crashed',
 };
 
 function resourceIcon(resource: CanvasResource) {
@@ -123,7 +128,7 @@ function CreatePalette({ open, close, create }: { open: boolean; close: () => vo
       <h3>Storage</h3>
       <div className="create-option-grid">
         <CreateOption icon={<HardDrive size={18} />} title="Volume" description="Attach persistent storage to a service" onClick={() => create('volume')} />
-        <CreateOption icon={<Cloud size={18} />} title="S3-compatible Bucket" description="Private object storage credentials" phase="UX-4" />
+        <CreateOption icon={<Cloud size={18} />} title="S3-compatible Bucket" description="Connect private object storage credentials" onClick={() => create('bucket')} />
       </div>
     </section>
   </div>;
@@ -140,6 +145,9 @@ function ResourceDrawer({ resource, links, resources, request, reload, close, se
 }) {
   const [target, setTarget] = useState('');
   const [mountPath, setMountPath] = useState('/data');
+  const [prefix, setPrefix] = useState('S3');
+  const [accessKey, setAccessKey] = useState('');
+  const [secretKey, setSecretKey] = useState('');
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
@@ -148,6 +156,7 @@ function ResourceDrawer({ resource, links, resources, request, reload, close, se
     return { link, resource: resources.find(item => item.key === key) };
   });
   const attachment = related.find(item => item.link.kind === 'volume-attachment');
+  const bucketBindings = related.filter(item => item.link.kind === 'bucket-binding');
   const changeAttachment = async (detach = false) => {
     setBusy(true); setError(''); setNotice('');
     try {
@@ -157,14 +166,39 @@ function ResourceDrawer({ resource, links, resources, request, reload, close, se
     } catch (cause) { setError((cause as Error).message); }
     finally { setBusy(false); }
   };
+  const connectBucket = async () => {
+    setBusy(true); setError(''); setNotice('');
+    try {
+      await request(`/api/buckets/${resource.id}/bindings/${target}`, { variablePrefix: prefix }, 'PUT');
+      await reload(); setTarget(''); setNotice('Bucket variables connected. Redeploy the application to apply them.');
+    } catch (cause) { setError((cause as Error).message); }
+    finally { setBusy(false); }
+  };
+  const disconnectBucket = async (service: string) => {
+    setBusy(true); setError(''); setNotice('');
+    try {
+      if (!service) throw new Error('Connected application is unavailable.');
+      await request(`/api/buckets/${resource.id}/bindings/${service}`, undefined, 'DELETE');
+      await reload(); setNotice('Bucket variables removed. Redeploy the application to remove them from its container.');
+    } catch (cause) { setError((cause as Error).message); }
+    finally { setBusy(false); }
+  };
+  const rotateBucket = async () => {
+    setBusy(true); setError(''); setNotice('');
+    try {
+      await request(`/api/buckets/${resource.id}/credentials`, { accessKeyId: accessKey, secretAccessKey: secretKey }, 'PUT');
+      setAccessKey(''); setSecretKey(''); await reload(); setNotice('Credentials rotated. Redeploy connected applications to use version ' + ((resource.credentialVersion || 1) + 1) + '.');
+    } catch (cause) { setError((cause as Error).message); }
+    finally { setBusy(false); }
+  };
   return <section className="detail-pane canvas-resource-drawer" aria-label={`${resource.name} details`}>
     <div className="detail-header"><span className={`service-icon ${resource.kind}`}>{resourceIcon(resource)}</span><div><h2>{resource.name}</h2><span className="muted">{resourceSubtitle(resource)}</span></div><button className="icon-button detail-close" aria-label="Close resource details" onClick={close}><X size={17} /></button></div>
     <div className="resource-summary">
       <div><span>Status</span><strong className={`resource-status ${resource.status}`}>{statusLabels[resource.status] || resource.status}</strong></div>
       <div><span>Resource key</span><code>{resource.key}</code></div>
     </div>
-    <div className="resource-drawer-content"><h3>Connections</h3>{related.length ? related.map(({ link, resource: item }) => <button key={link.id} className="resource-link-row" disabled={!item} onClick={() => item && select(item)}><Network size={15} /><span><strong>{item?.name || 'Unavailable resource'}</strong><small>{link.kind} · {link.label}</small></span></button>) : <p className="muted">No recorded resource connection.</p>}
-      <h3>Management</h3>{resource.kind !== 'volume' ? <p className="muted">Management controls for this resource arrive in its planned UX phase.</p> : resource.managedByTemplate ? <p className="muted">This volume is managed by its data template and cannot be detached.</p> : attachment ? <><p className="muted">Stop the application before detaching. Stored data is retained in this volume.</p><button className="secondary" disabled={busy} onClick={() => void changeAttachment(true)}>Detach from {attachment.resource?.name || 'application'}</button></> : <><p className="muted">Attach to one application in this environment. Deploy it afterward to apply the mount.</p><label htmlFor="volume-target">Application</label><select id="volume-target" value={target} onChange={event => setTarget(event.target.value)}><option value="">Choose an application</option>{resources.filter(item => item.kind === 'service').map(item => <option key={item.id} value={item.id}>{item.name} · {statusLabels[item.status] || item.status}</option>)}</select><label htmlFor="volume-mount">Mount path</label><input id="volume-mount" value={mountPath} onChange={event => setMountPath(event.target.value)} placeholder="/data"/><button className="secondary spaced-label" disabled={busy || !target || !mountPath} onClick={() => void changeAttachment()}>Attach volume</button></>}{error && <p className="error-text" role="alert">{error}</p>}{notice && <p className="success-note" role="status">{notice}</p>}
+    <div className="resource-drawer-content">{resource.kind === 'bucket' && <div className="resource-summary bucket-summary"><div><span>Endpoint</span><code>{resource.endpoint}</code></div><div><span>Remote bucket</span><strong>{resource.bucketName}</strong></div><div><span>Region</span><strong>{resource.region || 'provider default'}</strong></div><div><span>Credentials</span><strong>Version {resource.credentialVersion || 1}</strong></div></div>}<h3>Connections</h3>{related.length ? related.map(({ link, resource: item }) => <button key={link.id} className="resource-link-row" disabled={!item} onClick={() => item && select(item)}><Network size={15} /><span><strong>{item?.name || 'Unavailable resource'}</strong><small>{link.kind} · {link.label}</small></span></button>) : <p className="muted">No recorded resource connection.</p>}
+      <h3>Management</h3>{resource.kind === 'bucket' ? <><p className="muted">Connect six prefixed S3 variables to an application. Credential values stay hidden.</p><label htmlFor="bucket-target">Application</label><select id="bucket-target" value={target} onChange={event => setTarget(event.target.value)}><option value="">Choose an application</option>{resources.filter(item => item.kind === 'service' && !bucketBindings.some(binding => binding.resource?.id === item.id)).map(item => <option key={item.id} value={item.id}>{item.name} · {statusLabels[item.status] || item.status}</option>)}</select><label htmlFor="bucket-prefix">Variable prefix</label><input id="bucket-prefix" value={prefix} onChange={event => setPrefix(event.target.value.toUpperCase())} maxLength={32}/><p className="field-help">Creates {prefix || 'S3'}_BUCKET, _ENDPOINT, _REGION, _ACCESS_KEY_ID, _SECRET_ACCESS_KEY and _FORCE_PATH_STYLE.</p><button className="secondary" disabled={busy || !target || !prefix} onClick={() => void connectBucket()}>Connect application</button>{bucketBindings.map(item => <button key={'disconnect-' + item.link.id} className="secondary bucket-disconnect" disabled={busy} onClick={() => void disconnectBucket(item.resource?.id || '')}>Disconnect {item.resource?.name || 'application'}</button>)}<h3 className="spaced-label">Rotate credentials</h3><p className="muted">This updates saved variables for every connection. Redeploy each application afterward.</p><label htmlFor="bucket-access-key">Access key ID</label><input id="bucket-access-key" value={accessKey} onChange={event => setAccessKey(event.target.value)} autoComplete="off"/><label htmlFor="bucket-secret-key">Secret access key</label><input id="bucket-secret-key" type="password" value={secretKey} onChange={event => setSecretKey(event.target.value)} autoComplete="new-password"/><button className="secondary spaced-label" disabled={busy || accessKey.length < 3 || secretKey.length < 8} onClick={() => void rotateBucket()}>Rotate credentials</button></> : resource.managedByTemplate ? <p className="muted">This volume is managed by its data template and cannot be detached.</p> : attachment ? <><p className="muted">Stop the application before detaching. Stored data is retained in this volume.</p><button className="secondary" disabled={busy} onClick={() => void changeAttachment(true)}>Detach from {attachment.resource?.name || 'application'}</button></> : <><p className="muted">Attach to one application in this environment. Deploy it afterward to apply the mount.</p><label htmlFor="volume-target">Application</label><select id="volume-target" value={target} onChange={event => setTarget(event.target.value)}><option value="">Choose an application</option>{resources.filter(item => item.kind === 'service').map(item => <option key={item.id} value={item.id}>{item.name} · {statusLabels[item.status] || item.status}</option>)}</select><label htmlFor="volume-mount">Mount path</label><input id="volume-mount" value={mountPath} onChange={event => setMountPath(event.target.value)} placeholder="/data"/><button className="secondary spaced-label" disabled={busy || !target || !mountPath} onClick={() => void changeAttachment()}>Attach volume</button></>}{error && <p className="error-text" role="alert">{error}</p>}{notice && <p className="success-note" role="status">{notice}</p>}
     </div>
   </section>;
 }

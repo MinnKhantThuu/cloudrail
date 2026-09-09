@@ -40,7 +40,7 @@ const graph = {
   ],
 };
 
-async function mockWorkspace(page: import('@playwright/test').Page, savedLayouts: unknown[], savedRuntime: unknown[] = [], savedCreates: unknown[] = [], savedAttachments: unknown[] = []) {
+async function mockWorkspace(page: import('@playwright/test').Page, savedLayouts: unknown[], savedRuntime: unknown[] = [], savedCreates: unknown[] = [], savedAttachments: unknown[] = [], savedBucketActions: unknown[] = []) {
   const canvas = structuredClone(graph);
   const workspaceState = structuredClone(state);
   await page.route('**/*', async route => {
@@ -78,6 +78,27 @@ async function mockWorkspace(page: import('@playwright/test').Page, savedLayouts
       canvas.resources.push({ key: 'volume:volume-2', id: 'volume-2', kind: 'volume', name: body.name, status: 'available', position: { x: 900, y: 560 } });
       return route.fulfill({ status: 201, json: { id: 'volume-2', projectId: 'project-1', ...body, managedByTemplate: false } });
     }
+    if (url.pathname === '/api/projects/project-1/buckets' && request.method() === 'POST') {
+      const body = request.postDataJSON() as {name:string;environment:string;endpoint:string;region:string;bucketName:string;forcePathStyle:boolean};
+      savedBucketActions.push({ kind: 'create', ...body });
+      const bucket = { key: 'bucket:bucket-1', id: 'bucket-1', kind: 'bucket', name: body.name, status: 'available', template: 's3', endpoint: body.endpoint, region: body.region, bucketName: body.bucketName, forcePathStyle: body.forcePathStyle, credentialVersion: 1, position: { x: 1100, y: 330 } };
+      canvas.resources.push(bucket);
+      return route.fulfill({ status: 201, json: { id: bucket.id, projectId: 'project-1', ...body, provider: 's3', credentialVersion: 1 } });
+    }
+    if (url.pathname === '/api/buckets/bucket-1/bindings/app-1' && request.method() === 'PUT') {
+      const body = request.postDataJSON() as {variablePrefix:string};
+      savedBucketActions.push({ kind: 'bind', ...body });
+      const bucket = canvas.resources.find(item => item.id === 'bucket-1');
+      if (bucket) bucket.status = 'connected';
+      canvas.links.push({ id: 'bucket-binding-1', from: 'service:app-1', to: 'bucket:bucket-1', kind: 'bucket-binding', label: body.variablePrefix + '_*' });
+      return route.fulfill({ json: { ok: true } });
+    }
+    if (url.pathname === '/api/buckets/bucket-1/credentials' && request.method() === 'PUT') {
+      savedBucketActions.push({ kind: 'rotate', ...request.postDataJSON() });
+      const bucket = canvas.resources.find(item => item.id === 'bucket-1');
+      if (bucket) bucket.credentialVersion = 2;
+      return route.fulfill({ json: { id: 'bucket-1', credentialVersion: 2 } });
+    }
     if (url.pathname === '/api/volumes/volume-2/attachment' && request.method() === 'PUT') {
       const body = request.postDataJSON() as {serviceId:string;mountPath:string};
       savedAttachments.push(body);
@@ -98,9 +119,10 @@ test('canvas exposes resources, connections, creation and saved layout', async (
   const savedRuntime: unknown[] = [];
   const savedCreates: unknown[] = [];
   const savedAttachments: unknown[] = [];
+  const savedBucketActions: unknown[] = [];
   const errors: string[] = [];
   page.on('pageerror', error => errors.push(error.message));
-  await mockWorkspace(page, savedLayouts, savedRuntime, savedCreates, savedAttachments);
+  await mockWorkspace(page, savedLayouts, savedRuntime, savedCreates, savedAttachments, savedBucketActions);
   await page.goto('/');
 
   await expect(page.getByRole('region', { name: 'Project canvas' })).toBeVisible();
@@ -180,6 +202,33 @@ test('canvas exposes resources, connections, creation and saved layout', async (
   await expect(volumeDrawer.getByText('Volume attached. Deploy the application to apply it.')).toBeVisible();
   expect(savedCreates.at(-1)).toEqual({ name: 'uploads', environment: 'production' });
   expect(savedAttachments).toEqual([{ serviceId: 'worker-1', mountPath: '/uploads' }]);
+  await page.getByLabel('Close resource details').click();
+
+  await page.keyboard.press('Control+K');
+  await page.getByRole('dialog', { name: 'Add to your canvas' }).getByRole('button', { name: /S3-compatible Bucket/ }).click();
+  const bucketDialog = page.getByRole('dialog', { name: 'S3-compatible Bucket' });
+  await bucketDialog.getByLabel('Resource name').fill('uploads-bucket');
+  await bucketDialog.getByLabel('S3 endpoint').fill('http://minio:9000');
+  await bucketDialog.getByLabel('Remote bucket name').fill('app-uploads');
+  await bucketDialog.getByLabel('Access key ID').fill('browser-access');
+  await bucketDialog.getByLabel('Secret access key').fill('browser-secret-key');
+  await bucketDialog.getByRole('button', { name: 'Create resource', exact: true }).click();
+  const bucketDrawer = page.getByRole('region', { name: 'uploads-bucket details' });
+  await expect(bucketDrawer).toContainText('http://minio:9000');
+  await bucketDrawer.getByLabel('Application').selectOption('app-1');
+  await bucketDrawer.getByLabel('Variable prefix').fill('uploads');
+  await bucketDrawer.getByRole('button', { name: 'Connect application' }).click();
+  await expect(bucketDrawer.getByText('Bucket variables connected. Redeploy the application to apply them.')).toBeVisible();
+  await bucketDrawer.getByLabel('Access key ID').fill('rotated-access');
+  await bucketDrawer.getByLabel('Secret access key').fill('rotated-secret-key');
+  await bucketDrawer.getByRole('button', { name: 'Rotate credentials' }).click();
+  await expect(bucketDrawer.getByText('Credentials rotated. Redeploy connected applications to use version 2.')).toBeVisible();
+  await page.screenshot({ path: screenshots + 'bucket-settings-desktop.png', fullPage: true });
+  expect(savedBucketActions).toEqual([
+    { kind: 'create', name: 'uploads-bucket', environment: 'production', endpoint: 'http://minio:9000', region: 'us-east-1', bucketName: 'app-uploads', accessKeyId: 'browser-access', secretAccessKey: 'browser-secret-key', forcePathStyle: true },
+    { kind: 'bind', variablePrefix: 'UPLOADS' },
+    { kind: 'rotate', accessKeyId: 'rotated-access', secretAccessKey: 'rotated-secret-key' },
+  ]);
   await page.getByLabel('Close resource details').click();
 
   await page.keyboard.press('Control+K');

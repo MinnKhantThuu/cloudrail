@@ -11,6 +11,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
+	"slices"
 	"strings"
 	"testing"
 
@@ -230,6 +231,70 @@ func TestCanvasGraphAndPersistedLayout(t *testing.T) {
 	if w.Code != http.StatusOK {
 		t.Fatalf("volume reattach response: %d %s", w.Code, w.Body.String())
 	}
+	w = request(http.MethodPost, "/api/projects/"+project.ID+"/buckets", deployment.BucketSpec{
+		Name: "invalid", Environment: "production", Endpoint: "file:///tmp/bucket", Region: "us-east-1", BucketName: "invalid-bucket",
+		AccessKeyID: "initial-access-key", SecretAccessKey: "initial-secret-key", ForcePathStyle: true,
+	})
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("unsafe bucket endpoint was accepted: %d %s", w.Code, w.Body.String())
+	}
+	w = request(http.MethodPost, "/api/projects/"+project.ID+"/buckets", deployment.BucketSpec{
+		Name: "uploads", Environment: "production", Endpoint: "http://minio:9000", Region: "us-east-1", BucketName: "app-uploads",
+		AccessKeyID: "initial-access-key", SecretAccessKey: "initial-secret-key", ForcePathStyle: true,
+	})
+	if w.Code != http.StatusCreated || bytes.Contains(w.Body.Bytes(), []byte("initial-access-key")) || bytes.Contains(w.Body.Bytes(), []byte("initial-secret-key")) {
+		t.Fatalf("safe bucket create response is wrong: %d %s", w.Code, w.Body.String())
+	}
+	var bucket deployment.Bucket
+	if err = json.Unmarshal(w.Body.Bytes(), &bucket); err != nil || bucket.BucketName != "app-uploads" || bucket.Endpoint != "http://minio:9000" || bucket.CredentialVersion != 1 || !bucket.ForcePathStyle {
+		t.Fatalf("bucket contract is wrong: %#v %v", bucket, err)
+	}
+	w = request(http.MethodPut, "/api/buckets/"+bucket.ID+"/bindings/"+application.ID, map[string]string{"variablePrefix": "uploads"})
+	if w.Code != http.StatusOK {
+		t.Fatalf("bucket binding response: %d %s", w.Code, w.Body.String())
+	}
+	w = request(http.MethodGet, "/api/services/"+application.ID+"/variables", nil)
+	for _, name := range []string{"UPLOADS_ACCESS_KEY_ID", "UPLOADS_BUCKET", "UPLOADS_ENDPOINT", "UPLOADS_FORCE_PATH_STYLE", "UPLOADS_REGION", "UPLOADS_SECRET_ACCESS_KEY"} {
+		if !bytes.Contains(w.Body.Bytes(), []byte(name)) {
+			t.Fatalf("bucket variable %s missing: %s", name, w.Body.String())
+		}
+	}
+	if variableErr := store.SetVariable(ctx, application.ID, "UPLOADS_SECRET_ACCESS_KEY", "manual-secret"); variableErr == nil || !strings.Contains(variableErr.Error(), "managed") {
+		t.Fatalf("managed bucket variable overwrite was accepted: %v", variableErr)
+	}
+	if variableErr := store.DeleteVariable(ctx, application.ID, "UPLOADS_SECRET_ACCESS_KEY"); variableErr == nil || !strings.Contains(variableErr.Error(), "disconnect") {
+		t.Fatalf("managed bucket variable deletion was accepted: %v", variableErr)
+	}
+	w = request(http.MethodPut, "/api/buckets/"+bucket.ID+"/credentials", map[string]string{"accessKeyId": "rotated-access-key", "secretAccessKey": "rotated-secret-key"})
+	if w.Code != http.StatusOK || bytes.Contains(w.Body.Bytes(), []byte("rotated-access-key")) || bytes.Contains(w.Body.Bytes(), []byte("rotated-secret-key")) {
+		t.Fatalf("safe bucket rotation response is wrong: %d %s", w.Code, w.Body.String())
+	}
+	if err = json.Unmarshal(w.Body.Bytes(), &bucket); err != nil || bucket.CredentialVersion != 2 {
+		t.Fatalf("bucket credential version did not advance: %#v %v", bucket, err)
+	}
+	var encryptedSecret []byte
+	if err = store.DB.QueryRow(ctx, `SELECT ciphertext FROM service_variables WHERE service_id=$1 AND name='UPLOADS_SECRET_ACCESS_KEY'`, application.ID).Scan(&encryptedSecret); err != nil {
+		t.Fatal(err)
+	}
+	if bytes.Contains(encryptedSecret, []byte("rotated-secret-key")) {
+		t.Fatal("rotated bucket secret was stored as plaintext")
+	}
+	plainSecret, decryptErr := store.Cipher.Open(encryptedSecret, "variable:"+application.ID+":UPLOADS_SECRET_ACCESS_KEY")
+	if decryptErr != nil || plainSecret != "rotated-secret-key" {
+		t.Fatalf("connected bucket variable was not rotated: %q %v", plainSecret, decryptErr)
+	}
+	w = request(http.MethodDelete, "/api/buckets/"+bucket.ID+"/bindings/"+application.ID, nil)
+	if w.Code != http.StatusOK {
+		t.Fatalf("bucket unbind response: %d %s", w.Code, w.Body.String())
+	}
+	w = request(http.MethodGet, "/api/services/"+application.ID+"/variables", nil)
+	if bytes.Contains(w.Body.Bytes(), []byte("UPLOADS_")) {
+		t.Fatalf("bucket variables remained after disconnect: %s", w.Body.String())
+	}
+	w = request(http.MethodPut, "/api/buckets/"+bucket.ID+"/bindings/"+application.ID, map[string]string{"variablePrefix": "UPLOADS"})
+	if w.Code != http.StatusOK {
+		t.Fatalf("bucket rebind response: %d %s", w.Code, w.Body.String())
+	}
 
 	w = request(http.MethodGet, canvasPath, nil)
 	if w.Code != http.StatusOK {
@@ -239,11 +304,11 @@ func TestCanvasGraphAndPersistedLayout(t *testing.T) {
 	if err = json.Unmarshal(w.Body.Bytes(), &graph); err != nil {
 		t.Fatal(err)
 	}
-	if len(graph.Resources) != 9 {
-		t.Fatalf("expected app, worker, cron, two databases and four volumes; got %#v", graph.Resources)
+	if len(graph.Resources) != 10 {
+		t.Fatalf("expected app, worker, cron, two databases, four volumes and a bucket; got %#v", graph.Resources)
 	}
-	if len(graph.Links) != 6 {
-		t.Fatalf("expected four attachments and two references; got %#v", graph.Links)
+	if len(graph.Links) != 7 {
+		t.Fatalf("expected four attachments, two database references and a bucket binding; got %#v", graph.Links)
 	}
 	var appResource, databaseResource, redisResource *deployment.CanvasResource
 	for index := range graph.Resources {
@@ -265,6 +330,20 @@ func TestCanvasGraphAndPersistedLayout(t *testing.T) {
 	}
 	if redisResource == nil || redisResource.Kind != "database" || redisResource.Template != "redis" || redisResource.TemplateVersion != "8.2.2" || redisResource.PrivateAddress != "db-"+redis.ID+":6379" {
 		t.Fatalf("redis projection is wrong: %#v", redisResource)
+	}
+	var bucketResource *deployment.CanvasResource
+	for index := range graph.Resources {
+		if graph.Resources[index].ID == bucket.ID {
+			bucketResource = &graph.Resources[index]
+		}
+	}
+	if bucketResource == nil || bucketResource.Status != "connected" || bucketResource.Endpoint != "http://minio:9000" || bucketResource.BucketName != "app-uploads" || bucketResource.CredentialVersion != 2 {
+		t.Fatalf("bucket projection is wrong: %#v", bucketResource)
+	}
+	if !slices.ContainsFunc(graph.Links, func(link deployment.CanvasLink) bool {
+		return link.Kind == "bucket-binding" && link.From == "service:"+application.ID && link.To == "bucket:"+bucket.ID && link.Label == "UPLOADS_*"
+	}) {
+		t.Fatalf("bucket binding link is missing: %#v", graph.Links)
 	}
 
 	position := deployment.CanvasPositionUpdate{ResourceKey: "service:" + application.ID, X: 444, Y: 222}

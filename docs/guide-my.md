@@ -43,6 +43,7 @@ Project ဖန်တီး
 | Cron service | UTC schedule နဲ့ command တစ်ကြိမ်စီ run မယ့် job |
 | PostgreSQL service | Private network ထဲမှာသုံးတဲ့ database |
 | Redis service | Cache၊ queue နဲ့ key-value data အတွက် private data service |
+| Bucket | ရှိပြီးသား S3-compatible object storage ကို application နဲ့ချိတ်ရန် |
 | Build | Source commit တစ်ခုကနေ image ထုတ်ခြင်း |
 | Deployment | Image တစ်ခုကို configuration snapshot နဲ့ run ဖို့ကြိုးစားမှု |
 
@@ -106,9 +107,20 @@ PostgreSQL ရဲ့ **Settings → Create backup** ကနေ dump ထုတ်�
 3. Redis node ကိုဖွင့်ပြီး **Settings → Connect an application** မှာ target application ကိုရွေးပါ။ Variable ကို `REDIS_URL` အတိုင်းထားပါ။
 4. Application ကို redeploy လုပ်ရင် private Redis connection ကိုရပါပြီ။ Secret တန်ဖိုးကို UI/API က ပြန်မပြပါဘူး။
 
-Redis data က container stop နဲ့ agent restart ပြီးလည်း volume ထဲမှာဆက်ရှိပါတယ်။ Redis backup/restore control ကို UX-4.3 မှာဆက်ထည့်မယ်။
+Redis data က container stop နဲ့ agent restart ပြီးလည်း volume ထဲမှာဆက်ရှိပါတယ်။ Backup/restore လုပ်မယ်ဆို Redis ကိုအရင် Stop လုပ်ပါ။ Version တူတဲ့ Redis target ဗလာထဲပဲ restore ဝင်ပြီး key ရှိပြီးသား target ကို data မဖျက်ဘဲ reject လုပ်ပါတယ်။
 
-HTTP service ရဲ့ volume ကို backup လုပ်ဖို့ service ကိုအရင် Stop လုပ်ပါ။ Restore target ကလည်း stopped ဖြစ်ပြီး volume ဗလာဖြစ်ရပါတယ်။ Volume export အရွယ်အစားက 1 GB အထိဖြစ်ပါတယ်။
+### S3-compatible bucket ချိတ်ရန်
+
+Storage provider ဘက်မှာ bucket နဲ့ access credential ကိုအရင်ဖန်တီးထားပါ။ Cloudrail က AWS S3၊ Cloudflare R2၊ Backblaze B2၊ MinIO လို S3-compatible service ကို application နဲ့ချိတ်ပေးတာဖြစ်ပြီး remote bucket ကိုဖန်တီးတာ၊ object ဖျက်တာ မလုပ်ပါဘူး။
+
+1. Application ရှိတဲ့ project/environment ထဲမှာ **New resource → S3-compatible Bucket** ကိုရွေးပါ။
+2. Display name၊ provider endpoint origin၊ region၊ remote bucket name နဲ့ access credential ထည့်ပါ။ MinIO လို provider က path-style access လိုရင် checkbox ကိုဖွင့်ပါ။
+3. Bucket node ကိုဖွင့်ပြီး **Connect an application** မှာ web application ကိုရွေးပါ။ Prefix ကို `UPLOADS` လို နာမည်ပေးပါ။
+4. Application ကို redeploy လုပ်ပါ။ Deployment အသစ်မှာ `UPLOADS_BUCKET`၊ `UPLOADS_ENDPOINT`၊ `UPLOADS_REGION`၊ `UPLOADS_ACCESS_KEY_ID`၊ `UPLOADS_SECRET_ACCESS_KEY` နဲ့ `UPLOADS_FORCE_PATH_STYLE` variables ရပါမယ်။
+
+Credential ကို Cloudrail က encrypt လုပ်သိမ်းပြီး UI/API မှာ secret ပြန်မဖော်ပြပါဘူး။ Rotate လုပ်ရင် provider ဘက်က key အသစ်ကိုအရင်ဖွင့်၊ Cloudrail မှာ **Rotate credentials** လုပ်၊ ချိတ်ထားတဲ့ application အားလုံးကို redeploy လုပ်ပြီးမှ key အဟောင်းကို provider ဘက်မှာ revoke လုပ်ပါ။ **Disconnect** က saved variables နဲ့ canvas edge ကိုဖယ်ပေးတယ်; လက်ရှိ run နေတဲ့ container ကနေဖယ်ဖို့ redeploy ထပ်လုပ်ရပါတယ်။ Provider key နဲ့ remote objects ကို Cloudrail က မဖျက်ပါဘူး။
+
+HTTP service ရဲ့ volume ကို backup လုပ်ဖို့ service ကိုအရင် Stop လုပ်ပါ။ Restore target ကလည်း stopped ဖြစ်ပြီး workload type တူကာ volume ဗလာဖြစ်ရပါတယ်။ Volume export အရွယ်အစားက 1 GB အထိဖြစ်ပါတယ်။
 
 UI က လက်ရှိ installation ထဲမှာကျန်နေတဲ့ backups ကို restore လုပ်ပေးတာဖြစ်ပါတယ်။ အပြင်က dump တစ်ခု upload လုပ်ပြီး restore လုပ်တဲ့ UI မပါသေးပါဘူး။ Server တစ်ခုလုံး recovery အတွက် database dump အပြင် encryption key၊ node identity၊ registry နဲ့ app volumes တွေပါလိုပါတယ်။ [Operations guide](vps-operations.md#back-up-and-restore) ကိုဖတ်ပါ။
 

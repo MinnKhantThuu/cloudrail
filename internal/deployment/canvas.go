@@ -28,6 +28,11 @@ type CanvasResource struct {
 	PublicAddress     string         `json:"publicAddress,omitempty"`
 	PrivateAddress    string         `json:"privateAddress,omitempty"`
 	ManagedByTemplate bool           `json:"managedByTemplate,omitempty"`
+	Endpoint          string         `json:"endpoint,omitempty"`
+	Region            string         `json:"region,omitempty"`
+	BucketName        string         `json:"bucketName,omitempty"`
+	ForcePathStyle    bool           `json:"forcePathStyle,omitempty"`
+	CredentialVersion int            `json:"credentialVersion,omitempty"`
 }
 
 type CanvasLink struct {
@@ -190,24 +195,54 @@ func (s *Store) Canvas(ctx context.Context, project, environment string) (Canvas
 	}
 	rows.Close()
 
-	rows, err = s.DB.Query(ctx, `SELECT id,name,provider FROM buckets WHERE project_id=$1 AND environment=$2 ORDER BY created_at,id`, project, environment)
+	rows, err = s.DB.Query(ctx, `SELECT b.id,b.name,b.provider,b.endpoint,b.region,b.bucket_name,b.force_path_style,b.credential_version,
+	 EXISTS(SELECT 1 FROM bucket_bindings binding WHERE binding.bucket_id=b.id)
+	 FROM buckets b WHERE b.project_id=$1 AND b.environment=$2 ORDER BY b.created_at,b.id`, project, environment)
 	if err != nil {
 		return graph, err
 	}
 	for rows.Next() {
 		var resource CanvasResource
-		if err = rows.Scan(&resource.ID, &resource.Name, &resource.Template); err != nil {
+		var connected bool
+		if err = rows.Scan(&resource.ID, &resource.Name, &resource.Template, &resource.Endpoint, &resource.Region, &resource.BucketName, &resource.ForcePathStyle, &resource.CredentialVersion, &connected); err != nil {
 			rows.Close()
 			return graph, err
 		}
 		resource.Key = "bucket:" + resource.ID
 		resource.Kind = "bucket"
 		resource.Status = "available"
+		if connected {
+			resource.Status = "connected"
+		}
 		resource.Position = defaultCanvasPosition(len(graph.Resources), resource.Kind)
 		if saved, ok := positions[resource.Key]; ok {
 			resource.Position = saved
 		}
 		graph.Resources = append(graph.Resources, resource)
+	}
+	if err = rows.Err(); err != nil {
+		rows.Close()
+		return graph, err
+	}
+	rows.Close()
+
+	rows, err = s.DB.Query(ctx, `SELECT binding.bucket_id,binding.service_id,binding.variable_prefix
+	 FROM bucket_bindings binding
+	 JOIN buckets bucket ON bucket.id=binding.bucket_id
+	 JOIN services service ON service.id=binding.service_id
+	 WHERE bucket.project_id=$1 AND bucket.environment=$2
+	  AND service.project_id=bucket.project_id AND service.environment=bucket.environment
+	 ORDER BY binding.created_at,binding.bucket_id,binding.service_id`, project, environment)
+	if err != nil {
+		return graph, err
+	}
+	for rows.Next() {
+		var bucket, service, prefix string
+		if err = rows.Scan(&bucket, &service, &prefix); err != nil {
+			rows.Close()
+			return graph, err
+		}
+		graph.Links = append(graph.Links, CanvasLink{ID: "bucket-binding:" + bucket + ":" + service, From: "service:" + service, To: "bucket:" + bucket, Kind: "bucket-binding", Label: prefix + "_*"})
 	}
 	if err = rows.Err(); err != nil {
 		rows.Close()

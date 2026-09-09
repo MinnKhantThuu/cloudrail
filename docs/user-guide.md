@@ -14,6 +14,7 @@ This guide describes the current single-owner alpha. Start the [local quickstart
 | Worker service | A long-running process without a public route | queue consumer |
 | Cron service | A command run on a five-field UTC schedule | nightly cleanup |
 | Data service | Private PostgreSQL or Redis with persistent data | database/cache |
+| Bucket | Existing S3-compatible object storage connected to applications | uploads/backups |
 | Build | Exact source commit converted to an image | GitHub SHA → digest |
 | Deployment | One attempt to run an image with a saved configuration | api release 4 |
 
@@ -101,7 +102,7 @@ Use **Settings → Start / Restart / Stop** for an existing deployment. To read 
 
 ## Persistent storage and resource limits
 
-Under **Settings**, choose memory/CPU limits and, if needed, one persistent volume mount path. Save and redeploy to apply them. An attached volume's identity/path cannot be changed or detached through the UI.
+Use **New resource → Volume** to create storage, then open the volume drawer to attach it to a compatible service and choose its absolute mount path. Stop the service before detaching. A service can have one attached volume in this alpha; changing the path requires detach and attach, while template-managed database volumes cannot be detached. Save compute limits and redeploy to apply them.
 
 Persistent services stop the previous container before starting the replacement. This introduces a brief interruption and prevents two containers writing the same volume. A failed image can still have changed stored data; image rollback does not reverse those changes. Back up before incompatible schema/data updates.
 
@@ -122,13 +123,24 @@ The password stays hidden and the database hostname is usable only inside the pr
 3. Open the Redis resource, go to **Settings → Connect an application**, select the application and keep `REDIS_URL` as the variable name.
 4. Redeploy the application so its next deployment receives the private reference.
 
-The canvas shows the Redis service, its volume and the application reference. The secret value never appears in the template catalog, service response or variable-name screen. Redis uses append-only persistence and returns after an agent restart. Portable Redis backup/restore is tracked separately in UX-4.3.
+The canvas shows the Redis service, its volume and the application reference. The secret value never appears in the template catalog, service response or variable-name screen. Redis uses append-only persistence and returns after an agent restart.
+
+## Connect an S3-compatible bucket
+
+Create the bucket and its access credential at your storage provider first. Cloudrail connects compatible services such as AWS S3, Cloudflare R2, Backblaze B2 or MinIO; this alpha does not create the remote bucket or delete its objects.
+
+1. Select **New resource → S3-compatible Bucket** in the application's project/environment.
+2. Enter a display name, the provider endpoint origin, region, exact remote bucket name and access credentials. Enable path-style access when your provider requires it, including typical MinIO setups.
+3. Open the bucket resource, select a web application under **Connect an application**, and choose a prefix such as `UPLOADS`.
+4. Deploy the application again. Its next container receives `UPLOADS_BUCKET`, `UPLOADS_ENDPOINT`, `UPLOADS_REGION`, `UPLOADS_ACCESS_KEY_ID`, `UPLOADS_SECRET_ACCESS_KEY` and `UPLOADS_FORCE_PATH_STYLE`.
+
+Cloudrail encrypts the credential and returns only safe metadata plus a credential version. To rotate it, create or activate the replacement key at the provider, use **Rotate credentials**, then redeploy every connected application. Revoke the old provider key after those deployments are working. **Disconnect** removes the managed saved variables and canvas edge; redeploy the application to remove them from its running container. Disconnecting does not revoke a provider key or delete remote objects.
 
 ## Back up and restore
 
 For PostgreSQL, choose **Settings → Create backup**, wait for completion and download the dump. Keep an encrypted copy off the VPS. Restoring requires an **empty target database**: create a fresh PostgreSQL service, choose a compatible backup from its restore selector, and confirm restoration. Cloudrail refuses to overwrite a nonempty database. Verify your application data before using the restored database.
 
-For an HTTP volume, stop the service first. Create/download the backup, then restore to an empty, stopped target with a volume. Volume exports are limited to 1 GB. A failed extraction can leave a partial target; preserve it for inspection and use a fresh empty target when necessary.
+For a Redis or HTTP volume, stop the service first. Create/download the backup, then restore to an empty, stopped target of the same workload type. Redis additionally requires the same template version. Cloudrail checks Redis `DBSIZE` before replacing its fresh initialization files and leaves all existing keys untouched when the target is not empty. Volume exports are limited to 1 GB. A failed extraction can leave a partial target; preserve it for inspection and use a fresh empty target when necessary.
 
 The dashboard restores archives retained in this installation. It does not currently offer arbitrary external dump upload. Downloading an archive off-server is a backup copy, not a complete disaster-recovery procedure. Control-plane keys/identity, registry, volumes and certificates have separate recovery requirements; read [operations](vps-operations.md#back-up-and-restore) and [release recovery](release.md#recover-a-failed-update).
 

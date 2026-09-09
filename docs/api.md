@@ -27,6 +27,10 @@ Use the HttpOnly `cloudrail_session` cookie (24 hours, SameSite Strict, Secure o
 | PUT | `/api/services/:id/variables/:name` | `{value}` for subsequent deployments |
 | DELETE | `/api/services/:id/variables/:name` | Remove from future deployments |
 | POST | `/api/services/:id/actions` | `{kind:"start"\|"stop"\|"restart"\|"backup"\|"restore",backupId?}` → 202 |
+| POST | `/api/projects/:id/buckets` | Connect an existing S3-compatible bucket with `{name,environment,endpoint,region,bucketName,accessKeyId,secretAccessKey,forcePathStyle}` → safe 201 bucket metadata |
+| PUT | `/api/buckets/:id/bindings/:service` | `{variablePrefix}` → add six managed prefixed variables to a same-environment HTTP application |
+| DELETE | `/api/buckets/:id/bindings/:service` | Remove the binding and its six managed variables from future deployments |
+| PUT | `/api/buckets/:id/credentials` | `{accessKeyId,secretAccessKey}` → rotate the encrypted credential and update every connected application's saved variables |
 
 Images require `repository@sha256:<64 hex>`. Readiness accepts 2xx at an absolute path without query/fragment; redirects do not count. Reusing an idempotency key with the same request returns the original job; different content conflicts. Settings/variables are immutable snapshots per deployment. Redeploy creates a new ID and snapshot.
 
@@ -34,7 +38,9 @@ Start/pre-deploy commands are at most 1024 characters and run through `/bin/sh -
 
 Web deployments require HTTP readiness and receive a Traefik route. Worker deployments require the process to remain running through the readiness window and never receive a public URL or route; healthy replacement activates before the prior worker stops, and failed candidates preserve the prior process. Cron deployments require a five-field UTC schedule, prepare the pinned release without a long-running service container or public route, and start an isolated one-shot container when due. Only one unfinished run is allowed per cron service. Missed intervals coalesce into one run, and state returns the latest 200 runs with bounded logs and exit codes. `port` and `healthPath` remain required compatibility fields until the deployment request contract is generalized.
 
-Canvas resource keys use `service:<id>`, `volume:<id>` and `bucket:<id>`. Service nodes report `kind`, `workloadMode`, `sourceType`, optional `template`, current status and known public/private address. Canvas links are returned only for recorded volume attachments or service variable references. Layout updates reject unknown or duplicate resource keys.
+Canvas resource keys use `service:<id>`, `volume:<id>` and `bucket:<id>`. Service nodes report `kind`, `workloadMode`, `sourceType`, optional `template`, current status and known public/private address. Canvas links represent recorded volume attachments, service variable references and bucket bindings. Layout updates reject unknown or duplicate resource keys.
+
+Bucket responses expose endpoint, region, remote bucket name, path-style setting and credential version; they never return access or secret keys. A binding with prefix `UPLOADS` manages `UPLOADS_BUCKET`, `UPLOADS_ENDPOINT`, `UPLOADS_REGION`, `UPLOADS_ACCESS_KEY_ID`, `UPLOADS_SECRET_ACCESS_KEY` and `UPLOADS_FORCE_PATH_STYLE`. Ordinary variable routes cannot overwrite or remove these names while the binding exists. Saved-variable changes apply to the application's next deployment; disconnecting does not revoke the credential at the S3 provider or remove remote objects.
 
 Compute `sourceType` is `github`, `image` or `empty`; `workloadMode` is `web`, `worker` or `cron`. These axes are stored separately, so a GitHub or image source can later run as any workload mode. The legacy `/services` route creates an empty web resource.
 

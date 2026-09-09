@@ -82,6 +82,14 @@ func (s *Store) VariableNames(ctx context.Context, id string) ([]string, error) 
 
 var variableName = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]{0,127}$`)
 
+func bucketManagedVariable(ctx context.Context, q querier, service, name string) (bool, error) {
+	var managed bool
+	err := q.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM bucket_bindings WHERE service_id=$1 AND $2=ANY(ARRAY[
+	 variable_prefix||'_BUCKET',variable_prefix||'_ENDPOINT',variable_prefix||'_REGION',
+	 variable_prefix||'_ACCESS_KEY_ID',variable_prefix||'_SECRET_ACCESS_KEY',variable_prefix||'_FORCE_PATH_STYLE']))`, service, name).Scan(&managed)
+	return managed, err
+}
+
 func (s *Store) SetVariable(ctx context.Context, id, name, value string) error {
 	config, e := s.Settings(ctx, id)
 	if e != nil {
@@ -92,6 +100,11 @@ func (s *Store) SetVariable(ctx context.Context, id, name, value string) error {
 	}
 	if !variableName.MatchString(name) || len(value) > 8192 {
 		return errors.New("invalid variable name or value too long")
+	}
+	if managed, err := bucketManagedVariable(ctx, s.DB, id, name); err != nil {
+		return err
+	} else if managed {
+		return errors.New("bucket connection variables are managed by Cloudrail")
 	}
 	if s.Cipher == nil {
 		return errors.New("encryption key unavailable")
@@ -126,6 +139,11 @@ func (s *Store) SetVariable(ctx context.Context, id, name, value string) error {
 	return tx.Commit(ctx)
 }
 func (s *Store) DeleteVariable(ctx context.Context, id, name string) error {
+	if managed, err := bucketManagedVariable(ctx, s.DB, id, name); err != nil {
+		return err
+	} else if managed {
+		return errors.New("disconnect the bucket before removing its variables")
+	}
 	tx, err := s.DB.Begin(ctx)
 	if err != nil {
 		return err

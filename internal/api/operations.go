@@ -144,6 +144,65 @@ func (a *API) operationRoutes(admin, agent *http.ServeMux) {
 		}
 		write(w, 200, map[string]bool{"ok": true})
 	})
+	admin.HandleFunc("POST /api/projects/{id}/buckets", func(w http.ResponseWriter, r *http.Request) {
+		var spec deployment.BucketSpec
+		if !decode(w, r, &spec) {
+			return
+		}
+		if err := spec.Validate(); err != nil {
+			problem(w, 400, err.Error())
+			return
+		}
+		bucket, err := a.Store.CreateBucket(r.Context(), r.PathValue("id"), spec)
+		if err != nil {
+			dbError(w, err)
+			return
+		}
+		write(w, 201, bucket)
+	})
+	admin.HandleFunc("PUT /api/buckets/{id}/credentials", func(w http.ResponseWriter, r *http.Request) {
+		var body struct {
+			AccessKeyID     string `json:"accessKeyId"`
+			SecretAccessKey string `json:"secretAccessKey"`
+		}
+		if !decode(w, r, &body) {
+			return
+		}
+		if err := deployment.ValidateBucketCredentials(body.AccessKeyID, body.SecretAccessKey); err != nil {
+			problem(w, 400, err.Error())
+			return
+		}
+		bucket, err := a.Store.RotateBucketCredentials(r.Context(), r.PathValue("id"), body.AccessKeyID, body.SecretAccessKey)
+		if err != nil {
+			dbError(w, err)
+			return
+		}
+		write(w, 200, bucket)
+	})
+	admin.HandleFunc("PUT /api/buckets/{id}/bindings/{service}", func(w http.ResponseWriter, r *http.Request) {
+		var body struct {
+			VariablePrefix string `json:"variablePrefix"`
+		}
+		if !decode(w, r, &body) {
+			return
+		}
+		if err := a.Store.BindBucket(r.Context(), r.PathValue("id"), r.PathValue("service"), body.VariablePrefix); err != nil {
+			problem(w, 400, err.Error())
+			return
+		}
+		write(w, 200, map[string]bool{"ok": true})
+	})
+	admin.HandleFunc("DELETE /api/buckets/{id}/bindings/{service}", func(w http.ResponseWriter, r *http.Request) {
+		if err := a.Store.UnbindBucket(r.Context(), r.PathValue("id"), r.PathValue("service")); err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				dbError(w, err)
+			} else {
+				problem(w, 400, err.Error())
+			}
+			return
+		}
+		write(w, 200, map[string]bool{"ok": true})
+	})
 	admin.HandleFunc("POST /api/services/{id}/bindings", func(w http.ResponseWriter, r *http.Request) {
 		var b struct {
 			Target string `json:"targetServiceId"`

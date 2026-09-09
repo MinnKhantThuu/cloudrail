@@ -37,6 +37,30 @@ type Volume struct {
 	ManagedByTemplate bool      `json:"managedByTemplate"`
 	CreatedAt         time.Time `json:"createdAt"`
 }
+type Bucket struct {
+	ID                string    `json:"id"`
+	ProjectID         string    `json:"projectId"`
+	Environment       string    `json:"environment"`
+	Name              string    `json:"name"`
+	Provider          string    `json:"provider"`
+	Endpoint          string    `json:"endpoint"`
+	Region            string    `json:"region"`
+	BucketName        string    `json:"bucketName"`
+	ForcePathStyle    bool      `json:"forcePathStyle"`
+	CredentialVersion int       `json:"credentialVersion"`
+	CreatedAt         time.Time `json:"createdAt"`
+	UpdatedAt         time.Time `json:"updatedAt"`
+}
+type BucketSpec struct {
+	Name            string `json:"name"`
+	Environment     string `json:"environment"`
+	Endpoint        string `json:"endpoint"`
+	Region          string `json:"region"`
+	BucketName      string `json:"bucketName"`
+	AccessKeyID     string `json:"accessKeyId"`
+	SecretAccessKey string `json:"secretAccessKey"`
+	ForcePathStyle  bool   `json:"forcePathStyle"`
+}
 type Service struct {
 	URL             string     `json:"url"`
 	Settings        Settings   `json:"settings"`
