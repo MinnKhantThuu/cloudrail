@@ -13,7 +13,7 @@ This guide describes the current single-owner alpha. Start the [local quickstart
 | Web service | An application with a public route | web / api |
 | Worker service | A long-running process without a public route | queue consumer |
 | Cron service | A command run on a five-field UTC schedule | nightly cleanup |
-| Data service | Private PostgreSQL or Redis with persistent data | database/cache |
+| Data service | Private PostgreSQL, Redis or MySQL with persistent data | database/cache |
 | Bucket | Existing S3-compatible object storage connected to applications | uploads/backups |
 | Build | Exact source commit converted to an image | GitHub SHA → digest |
 | Deployment | One attempt to run an image with a saved configuration | api release 4 |
@@ -124,6 +124,15 @@ The password stays hidden and the database hostname is usable only inside the pr
 4. Redeploy the application so its next deployment receives the private reference.
 
 The canvas shows the Redis service, its volume and the application reference. The secret value never appears in the template catalog, service response or variable-name screen. Redis uses append-only persistence and returns after an agent restart.
+
+## Add MySQL and connect an application
+
+1. Select **New resource → MySQL** in the same project/environment as the application.
+2. Cloudrail pins MySQL 8.4.7, generates separate app/root credentials, attaches `/var/lib/mysql` and deploys it on the private network.
+3. Open **Settings → Connect an application**, select the web application and keep `MYSQL_URL` as the connection variable.
+4. Redeploy the application to receive the private connection string.
+
+MySQL logical backups can run while the database is active. Restore requires a fresh empty MySQL 8.4.7 target; Cloudrail rejects a nonempty target before importing the dump. Major/minor upgrades need a separately tested migration.
 
 ## Connect an S3-compatible bucket
 

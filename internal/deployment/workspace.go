@@ -193,11 +193,11 @@ func (s *Store) EnqueueAction(ctx context.Context, id, kind string, backup ...st
 	}
 	if kind == "backup" || kind == "restore" {
 		var valid bool
-		if err = tx.QueryRow(ctx, `SELECT (settings->>'kind'='postgres' AND desired_state='running') OR (settings->>'kind' IN ('http','redis') AND settings->>'volumeName'<>'' AND desired_state='stopped') FROM services WHERE id=$1`, id).Scan(&valid); err != nil {
+		if err = tx.QueryRow(ctx, `SELECT (settings->>'kind' IN ('postgres','mysql') AND desired_state='running') OR (settings->>'kind' IN ('http','redis') AND settings->>'volumeName'<>'' AND desired_state='stopped') FROM services WHERE id=$1`, id).Scan(&valid); err != nil {
 			return a, err
 		}
 		if !valid {
-			return a, errors.New("backup/restore require running PostgreSQL or a stopped Redis/application volume")
+			return a, errors.New("backup/restore require running PostgreSQL/MySQL or a stopped Redis/application volume")
 		}
 	}
 	if kind == "restore" {

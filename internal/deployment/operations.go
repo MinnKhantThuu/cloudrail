@@ -45,9 +45,11 @@ func (c Settings) Validate() error {
 	min := 64
 	if c.Kind == "postgres" {
 		min = 256
+	} else if c.Kind == "mysql" {
+		min = 512
 	}
 	if c.MemoryMB < min || c.MemoryMB > 4096 || c.CPUMillis < 100 || c.CPUMillis > 4000 {
-		return errors.New("use 64–4096 MB (256+ for PostgreSQL) and 0.1–4 CPUs")
+		return errors.New("use 64–4096 MB (256+ for PostgreSQL, 512+ for MySQL) and 0.1–4 CPUs")
 	}
 	if c.MountPath != "" {
 		if !strings.HasPrefix(c.MountPath, "/") || path.Clean(c.MountPath) != c.MountPath || c.MountPath == "/" || strings.ContainsAny(c.MountPath, "\x00\r\n\\:") {
@@ -286,6 +288,9 @@ func (s *Store) BindDatabase(ctx context.Context, database, target, name string)
 	case "redis":
 		connection = vars["REDIS_URL"]
 		targetVariable = "REDIS_URL"
+	case "mysql":
+		connection = vars["MYSQL_URL"]
+		targetVariable = "MYSQL_URL"
 	}
 	if connection == "" {
 		return errors.New("database credentials unavailable")

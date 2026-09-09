@@ -107,7 +107,7 @@ func TestCanvasGraphAndPersistedLayout(t *testing.T) {
 		t.Fatalf("invalid runtime settings accepted: %d %s", w.Code, w.Body.String())
 	}
 	w = request(http.MethodGet, "/api/templates", nil)
-	if w.Code != http.StatusOK || !bytes.Contains(w.Body.Bytes(), []byte(`"key":"redis"`)) || bytes.Contains(w.Body.Bytes(), []byte("REDIS_PASSWORD")) {
+	if w.Code != http.StatusOK || !bytes.Contains(w.Body.Bytes(), []byte(`"key":"redis"`)) || !bytes.Contains(w.Body.Bytes(), []byte(`"key":"mysql"`)) || bytes.Contains(w.Body.Bytes(), []byte("REDIS_PASSWORD")) || bytes.Contains(w.Body.Bytes(), []byte("MYSQL_PASSWORD")) {
 		t.Fatalf("safe template catalog response: %d %s", w.Code, w.Body.String())
 	}
 	w = request(http.MethodPost, "/api/projects/"+project.ID+"/databases", map[string]string{"name": "cache", "environment": "production", "template": "redis"})
@@ -128,6 +128,22 @@ func TestCanvasGraphAndPersistedLayout(t *testing.T) {
 	w = request(http.MethodPost, "/api/services/"+redis.ID+"/bindings", map[string]string{"targetServiceId": application.ID, "variableName": "REDIS_URL"})
 	if w.Code != http.StatusOK {
 		t.Fatalf("redis binding response: %d %s", w.Code, w.Body.String())
+	}
+	w = request(http.MethodPost, "/api/projects/"+project.ID+"/databases", map[string]string{"name": "mysql", "environment": "production", "template": "mysql"})
+	if w.Code != http.StatusCreated || bytes.Contains(w.Body.Bytes(), []byte("MYSQL_PASSWORD")) || bytes.Contains(w.Body.Bytes(), []byte("mysql://app:")) {
+		t.Fatalf("safe MySQL create response: %d %s", w.Code, w.Body.String())
+	}
+	var mysql deployment.Service
+	if err = json.Unmarshal(w.Body.Bytes(), &mysql); err != nil || mysql.Template != "mysql" || mysql.TemplateVersion != "8.4.7" || mysql.Settings.Kind != "mysql" || mysql.Settings.MountPath != "/var/lib/mysql" || mysql.Settings.MemoryMB != 512 {
+		t.Fatalf("MySQL service contract is wrong: %#v %v", mysql, err)
+	}
+	w = request(http.MethodGet, "/api/services/"+mysql.ID+"/variables", nil)
+	if w.Code != http.StatusOK || !bytes.Contains(w.Body.Bytes(), []byte("MYSQL_URL")) || bytes.Contains(w.Body.Bytes(), []byte("mysql://")) {
+		t.Fatalf("MySQL variable names contract is wrong: %d %s", w.Code, w.Body.String())
+	}
+	w = request(http.MethodPost, "/api/services/"+mysql.ID+"/bindings", map[string]string{"targetServiceId": application.ID, "variableName": "MYSQL_URL"})
+	if w.Code != http.StatusOK {
+		t.Fatalf("MySQL binding response: %d %s", w.Code, w.Body.String())
 	}
 	var redisDeployment string
 	if err = store.DB.QueryRow(ctx, `SELECT id FROM deployments WHERE service_id=$1`, redis.ID).Scan(&redisDeployment); err != nil {
@@ -304,13 +320,13 @@ func TestCanvasGraphAndPersistedLayout(t *testing.T) {
 	if err = json.Unmarshal(w.Body.Bytes(), &graph); err != nil {
 		t.Fatal(err)
 	}
-	if len(graph.Resources) != 10 {
-		t.Fatalf("expected app, worker, cron, two databases, four volumes and a bucket; got %#v", graph.Resources)
+	if len(graph.Resources) != 12 {
+		t.Fatalf("expected app, worker, cron, three databases, five volumes and a bucket; got %#v", graph.Resources)
 	}
-	if len(graph.Links) != 7 {
-		t.Fatalf("expected four attachments, two database references and a bucket binding; got %#v", graph.Links)
+	if len(graph.Links) != 9 {
+		t.Fatalf("expected five attachments, three database references and a bucket binding; got %#v", graph.Links)
 	}
-	var appResource, databaseResource, redisResource *deployment.CanvasResource
+	var appResource, databaseResource, redisResource, mysqlResource *deployment.CanvasResource
 	for index := range graph.Resources {
 		resource := &graph.Resources[index]
 		switch resource.ID {
@@ -320,6 +336,8 @@ func TestCanvasGraphAndPersistedLayout(t *testing.T) {
 			databaseResource = resource
 		case redis.ID:
 			redisResource = resource
+		case mysql.ID:
+			mysqlResource = resource
 		}
 	}
 	if appResource == nil || appResource.Kind != "service" || appResource.WorkloadMode != "web" || appResource.SourceType != "empty" {
@@ -330,6 +348,9 @@ func TestCanvasGraphAndPersistedLayout(t *testing.T) {
 	}
 	if redisResource == nil || redisResource.Kind != "database" || redisResource.Template != "redis" || redisResource.TemplateVersion != "8.2.2" || redisResource.PrivateAddress != "db-"+redis.ID+":6379" {
 		t.Fatalf("redis projection is wrong: %#v", redisResource)
+	}
+	if mysqlResource == nil || mysqlResource.Kind != "database" || mysqlResource.Template != "mysql" || mysqlResource.TemplateVersion != "8.4.7" || mysqlResource.PrivateAddress != "db-"+mysql.ID+":3306" {
+		t.Fatalf("MySQL projection is wrong: %#v", mysqlResource)
 	}
 	var bucketResource *deployment.CanvasResource
 	for index := range graph.Resources {

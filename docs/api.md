@@ -55,7 +55,7 @@ States: `queued → pulling → starting → checking → routing → active`; f
 | PUT | `/api/services/:id/settings` | `{memoryMB,cpuMillis,mountPath}` for future deployments |
 | PUT | `/api/services/:id/domain` | `{host}`; public mode checks DNS against server IPv4 |
 | GET | `/api/services/:id/metrics` | Active container observations; missing values mean unknown |
-| POST | `/api/projects/:id/databases` | `{name,environment}` → private PostgreSQL with queued first deployment |
+| POST | `/api/projects/:id/databases` | `{name,environment,template?}` → private PostgreSQL, Redis or MySQL with queued first deployment |
 | POST | `/api/services/:databaseId/bindings` | `{targetServiceId,variableName}`; private connection variable in the same project/environment |
 | GET | `/api/backups` | Latest 100 IDs, service IDs, byte sizes, checksums and dates |
 | GET | `/api/backups/:id/download` | Authenticated download: PostgreSQL `.dump`, volume `.tar` |

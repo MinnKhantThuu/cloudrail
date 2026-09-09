@@ -6,6 +6,7 @@ import (
 )
 
 const RedisImage = "redis@sha256:59b6e694653476de2c992937ebe1c64182af4728e54bb49e9b7a6c26614d8933"
+const MySQLImage = "mysql@sha256:0426ec38c7a10aa45ba383887df7878f74ee70e2fd589c7b69207f3577901903"
 
 type DataTemplate struct {
 	Key         string `json:"key"`
@@ -34,6 +35,12 @@ var dataTemplateCatalog = []dataTemplateDefinition{
 		host := "db-" + serviceID
 		return map[string]string{"REDISHOST": host, "REDISUSER": "default", "REDISPORT": "6379", "REDIS_PASSWORD": password, "REDIS_URL": fmt.Sprintf("redis://default:%s@%s:6379/0", password, host)}
 	}},
+	{DataTemplate: DataTemplate{Key: "mysql", Version: "8.4.7", Name: "MySQL", Description: "Relational database with persistent InnoDB storage", Port: 3306, MountPath: "/var/lib/mysql", MemoryMB: 512}, Image: MySQLImage, Kind: "mysql", Variables: func(serviceID string) map[string]string {
+		password := ID() + ID()
+		rootPassword := ID() + ID()
+		host := "db-" + serviceID
+		return map[string]string{"MYSQL_ROOT_PASSWORD": rootPassword, "MYSQL_DATABASE": "app", "MYSQL_USER": "app", "MYSQL_PASSWORD": password, "MYSQL_URL": fmt.Sprintf("mysql://app:%s@%s:3306/app", password, host)}
+	}},
 }
 
 func DataTemplates() []DataTemplate {
@@ -58,4 +65,4 @@ func dataTemplate(key, version string) (dataTemplateDefinition, error) {
 	return dataTemplateDefinition{}, errors.New("unknown or unsupported data template version")
 }
 
-func IsDataKind(kind string) bool { return kind == "postgres" || kind == "redis" }
+func IsDataKind(kind string) bool { return kind == "postgres" || kind == "redis" || kind == "mysql" }

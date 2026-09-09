@@ -197,6 +197,8 @@ func (c *Client) Ensure(ctx context.Context, d deployment.Deployment) error {
 			body["Healthcheck"] = map[string]any{"Test": []string{"CMD", "pg_isready", "-h", "127.0.0.1", "-U", "app", "-d", "app"}, "Interval": int64(2 * time.Second), "Timeout": int64(time.Second), "Retries": 30}
 		} else if d.Settings.Kind == "redis" {
 			body["Healthcheck"] = map[string]any{"Test": []string{"CMD-SHELL", `REDISCLI_AUTH="$REDIS_PASSWORD" redis-cli ping | grep -q PONG`}, "Interval": int64(2 * time.Second), "Timeout": int64(time.Second), "Retries": 30}
+		} else if d.Settings.Kind == "mysql" {
+			body["Healthcheck"] = map[string]any{"Test": []string{"CMD-SHELL", `MYSQL_PWD="$MYSQL_PASSWORD" mysqladmin ping -h 127.0.0.1 -u"$MYSQL_USER" --silent`}, "Interval": int64(2 * time.Second), "Timeout": int64(time.Second), "Retries": 60}
 		}
 
 		resp, err = c.request(ctx, "POST", "/containers/create?name="+name, body)

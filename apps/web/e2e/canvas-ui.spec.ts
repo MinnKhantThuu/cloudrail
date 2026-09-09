@@ -67,9 +67,14 @@ async function mockWorkspace(page: import('@playwright/test').Page, savedLayouts
     if (url.pathname === '/api/projects/project-1/databases' && request.method() === 'POST') {
       const body = request.postDataJSON() as {name:string;environment:string;template:string};
       savedCreates.push(body);
-      const service = { id: 'redis-1', projectId: 'project-1', name: body.name, environment: body.environment, host: '', url: '', activeId: '', desiredState: 'running', resourceKind: 'database', workloadMode: 'web', template: body.template, templateVersion: '8.2.2', createdAt: '2026-09-09T00:00:00Z', settings: { kind: 'redis', memoryMB: 128, cpuMillis: 1000, mountPath: '/data', volumeName: 'redis-data', network: 'cloudrail' } };
+      const mysql = body.template === 'mysql';
+      const id = mysql ? 'mysql-1' : 'redis-1';
+      const version = mysql ? '8.4.7' : '8.2.2';
+      const port = mysql ? 3306 : 6379;
+      const mountPath = mysql ? '/var/lib/mysql' : '/data';
+      const service = { id, projectId: 'project-1', name: body.name, environment: body.environment, host: '', url: '', activeId: '', desiredState: 'running', resourceKind: 'database', workloadMode: 'web', template: body.template, templateVersion: version, createdAt: '2026-09-09T00:00:00Z', settings: { kind: body.template, memoryMB: mysql ? 512 : 128, cpuMillis: 1000, mountPath, volumeName: id + '-data', network: 'cloudrail' } };
       workspaceState.services.push(service);
-      canvas.resources.push({ key: 'service:redis-1', id: 'redis-1', kind: 'database', name: body.name, status: 'queued', workloadMode: 'web', sourceType: 'template', template: 'redis', templateVersion: '8.2.2', privateAddress: 'db-redis-1:6379', position: { x: 890, y: 340 } });
+      canvas.resources.push({ key: 'service:' + id, id, kind: 'database', name: body.name, status: 'queued', workloadMode: 'web', sourceType: 'template', template: body.template, templateVersion: version, privateAddress: `db-${id}:${port}`, position: { x: mysql ? 1120 : 890, y: 340 } });
       return route.fulfill({ status: 201, json: service });
     }
     if (url.pathname === '/api/projects/project-1/volumes' && request.method() === 'POST') {
@@ -187,6 +192,22 @@ test('canvas exposes resources, connections, creation and saved layout', async (
   await expect(page.getByText('Stop this resource before backing up or restoring its volume.')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Create backup', exact: true })).toBeDisabled();
   expect(savedCreates).toEqual([{ name: 'session-cache', environment: 'production', template: 'redis' }]);
+  await page.getByLabel('Close service details').click();
+
+  await page.keyboard.press('Control+K');
+  const mysqlOption = page.getByRole('dialog', { name: 'Add to your canvas' }).getByRole('button', { name: /MySQL/ });
+  await expect(mysqlOption).toBeEnabled();
+  await mysqlOption.click();
+  const mysqlDialog = page.getByRole('dialog', { name: 'MySQL' });
+  await expect(mysqlDialog.getByText('MySQL database')).toBeVisible();
+  await mysqlDialog.getByLabel('Resource name').fill('orders-db');
+  await mysqlDialog.getByRole('button', { name: 'Create resource', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'orders-db resource' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'orders-db details' })).toContainText('Private MySQL · db-mysql-1:3306');
+  await page.getByRole('tab', { name: 'Settings' }).click();
+  await expect(page.getByLabel('Connection variable name')).toHaveValue('MYSQL_URL');
+  await expect(page.getByText('MySQL logical backups run while the database is running.')).toBeVisible();
+  expect(savedCreates.at(-1)).toEqual({ name: 'orders-db', environment: 'production', template: 'mysql' });
   await page.getByLabel('Close service details').click();
 
   await page.keyboard.press('Control+K');

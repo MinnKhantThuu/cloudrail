@@ -65,6 +65,8 @@ func (r *Runner) RunBackup(ctx context.Context, w deployment.Work, c *Client) er
 				defer os.Remove(file + ".tmp")
 				if w.Deployment.Settings.Kind == "postgres" {
 					e = runtime.Exec(ctx, w.Deployment.ID, []string{"pg_dump", "-U", "app", "-d", "app", "-Fc", "--no-owner", "--no-privileges"}, f)
+				} else if w.Deployment.Settings.Kind == "mysql" {
+					e = runtime.Exec(ctx, w.Deployment.ID, []string{"sh", "-lc", `MYSQL_PWD="$MYSQL_PASSWORD" exec mysqldump --single-transaction --routines --triggers --events --no-tablespaces -u"$MYSQL_USER" "$MYSQL_DATABASE"`}, f)
 				} else {
 					e = runtime.ExportVolume(ctx, w.Deployment, f)
 				}
@@ -157,6 +159,23 @@ func (r *Runner) RunBackup(ctx context.Context, w deployment.Work, c *Client) er
 			}
 			stop = false
 			return runtime.RestoreRedisVolume(ctx, w.Deployment, file, meta.MountPath)
+		}
+		if meta.Kind == "mysql" {
+			if meta.TemplateVersion == "" || meta.TemplateVersion != w.Service.TemplateVersion {
+				return errors.New("MySQL backup and target template versions do not match")
+			}
+			var existing bytes.Buffer
+			if e = runtime.Exec(ctx, w.Deployment.ID, []string{"sh", "-lc", `MYSQL_PWD="$MYSQL_PASSWORD" mysql -Nse "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='$MYSQL_DATABASE'"`}, &existing); e != nil {
+				return e
+			}
+			if strings.TrimSpace(existing.String()) != "0" {
+				return errors.New("restore requires an empty target MySQL database; existing tables were preserved")
+			}
+			if e = runtime.PutRestore(ctx, w.Deployment.ID, file); e != nil {
+				return e
+			}
+			defer runtime.Exec(ctx, w.Deployment.ID, []string{"rm", "-f", "/tmp/cloudrail-restore.dump"}, io.Discard)
+			return runtime.Exec(ctx, w.Deployment.ID, []string{"sh", "-lc", `MYSQL_PWD="$MYSQL_PASSWORD" exec mysql -u"$MYSQL_USER" "$MYSQL_DATABASE" < /tmp/cloudrail-restore.dump`}, io.Discard)
 		}
 		var existing bytes.Buffer
 		if e = runtime.Exec(ctx, w.Deployment.ID, []string{"psql", "-U", "app", "-d", "app", "-Atc", "SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname NOT IN ('pg_catalog','information_schema') AND n.nspname NOT LIKE 'pg_toast%' AND c.relkind IN ('r','p','m','S','v')"}, &existing); e != nil {

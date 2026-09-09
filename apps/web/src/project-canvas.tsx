@@ -21,7 +21,7 @@ import {
 
 type Request = <T,>(path: string, body?: unknown, method?: string) => Promise<T>;
 
-export type CreateIntent = 'github' | 'image' | 'empty' | 'worker' | 'cron' | 'postgres' | 'redis' | 'volume' | 'bucket';
+export type CreateIntent = 'github' | 'image' | 'empty' | 'worker' | 'cron' | 'postgres' | 'redis' | 'mysql' | 'volume' | 'bucket';
 
 type Position = { x: number; y: number };
 export type CanvasResource = {
@@ -122,7 +122,7 @@ function CreatePalette({ open, close, create }: { open: boolean; close: () => vo
       <div className="create-option-grid">
         <CreateOption icon={<Database size={18} />} title="PostgreSQL" description="Private database with persistent storage" onClick={() => create('postgres')} />
         <CreateOption icon={<Database size={18} />} title="Redis" description="Persistent cache, queue and key-value data" onClick={() => create('redis')} />
-        <CreateOption icon={<Database size={18} />} title="MySQL" description="Persistent relational database" phase="UX-4" />
+        <CreateOption icon={<Database size={18} />} title="MySQL" description="Persistent relational database" onClick={() => create('mysql')} />
         <CreateOption icon={<Database size={18} />} title="MongoDB" description="Persistent document database" phase="UX-4" />
       </div>
       <h3>Storage</h3>

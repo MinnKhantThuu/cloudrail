@@ -43,6 +43,7 @@ Project ဖန်တီး
 | Cron service | UTC schedule နဲ့ command တစ်ကြိမ်စီ run မယ့် job |
 | PostgreSQL service | Private network ထဲမှာသုံးတဲ့ database |
 | Redis service | Cache၊ queue နဲ့ key-value data အတွက် private data service |
+| MySQL service | Persistent relational database template |
 | Bucket | ရှိပြီးသား S3-compatible object storage ကို application နဲ့ချိတ်ရန် |
 | Build | Source commit တစ်ခုကနေ image ထုတ်ခြင်း |
 | Deployment | Image တစ်ခုကို configuration snapshot နဲ့ run ဖို့ကြိုးစားမှု |
@@ -108,6 +109,15 @@ PostgreSQL ရဲ့ **Settings → Create backup** ကနေ dump ထုတ်�
 4. Application ကို redeploy လုပ်ရင် private Redis connection ကိုရပါပြီ။ Secret တန်ဖိုးကို UI/API က ပြန်မပြပါဘူး။
 
 Redis data က container stop နဲ့ agent restart ပြီးလည်း volume ထဲမှာဆက်ရှိပါတယ်။ Backup/restore လုပ်မယ်ဆို Redis ကိုအရင် Stop လုပ်ပါ။ Version တူတဲ့ Redis target ဗလာထဲပဲ restore ဝင်ပြီး key ရှိပြီးသား target ကို data မဖျက်ဘဲ reject လုပ်ပါတယ်။
+
+### MySQL ထည့်ပြီး application နဲ့ချိတ်ရန်
+
+1. Application ရှိတဲ့ project/environment ထဲမှာ **New resource → MySQL** ကိုရွေးပါ။
+2. Cloudrail က MySQL 8.4.7 ကို pin လုပ်ပြီး app/root credentials ထုတ်ကာ `/var/lib/mysql` volume နဲ့ private network ပေါ်တင်ပေးပါတယ်။
+3. **Settings → Connect an application** မှာ web application ကိုရွေးပြီး variable ကို `MYSQL_URL` အတိုင်းထားပါ။
+4. Application ကို redeploy လုပ်ရင် private MySQL connection string ရပါမယ်။
+
+MySQL logical backup ကို database run နေချိန်ယူနိုင်ပါတယ်။ Restore က version တူတဲ့ MySQL target အသစ်အလွတ်ထဲပဲဝင်ပြီး table ရှိပြီးသား target ကို data မပြောင်းဘဲ reject လုပ်ပါတယ်။
 
 ### S3-compatible bucket ချိတ်ရန်
 
