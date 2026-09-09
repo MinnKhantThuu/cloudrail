@@ -11,7 +11,7 @@ import (
 	"os"
 )
 
-func copyDockerOutput(dst io.Writer, src io.Reader) error {
+func copyDockerOutput(stdout, stderr io.Writer, src io.Reader) error {
 	var header [8]byte
 	for {
 		_, e := io.ReadFull(src, header[:])
@@ -27,7 +27,9 @@ func copyDockerOutput(dst io.Writer, src io.Reader) error {
 		}
 		out := io.Discard
 		if header[0] == 1 {
-			out = dst
+			out = stdout
+		} else if header[0] == 2 {
+			out = stderr
 		}
 		if _, e = io.CopyN(out, src, int64(n)); e != nil {
 			return e

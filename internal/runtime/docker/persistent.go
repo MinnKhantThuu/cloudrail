@@ -1,6 +1,7 @@
 package docker
 
 import (
+	"bytes"
 	"cloudrail/internal/deployment"
 	"context"
 	"encoding/json"
@@ -8,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"net/url"
+	"strings"
 	"time"
 )
 
@@ -124,7 +126,8 @@ func (c *Client) Exec(ctx context.Context, id string, args []string, stdout io.W
 	if r.StatusCode != 200 {
 		return responseError(r)
 	}
-	e = copyDockerOutput(stdout, r.Body)
+	var stderr bytes.Buffer
+	e = copyDockerOutput(stdout, &stderr, r.Body)
 	r.Body.Close()
 	if e != nil {
 		return e
@@ -142,6 +145,13 @@ func (c *Client) Exec(ctx context.Context, id string, args []string, stdout io.W
 		return e
 	}
 	if status.Running || status.ExitCode != 0 {
+		message := strings.TrimSpace(stderr.String())
+		if len(message) > 512 {
+			message = message[:512]
+		}
+		if message != "" {
+			return fmt.Errorf("database command failed (exit %d): %s", status.ExitCode, message)
+		}
 		return fmt.Errorf("database command failed (exit %d)", status.ExitCode)
 	}
 	return nil

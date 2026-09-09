@@ -1,13 +1,36 @@
 package docker
 
 import (
+	"bytes"
 	"cloudrail/internal/deployment"
 	"context"
+	"encoding/binary"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
 )
+
+func TestDockerOutputKeepsStderrOutOfDatabaseDump(t *testing.T) {
+	var frames bytes.Buffer
+	for _, frame := range []struct {
+		stream byte
+		body   string
+	}{{1, "CREATE TABLE proof(id INT);\n"}, {2, "warning from database client\n"}} {
+		header := make([]byte, 8)
+		header[0] = frame.stream
+		binary.BigEndian.PutUint32(header[4:], uint32(len(frame.body)))
+		frames.Write(header)
+		frames.WriteString(frame.body)
+	}
+	var stdout, stderr bytes.Buffer
+	if err := copyDockerOutput(&stdout, &stderr, &frames); err != nil {
+		t.Fatal(err)
+	}
+	if stdout.String() != "CREATE TABLE proof(id INT);\n" || stderr.String() != "warning from database client\n" {
+		t.Fatalf("unexpected streams: stdout=%q stderr=%q", stdout.String(), stderr.String())
+	}
+}
 
 func TestRuntimeCommandAndRestartPolicy(t *testing.T) {
 	if got := commandOverride("node server.js"); len(got) != 1 || got[0] != "node server.js" {
