@@ -80,9 +80,11 @@ Stopped Redis services and stopped HTTP services with an attached volume can cre
 
 Hosted [CI run 34292131015](https://github.com/MinnKhantThuu/cloudrail/actions/runs/34292131015) passed all five jobs. Its real Redis proof restored a key into a fresh stopped target and rejected a second restore while preserving the existing key.
 
-## UX-4.4 S3-compatible bucket connection — pending hosted proof
+## UX-4.4 S3-compatible bucket connection — 2026-09-09
 
-The canvas can record an existing S3-compatible bucket, bind six prefixed variables to a same-environment HTTP application, rotate the encrypted credential across bindings and disconnect the managed variables/edge. Create and rotate responses contain safe metadata only. Local API integration, frontend production build and mocked desktop/mobile Chrome checks are required before push; the hosted MinIO-compatible upload/download, rotation and disconnect proof is the completion gate.
+The canvas can record an existing S3-compatible bucket, bind six prefixed variables to a same-environment HTTP application, rotate the encrypted credential across bindings and disconnect the managed variables/edge. Create and rotate responses contain safe metadata only. Local isolated-schema API integration, frontend production build and mocked desktop/mobile Chrome tests passed, and the bucket settings screenshot was inspected.
+
+Hosted [CI run 34294856835](https://github.com/MinnKhantThuu/cloudrail/actions/runs/34294856835) passed all five jobs. Its runtime job used the bound variables from a deployed worker to upload/download an object through MinIO, restarted the provider with replacement credentials and proved the old login failed, rotated Cloudrail's encrypted credential, redeployed and read the retained object, then disconnected/redeployed and verified the managed environment plus canvas edge were gone. Cloudrail does not provision or delete provider buckets/objects. The public Linode remains on alpha.4.
 
 The final dependency scan found reachable advisories in pgx v5.7.6 and x/text v0.24.0. They were updated to **pgx v5.9.2** and **x/text v0.39.0**. `govulncheck v1.7.0` then reported zero affected code paths and zero vulnerabilities in imported packages; it still lists advisories elsewhere in required modules that the application does not call. This is not an external security audit or a container-image scan. [Go pgx advisory](https://pkg.go.dev/vuln/GO-2026-5004), [Go x/text advisory](https://pkg.go.dev/vuln/GO-2026-5970). `npm audit` reported zero known vulnerabilities in the locked frontend dependency tree.
 
