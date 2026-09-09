@@ -3,6 +3,7 @@
 import json
 import subprocess
 import time
+import urllib.error
 import urllib.request
 
 from test_client import Client
@@ -46,6 +47,19 @@ def public_get(host):
     request = urllib.request.Request('http://127.0.0.1:8088/', headers={'Host': host})
     with urllib.request.urlopen(request, timeout=10) as response:
         return response.status, response.headers.get('X-Cloudrail-Deployment')
+
+
+def wait_public(host, deployment_id, timeout=20):
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        try:
+            if public_get(host) == (200, deployment_id):
+                return
+        except urllib.error.HTTPError as error:
+            if error.code != 404:
+                raise
+        time.sleep(.25)
+    raise AssertionError(('Public HTTP route did not become ready', host, deployment_id))
 
 
 client = Client()
@@ -96,7 +110,7 @@ print('PASS: stable private DNS resolves only inside the owning environment', fl
 
 generated_host = service['host']
 wait_route(service['id'], True)
-assert public_get(generated_host) == (200, active['id'])
+wait_public(generated_host, active['id'])
 client.json('/api/services/' + service['id'] + '/networking', {
     'publicEnabled': False, 'targetPort': 80,
 }, method='PUT')
@@ -114,7 +128,7 @@ client.json('/api/services/' + service['id'] + '/networking', {
     'publicEnabled': True, 'targetPort': 80,
 }, method='PUT')
 wait_route(service['id'], True)
-assert public_get(custom_host) == (200, active['id'])
+wait_public(custom_host, active['id'])
 state_service = next(value for value in client.json('/api/state')['services'] if value['id'] == service['id'])
 assert state_service['url'].endswith(custom_host) and state_service['settings']['targetPort'] == 80
 assert state_service['settings']['privateHost'] == private_host
