@@ -1,8 +1,8 @@
 # Linode public pilot
 
-Status, 2026-09-08: preparation and public control-plane install complete on target `172.104.38.63`. The 4 GB Singapore Linode runs Ubuntu 24.04.4 x86-64 with 2 CPU and a 79 GiB root disk. A dedicated root SSH identity was authorized and verified against the console-published host fingerprint. Cloud Firewall allows TCP 22/80/443 with default inbound drop. Docker 29.8.0/API 1.56 and Compose 5.5.1 are installed.
+Status, 2026-09-09: preparation, public control-plane install and Railway-inspired canvas update are complete on target `172.104.38.63`. The 4 GB Singapore Linode runs Ubuntu 24.04.4 x86-64 with 2 CPU and a 79 GiB root disk. A dedicated root SSH identity was authorized and verified against the console-published host fingerprint. Cloud Firewall allows TCP 22/80/443 with default inbound drop. Docker 29.8.0/API 1.56 and Compose 5.5.1 are installed.
 
-Exact alpha.4 commit `302aec491fc33fd8a0ef5216b33856d899e5cb5f` passed installer preflight and is live at `https://console.172-104-38-63.sslip.io`. The dashboard returned HTTP/2 200 with a trusted Let's Encrypt YR1 certificate valid for that hostname. The owner was created over HTTPS and the secure session survived a host reboot. A public Railpack sample is active at `https://037b9c4141bba7f16d897963.apps.172-104-38-63.sslip.io`; an intentional failed Dockerfile build left that deployment serving. A verified 503 MiB cold backup restored successfully on a separate empty Linode and accepted a new deployment. GitHub App delivery, certificate renewal and the 48-hour observation remain pending.
+Exact alpha.4 commit `302aec491fc33fd8a0ef5216b33856d899e5cb5f` passed the original installer preflight. The guarded updater then moved the live checkout to verified main commit `c15158aaef06adc3eb1e76b3ed035991b3c5825a`, retaining the owner, session, database and active workload. The dashboard at `https://console.172-104-38-63.sslip.io` returned HTTP/2 200 with a trusted Let's Encrypt YR1 certificate and exposed the project canvas/resource palette in an authenticated browser. A public Railpack sample remains active at `https://037b9c4141bba7f16d897963.apps.172-104-38-63.sslip.io`; its response still carries deployment `00ce3a973726fcfac2e49c17`. A verified 503 MiB cold backup restored successfully on a separate empty Linode and accepted a new deployment. User UX acceptance, a new versioned release, GitHub App delivery, certificate renewal and the 48-hour observation remain pending.
 
 ## Access handoff
 
@@ -40,6 +40,8 @@ Both dashboard `A` and wildcard application `A` records must resolve directly to
 8. [ ] Rehearse update/recovery and observe at least 48 hours including a build/update; record resource use, transfer, availability and the actual Linode charge separately from estimates.
 
 ## Recorded workload and recovery evidence
+
+- The 2026-09-09 guarded update created recovery record `.data/updates/20260909T034313Z-6f1ade5a`, rebuilt the server and agent, and passed their health checks. The existing application container was not replaced. Authenticated public API verification returned one project, two services, one deployment, an online node and a two-resource production canvas. Browser verification showed `PROJECT CANVAS` plus ready GitHub repository, Docker image, empty service, background worker, cron, PostgreSQL, Redis, MySQL, MongoDB, volume and S3-compatible bucket choices.
 
 - Project `2433c1a853804a005d28db20`, service `037b9c4141bba7f16d897963` built the public `railwayapp-templates/expressjs` repository with Railpack and serves `{"body":"Hello world!"}` over HTTPS.
 - Active deployment `00ce3a973726fcfac2e49c17` remained in the response header after an intentional build using a missing Dockerfile failed.

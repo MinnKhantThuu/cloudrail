@@ -1,6 +1,12 @@
-# Current verification — 2026-09-08
+# Current verification — 2026-09-09
 
 This record separates implemented/local behavior from account-bound production checks. Historical Phase 1 evidence remains in [verification.md](verification.md). The canonical completion tracker is [ROADMAP.md](ROADMAP.md).
+
+## Public canvas update — 2026-09-09
+
+The public Linode was updated with the guarded maintenance workflow from the packaged alpha.4 checkout to verified main commit `c15158aaef06adc3eb1e76b3ed035991b3c5825a`. The update saved recovery record `.data/updates/20260909T034313Z-6f1ade5a`, rebuilt the control services and returned both server and agent healthy. It retained the owner/session data and the active application deployment `00ce3a973726fcfac2e49c17`.
+
+Fresh public checks returned HTTP/2 200 from the dashboard and sample application. Authenticated API checks returned one project, two services, one deployment, an online node and two resources on the production canvas. A real browser reload showed the pan/zoom project canvas and the complete create palette for GitHub, Docker, empty service, worker, cron, PostgreSQL, Redis, MySQL, MongoDB, volume and S3-compatible bucket resources. This is current public deployment evidence; user UX acceptance and a versioned post-alpha.4 release remain separate.
 
 ## Recorded local evidence
 
@@ -24,13 +30,13 @@ This record separates implemented/local behavior from account-bound production c
 
 UX-1 adds backward-compatible service classification, normalized volume/attachment records, future bucket records, service references, server-persisted canvas positions and an environment-scoped canvas graph API. Existing `001–005` application, PostgreSQL, source and volume records were migrated in an isolated legacy-schema test without loss. A separate authenticated API integration test created an application, PostgreSQL service, two volumes and a database binding, verified four resource nodes and three real links, persisted a layout and rejected an unknown resource key.
 
-Targeted tests and the full non-race Go integration suite plus `go vet ./...` passed against disposable PostgreSQL. A local full race attempt could not create its isolated schemas after the larger Debian Go image filled the Docker VM; this was an environment disk failure before assertions. Hosted [CI run 34278082750](https://github.com/MinnKhantThuu/cloudrail/actions/runs/34278082750) subsequently passed Go race/vet, frontend, runtime, migration-aware maintenance and independent-host recovery jobs at `92e7314`. No public Linode update has been made for UX-1/UX-2.
+Targeted tests and the full non-race Go integration suite plus `go vet ./...` passed against disposable PostgreSQL. A local full race attempt could not create its isolated schemas after the larger Debian Go image filled the Docker VM; this was an environment disk failure before assertions. Hosted [CI run 34278082750](https://github.com/MinnKhantThuu/cloudrail/actions/runs/34278082750) subsequently passed Go race/vet, frontend, runtime, migration-aware maintenance and independent-host recovery jobs at `92e7314`. This substep originally had no public-host evidence; the later public canvas update is recorded above.
 
 ## Railway-inspired canvas shell — 2026-09-09
 
 UX-2 replaces the default service card grid with the environment canvas graph. It supports pan, wheel/button zoom, fit, draggable nodes with server-persisted positions, URL-backed selection, real reference/attachment edges, resource drawers and one create palette opened from the header, canvas, right-click or `Cmd/Ctrl + K`. Existing application, PostgreSQL and volume resources are clickable. Data/storage types that are not implemented remain visibly disabled and labeled with their planned phase instead of acting as dead controls.
 
-`npm run build` passed. Two Chrome journeys against a mocked control API passed in 2.3 seconds: desktop resource/edge/drawer navigation, keyboard/context creation, layout save and refresh restoration; and a 390×844 full-screen volume drawer with no horizontal overflow. Desktop/mobile screenshots were inspected. Existing real-stack browser selectors were updated for the new canvas flow, but those journeys have not been rerun in this local phase. The public Linode still serves the alpha.4 dashboard; UX-2 is not remotely deployed or user-accepted yet.
+`npm run build` passed. Two Chrome journeys against a mocked control API passed in 2.3 seconds: desktop resource/edge/drawer navigation, keyboard/context creation, layout save and refresh restoration; and a 390×844 full-screen volume drawer with no horizontal overflow. Desktop/mobile screenshots were inspected. Existing real-stack browser selectors were updated for the new canvas flow, but those journeys were not rerun in this local phase. The later public update now serves this canvas; user acceptance remains pending.
 
 ## Generic compute creation — UX-3.1
 
@@ -66,13 +72,13 @@ Hosted [CI run 34286036519](https://github.com/MinnKhantThuu/cloudrail/actions/r
 
 The data-service path now reads from a versioned built-in template registry instead of a PostgreSQL-only branch. The public catalog exposes safe metadata only. Service records snapshot the template key/version, pin the tested image/port and reject ad hoc template image replacement. PostgreSQL 17.6 remains backward compatible; Redis 8.2.2 creates generated encrypted credentials, `/data` storage, append-only persistence, private network alias and `REDIS_URL` application references.
 
-Local isolated-schema API/migration tests and the production frontend build passed. Mocked Chrome desktop/mobile tests created Redis from the canvas and the resulting screenshot was inspected. Hosted [CI run 34288941666](https://github.com/MinnKhantThuu/cloudrail/actions/runs/34288941666) passed all five jobs. Its Redis acceptance verified the pinned container became healthy without a public port, catalog/create/variable APIs exposed no credential value, application binding and canvas link existed, the named volume was mounted and a written key survived an explicit container stop plus agent restart. The public Linode remains on alpha.4, so this is fresh CI runtime evidence rather than current public deployment proof.
+Local isolated-schema API/migration tests and the production frontend build passed. Mocked Chrome desktop/mobile tests created Redis from the canvas and the resulting screenshot was inspected. Hosted [CI run 34288941666](https://github.com/MinnKhantThuu/cloudrail/actions/runs/34288941666) passed all five jobs. Its Redis acceptance verified the pinned container became healthy without a public port, catalog/create/variable APIs exposed no credential value, application binding and canvas link existed, the named volume was mounted and a written key survived an explicit container stop plus agent restart. The public host now contains this code, but no public Redis workload was added; the real Redis runtime proof remains the recorded CI run.
 
 ## UX-4.2 first-class volumes — 2026-09-09
 
 Canvas volume nodes can be created, attached to compatible services at a validated absolute path and detached only while the service is stopped. The store enforces one volume per service, one writer per volume and template-volume ownership. A real-container acceptance wrote data through an attached application volume, redeployed the writer, verified the data survived, rejected unsafe detach and cross-writer cases, then moved a detached volume to a compatible target.
 
-Hosted [CI run 34290515948](https://github.com/MinnKhantThuu/cloudrail/actions/runs/34290515948) passed all five jobs. This is CI proof on a disposable runner; the public Linode remains on alpha.4.
+Hosted [CI run 34290515948](https://github.com/MinnKhantThuu/cloudrail/actions/runs/34290515948) passed all five jobs. This is volume-runtime proof on a disposable runner; the public host now contains the code but no public volume workload was added.
 
 ## UX-4.3 portable Redis and application-volume recovery — 2026-09-09
 
@@ -84,7 +90,7 @@ Hosted [CI run 34292131015](https://github.com/MinnKhantThuu/cloudrail/actions/r
 
 The canvas can record an existing S3-compatible bucket, bind six prefixed variables to a same-environment HTTP application, rotate the encrypted credential across bindings and disconnect the managed variables/edge. Create and rotate responses contain safe metadata only. Local isolated-schema API integration, frontend production build and mocked desktop/mobile Chrome tests passed, and the bucket settings screenshot was inspected.
 
-Hosted [CI run 34294856835](https://github.com/MinnKhantThuu/cloudrail/actions/runs/34294856835) passed all five jobs. Its runtime job used the bound variables from a deployed worker to upload/download an object through MinIO, restarted the provider with replacement credentials and proved the old login failed, rotated Cloudrail's encrypted credential, redeployed and read the retained object, then disconnected/redeployed and verified the managed environment plus canvas edge were gone. Cloudrail does not provision or delete provider buckets/objects. The public Linode remains on alpha.4.
+Hosted [CI run 34294856835](https://github.com/MinnKhantThuu/cloudrail/actions/runs/34294856835) passed all five jobs. Its runtime job used the bound variables from a deployed worker to upload/download an object through MinIO, restarted the provider with replacement credentials and proved the old login failed, rotated Cloudrail's encrypted credential, redeployed and read the retained object, then disconnected/redeployed and verified the managed environment plus canvas edge were gone. Cloudrail does not provision or delete provider buckets/objects. The public host now contains the bucket UI/API code, but no public bucket provider was connected.
 
 ## UX-4.5a MySQL template — verified 2026-09-09
 
