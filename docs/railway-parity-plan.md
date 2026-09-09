@@ -235,7 +235,7 @@ Substeps:
 - [x] **UX-4.4:** S3-compatible bucket resource, encrypted credentials and real application binding; MinIO upload/download, credential rotation/revocation and disconnect passed in CI run 34294856835။
 - [ ] **UX-4.5:** MySQL and MongoDB templates with persistence, backup and recovery proof။
   - [x] **UX-4.5a:** MySQL 8.4.7 template, private binding, persistence and logical backup/empty-target restore passed in CI run 34298629858।
-  - [ ] **UX-4.5b:** MongoDB template and recovery proof; selected next။
+  - [ ] **UX-4.5b:** MongoDB 8.0.29 template, private binding, persistence and logical backup/empty-target restore; implementation and local checks in progress, hosted runtime proof pending။
 
 Research basis: Railway treats databases as preconfigured container services with variables and attached persistent volumes, creates them from the project canvas, and keeps buckets as private S3-compatible resources. See the official [Databases](https://docs.railway.com/databases), [Redis](https://docs.railway.com/databases/redis), [Volumes](https://docs.railway.com/volumes/reference) and [Storage Buckets](https://docs.railway.com/storage-buckets) documentation.
 

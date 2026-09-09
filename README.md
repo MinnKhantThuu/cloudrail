@@ -18,11 +18,11 @@ An open-source, self-hosted deployment platform with a Railway-inspired workspac
 
 ## What is Cloudrail?
 
-Cloudrail turns a Linux Docker server into a workspace for deploying your applications. Group services into projects and environments, deploy a container image or build from GitHub, watch logs, and manage private PostgreSQL/Redis/MySQL data services and persistent storage from the dashboard.
+Cloudrail turns a Linux Docker server into a workspace for deploying your applications. Group services into projects and environments, deploy a container image or build from GitHub, watch logs, and manage private PostgreSQL/Redis/MySQL/MongoDB data services and persistent storage from the dashboard.
 
 Inspired by the developer experience of Railway and the self-hosting model of Coolify, Cloudrail uses original application code and UI. It is not affiliated with either project.
 
-**Status: early alpha (`0.1.0-alpha.4`).** Designed for **one owner, one Linux node and trusted repositories**. The Railway-inspired canvas supports GitHub/Docker/empty sources, web services, route-free workers, recoverable cron jobs, deployment commands, restart policies, versioned PostgreSQL/Redis/MySQL templates, first-class volumes, portable data backups and S3-compatible bucket connections. The public Linode still runs the alpha.4 dashboard and has not received this canvas yet. Public source availability does not mean production readiness. See the [product plan](docs/railway-parity-plan.md) and [verification](docs/verification-current.md).
+**Status: early alpha (`0.1.0-alpha.4`).** Designed for **one owner, one Linux node and trusted repositories**. The Railway-inspired canvas supports GitHub/Docker/empty sources, web services, route-free workers, recoverable cron jobs, deployment commands, restart policies, versioned PostgreSQL/Redis/MySQL templates, first-class volumes, portable data backups and S3-compatible bucket connections. MongoDB is implemented in UX-4.5b and awaiting hosted runtime proof. The public Linode still runs the alpha.4 dashboard and has not received this canvas yet. Public source availability does not mean production readiness. See the [product plan](docs/railway-parity-plan.md) and [verification](docs/verification-current.md).
 
 ## Features
 
@@ -34,7 +34,7 @@ Inspired by the developer experience of Railway and the self-hosting model of Co
 | Source builds | GitHub repository/branch configuration, Dockerfile and Railpack, build logs |
 | GitHub integration | Encrypted App credentials, signed push handlers and delivery deduplication |
 | Configuration | Encrypted runtime variables, CPU/RAM limits and custom hostname settings |
-| Persistent workloads | Named volumes, private PostgreSQL/Redis/MySQL services, S3-compatible buckets and hidden application connection bindings |
+| Persistent workloads | Named volumes, private PostgreSQL/Redis/MySQL services, pending-proof MongoDB, S3-compatible buckets and hidden application connection bindings |
 | Operations | Container logs, node heartbeat, observed metrics, backup downloads and empty-target restore |
 | Installation | Local Docker Compose, provider-neutral Ubuntu VPS installer, Linode pilot runbook and optional AWS Lightsail template |
 

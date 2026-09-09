@@ -107,7 +107,7 @@ func TestCanvasGraphAndPersistedLayout(t *testing.T) {
 		t.Fatalf("invalid runtime settings accepted: %d %s", w.Code, w.Body.String())
 	}
 	w = request(http.MethodGet, "/api/templates", nil)
-	if w.Code != http.StatusOK || !bytes.Contains(w.Body.Bytes(), []byte(`"key":"redis"`)) || !bytes.Contains(w.Body.Bytes(), []byte(`"key":"mysql"`)) || bytes.Contains(w.Body.Bytes(), []byte("REDIS_PASSWORD")) || bytes.Contains(w.Body.Bytes(), []byte("MYSQL_PASSWORD")) {
+	if w.Code != http.StatusOK || !bytes.Contains(w.Body.Bytes(), []byte(`"key":"redis"`)) || !bytes.Contains(w.Body.Bytes(), []byte(`"key":"mysql"`)) || !bytes.Contains(w.Body.Bytes(), []byte(`"key":"mongo"`)) || bytes.Contains(w.Body.Bytes(), []byte("REDIS_PASSWORD")) || bytes.Contains(w.Body.Bytes(), []byte("MYSQL_PASSWORD")) || bytes.Contains(w.Body.Bytes(), []byte("MONGO_INITDB_ROOT_PASSWORD")) {
 		t.Fatalf("safe template catalog response: %d %s", w.Code, w.Body.String())
 	}
 	w = request(http.MethodPost, "/api/projects/"+project.ID+"/databases", map[string]string{"name": "cache", "environment": "production", "template": "redis"})
@@ -144,6 +144,22 @@ func TestCanvasGraphAndPersistedLayout(t *testing.T) {
 	w = request(http.MethodPost, "/api/services/"+mysql.ID+"/bindings", map[string]string{"targetServiceId": application.ID, "variableName": "MYSQL_URL"})
 	if w.Code != http.StatusOK {
 		t.Fatalf("MySQL binding response: %d %s", w.Code, w.Body.String())
+	}
+	w = request(http.MethodPost, "/api/projects/"+project.ID+"/databases", map[string]string{"name": "documents", "environment": "production", "template": "mongo"})
+	if w.Code != http.StatusCreated || bytes.Contains(w.Body.Bytes(), []byte("MONGO_INITDB_ROOT_PASSWORD")) || bytes.Contains(w.Body.Bytes(), []byte("mongodb://root:")) {
+		t.Fatalf("safe MongoDB create response: %d %s", w.Code, w.Body.String())
+	}
+	var mongo deployment.Service
+	if err = json.Unmarshal(w.Body.Bytes(), &mongo); err != nil || mongo.Template != "mongo" || mongo.TemplateVersion != "8.0.29" || mongo.Settings.Kind != "mongo" || mongo.Settings.MountPath != "/data/db" || mongo.Settings.MemoryMB != 512 {
+		t.Fatalf("MongoDB service contract is wrong: %#v %v", mongo, err)
+	}
+	w = request(http.MethodGet, "/api/services/"+mongo.ID+"/variables", nil)
+	if w.Code != http.StatusOK || !bytes.Contains(w.Body.Bytes(), []byte("MONGO_URL")) || bytes.Contains(w.Body.Bytes(), []byte("mongodb://")) {
+		t.Fatalf("MongoDB variable names contract is wrong: %d %s", w.Code, w.Body.String())
+	}
+	w = request(http.MethodPost, "/api/services/"+mongo.ID+"/bindings", map[string]string{"targetServiceId": application.ID, "variableName": "MONGO_URL"})
+	if w.Code != http.StatusOK {
+		t.Fatalf("MongoDB binding response: %d %s", w.Code, w.Body.String())
 	}
 	var redisDeployment string
 	if err = store.DB.QueryRow(ctx, `SELECT id FROM deployments WHERE service_id=$1`, redis.ID).Scan(&redisDeployment); err != nil {
@@ -320,13 +336,13 @@ func TestCanvasGraphAndPersistedLayout(t *testing.T) {
 	if err = json.Unmarshal(w.Body.Bytes(), &graph); err != nil {
 		t.Fatal(err)
 	}
-	if len(graph.Resources) != 12 {
-		t.Fatalf("expected app, worker, cron, three databases, five volumes and a bucket; got %#v", graph.Resources)
+	if len(graph.Resources) != 14 {
+		t.Fatalf("expected app, worker, cron, four databases, six volumes and a bucket; got %#v", graph.Resources)
 	}
-	if len(graph.Links) != 9 {
-		t.Fatalf("expected five attachments, three database references and a bucket binding; got %#v", graph.Links)
+	if len(graph.Links) != 11 {
+		t.Fatalf("expected six attachments, four database references and a bucket binding; got %#v", graph.Links)
 	}
-	var appResource, databaseResource, redisResource, mysqlResource *deployment.CanvasResource
+	var appResource, databaseResource, redisResource, mysqlResource, mongoResource *deployment.CanvasResource
 	for index := range graph.Resources {
 		resource := &graph.Resources[index]
 		switch resource.ID {
@@ -338,6 +354,8 @@ func TestCanvasGraphAndPersistedLayout(t *testing.T) {
 			redisResource = resource
 		case mysql.ID:
 			mysqlResource = resource
+		case mongo.ID:
+			mongoResource = resource
 		}
 	}
 	if appResource == nil || appResource.Kind != "service" || appResource.WorkloadMode != "web" || appResource.SourceType != "empty" {
@@ -351,6 +369,9 @@ func TestCanvasGraphAndPersistedLayout(t *testing.T) {
 	}
 	if mysqlResource == nil || mysqlResource.Kind != "database" || mysqlResource.Template != "mysql" || mysqlResource.TemplateVersion != "8.4.7" || mysqlResource.PrivateAddress != "db-"+mysql.ID+":3306" {
 		t.Fatalf("MySQL projection is wrong: %#v", mysqlResource)
+	}
+	if mongoResource == nil || mongoResource.Kind != "database" || mongoResource.Template != "mongo" || mongoResource.TemplateVersion != "8.0.29" || mongoResource.PrivateAddress != "db-"+mongo.ID+":27017" {
+		t.Fatalf("MongoDB projection is wrong: %#v", mongoResource)
 	}
 	var bucketResource *deployment.CanvasResource
 	for index := range graph.Resources {

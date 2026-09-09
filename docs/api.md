@@ -44,7 +44,7 @@ Bucket responses expose endpoint, region, remote bucket name, path-style setting
 
 Compute `sourceType` is `github`, `image` or `empty`; `workloadMode` is `web`, `worker` or `cron`. These axes are stored separately, so a GitHub or image source can later run as any workload mode. The legacy `/services` route creates an empty web resource.
 
-States: `queued → pulling → starting → checking → routing → active`; failures/cancellation end in `failed`, retired releases become `superseded`. A running cancellation cleans its candidate and restores the prior route. At most 10 nonterminal deployments per service. Database deployments are restricted to the pinned PostgreSQL template.
+States: `queued → pulling → starting → checking → routing → active`; failures/cancellation end in `failed`, retired releases become `superseded`. A running cancellation cleans its candidate and restores the prior route. At most 10 nonterminal deployments per service. Data-service deployments come from the server's versioned, digest-pinned template catalog.
 
 ## Operations
 
@@ -55,12 +55,12 @@ States: `queued → pulling → starting → checking → routing → active`; f
 | PUT | `/api/services/:id/settings` | `{memoryMB,cpuMillis,mountPath}` for future deployments |
 | PUT | `/api/services/:id/domain` | `{host}`; public mode checks DNS against server IPv4 |
 | GET | `/api/services/:id/metrics` | Active container observations; missing values mean unknown |
-| POST | `/api/projects/:id/databases` | `{name,environment,template?}` → private PostgreSQL, Redis or MySQL with queued first deployment |
+| POST | `/api/projects/:id/databases` | `{name,environment,template?}` → private PostgreSQL, Redis, MySQL or MongoDB with queued first deployment |
 | POST | `/api/services/:databaseId/bindings` | `{targetServiceId,variableName}`; private connection variable in the same project/environment |
 | GET | `/api/backups` | Latest 100 IDs, service IDs, byte sizes, checksums and dates |
-| GET | `/api/backups/:id/download` | Authenticated download: PostgreSQL `.dump`, volume `.tar` |
+| GET | `/api/backups/:id/download` | Authenticated download: PostgreSQL `.dump`, MySQL `.sql`, MongoDB `.archive`, Redis/application volume `.tar` |
 
-Memory: 64–4096 MB (database minimum 256); CPU: 100–4000 millicores. Attached volume path/identity is immutable. Stateful replacement stops the previous writer first. Database credentials are managed. Restore requires an empty target; volume targets must also be stopped.
+Memory: 64–4096 MB (PostgreSQL minimum 256; MySQL/MongoDB minimum 512); CPU: 100–4000 millicores. Attached volume path/identity is immutable. Stateful replacement stops the previous writer first. Database credentials are managed. Restore requires an empty target; volume targets must also be stopped.
 
 ## Source builds
 

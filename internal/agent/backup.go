@@ -67,6 +67,8 @@ func (r *Runner) RunBackup(ctx context.Context, w deployment.Work, c *Client) er
 					e = runtime.Exec(ctx, w.Deployment.ID, []string{"pg_dump", "-U", "app", "-d", "app", "-Fc", "--no-owner", "--no-privileges"}, f)
 				} else if w.Deployment.Settings.Kind == "mysql" {
 					e = runtime.Exec(ctx, w.Deployment.ID, []string{"sh", "-lc", `MYSQL_PWD="$MYSQL_ROOT_PASSWORD" exec mysqldump --single-transaction --routines --triggers --events --no-tablespaces --set-gtid-purged=OFF -uroot "$MYSQL_DATABASE"`}, f)
+				} else if w.Deployment.Settings.Kind == "mongo" {
+					e = runtime.Exec(ctx, w.Deployment.ID, []string{"sh", "-lc", `exec mongodump --host 127.0.0.1 --port 27017 -u "$MONGO_INITDB_ROOT_USERNAME" -p "$MONGO_INITDB_ROOT_PASSWORD" --authenticationDatabase admin --db "$MONGO_INITDB_DATABASE" --archive`}, f)
 				} else {
 					e = runtime.ExportVolume(ctx, w.Deployment, f)
 				}
@@ -176,6 +178,23 @@ func (r *Runner) RunBackup(ctx context.Context, w deployment.Work, c *Client) er
 			}
 			defer runtime.Exec(ctx, w.Deployment.ID, []string{"rm", "-f", "/tmp/cloudrail-restore.dump"}, io.Discard)
 			return runtime.Exec(ctx, w.Deployment.ID, []string{"sh", "-lc", `MYSQL_PWD="$MYSQL_PASSWORD" exec mysql -u"$MYSQL_USER" "$MYSQL_DATABASE" < /tmp/cloudrail-restore.dump`}, io.Discard)
+		}
+		if meta.Kind == "mongo" {
+			if meta.TemplateVersion == "" || meta.TemplateVersion != w.Service.TemplateVersion {
+				return errors.New("MongoDB backup and target template versions do not match")
+			}
+			var existing bytes.Buffer
+			if e = runtime.Exec(ctx, w.Deployment.ID, []string{"sh", "-lc", `mongosh --quiet --host 127.0.0.1 --port 27017 -u "$MONGO_INITDB_ROOT_USERNAME" -p "$MONGO_INITDB_ROOT_PASSWORD" --authenticationDatabase admin "$MONGO_INITDB_DATABASE" --eval 'print(db.getCollectionNames().length)'`}, &existing); e != nil {
+				return e
+			}
+			if strings.TrimSpace(existing.String()) != "0" {
+				return errors.New("restore requires an empty target MongoDB database; existing collections were preserved")
+			}
+			if e = runtime.PutRestore(ctx, w.Deployment.ID, file); e != nil {
+				return e
+			}
+			defer runtime.Exec(ctx, w.Deployment.ID, []string{"rm", "-f", "/tmp/cloudrail-restore.dump"}, io.Discard)
+			return runtime.Exec(ctx, w.Deployment.ID, []string{"sh", "-lc", `exec mongorestore --host 127.0.0.1 --port 27017 -u "$MONGO_INITDB_ROOT_USERNAME" -p "$MONGO_INITDB_ROOT_PASSWORD" --authenticationDatabase admin --nsInclude "$MONGO_INITDB_DATABASE.*" --archive=/tmp/cloudrail-restore.dump --stopOnError`}, io.Discard)
 		}
 		var existing bytes.Buffer
 		if e = runtime.Exec(ctx, w.Deployment.ID, []string{"psql", "-U", "app", "-d", "app", "-Atc", "SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname NOT IN ('pg_catalog','information_schema') AND n.nspname NOT LIKE 'pg_toast%' AND c.relkind IN ('r','p','m','S','v')"}, &existing); e != nil {

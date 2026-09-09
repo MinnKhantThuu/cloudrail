@@ -44,6 +44,7 @@ Project ဖန်တီး
 | PostgreSQL service | Private network ထဲမှာသုံးတဲ့ database |
 | Redis service | Cache၊ queue နဲ့ key-value data အတွက် private data service |
 | MySQL service | Persistent relational database template |
+| MongoDB service | Persistent document database template |
 | Bucket | ရှိပြီးသား S3-compatible object storage ကို application နဲ့ချိတ်ရန် |
 | Build | Source commit တစ်ခုကနေ image ထုတ်ခြင်း |
 | Deployment | Image တစ်ခုကို configuration snapshot နဲ့ run ဖို့ကြိုးစားမှု |
@@ -118,6 +119,15 @@ Redis data က container stop နဲ့ agent restart ပြီးလည်း v
 4. Application ကို redeploy လုပ်ရင် private MySQL connection string ရပါမယ်။
 
 MySQL logical backup ကို database run နေချိန်ယူနိုင်ပါတယ်။ Restore က version တူတဲ့ MySQL target အသစ်အလွတ်ထဲပဲဝင်ပြီး table ရှိပြီးသား target ကို data မပြောင်းဘဲ reject လုပ်ပါတယ်။
+
+### MongoDB ထည့်ပြီး application နဲ့ချိတ်ရန်
+
+1. Application ရှိတဲ့ project/environment ထဲမှာ **New resource → MongoDB** ကိုရွေးပါ။
+2. Cloudrail က MongoDB 8.0.29 ကို pin လုပ်ပြီး encrypted root credential ထုတ်ကာ `/data/db` volume နဲ့ private network ပေါ်တင်ပေးပါတယ်။
+3. **Settings → Connect an application** မှာ web application ကိုရွေးပြီး variable ကို `MONGO_URL` အတိုင်းထားပါ။
+4. Application ကို redeploy လုပ်ရင် private MongoDB connection string ရပါမယ်။
+
+MongoDB logical backup ကို database run နေချိန်ယူနိုင်ပါတယ်။ Restore က version တူတဲ့ MongoDB target အသစ်အလွတ်ထဲပဲဝင်ပြီး collection ရှိပြီးသား target ကို data မပြောင်းဘဲ reject လုပ်ပါတယ်။
 
 ### S3-compatible bucket ချိတ်ရန်
 

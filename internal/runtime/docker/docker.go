@@ -199,6 +199,8 @@ func (c *Client) Ensure(ctx context.Context, d deployment.Deployment) error {
 			body["Healthcheck"] = map[string]any{"Test": []string{"CMD-SHELL", `REDISCLI_AUTH="$REDIS_PASSWORD" redis-cli ping | grep -q PONG`}, "Interval": int64(2 * time.Second), "Timeout": int64(time.Second), "Retries": 30}
 		} else if d.Settings.Kind == "mysql" {
 			body["Healthcheck"] = map[string]any{"Test": []string{"CMD-SHELL", `MYSQL_PWD="$MYSQL_PASSWORD" mysqladmin ping -h 127.0.0.1 -u"$MYSQL_USER" --silent`}, "Interval": int64(2 * time.Second), "Timeout": int64(time.Second), "Retries": 60}
+		} else if d.Settings.Kind == "mongo" {
+			body["Healthcheck"] = map[string]any{"Test": []string{"CMD-SHELL", `mongosh --quiet --host 127.0.0.1 --port 27017 -u "$MONGO_INITDB_ROOT_USERNAME" -p "$MONGO_INITDB_ROOT_PASSWORD" --authenticationDatabase admin --eval 'quit(db.adminCommand({ping:1}).ok ? 0 : 2)'`}, "Interval": int64(2 * time.Second), "Timeout": int64(2 * time.Second), "Retries": 60}
 		}
 
 		resp, err = c.request(ctx, "POST", "/containers/create?name="+name, body)

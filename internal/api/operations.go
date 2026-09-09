@@ -259,8 +259,12 @@ func (a *API) operationRoutes(admin, agent *http.ServeMux) {
 		}
 		w.Header().Set("Content-Type", "application/octet-stream")
 		extension := ".dump"
-		if kind == "http" {
+		if kind == "http" || kind == "redis" {
 			extension = ".tar"
+		} else if kind == "mysql" {
+			extension = ".sql"
+		} else if kind == "mongo" {
+			extension = ".archive"
 		}
 		w.Header().Set("Content-Disposition", "attachment; filename=cloudrail-"+id+extension)
 		w.Header().Set("Cache-Control", "no-store")

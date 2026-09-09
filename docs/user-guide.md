@@ -13,7 +13,7 @@ This guide describes the current single-owner alpha. Start the [local quickstart
 | Web service | An application with a public route | web / api |
 | Worker service | A long-running process without a public route | queue consumer |
 | Cron service | A command run on a five-field UTC schedule | nightly cleanup |
-| Data service | Private PostgreSQL, Redis or MySQL with persistent data | database/cache |
+| Data service | Private PostgreSQL, Redis, MySQL or MongoDB with persistent data | database/cache |
 | Bucket | Existing S3-compatible object storage connected to applications | uploads/backups |
 | Build | Exact source commit converted to an image | GitHub SHA → digest |
 | Deployment | One attempt to run an image with a saved configuration | api release 4 |
@@ -133,6 +133,15 @@ The canvas shows the Redis service, its volume and the application reference. Th
 4. Redeploy the application to receive the private connection string.
 
 MySQL logical backups can run while the database is active. Restore requires a fresh empty MySQL 8.4.7 target; Cloudrail rejects a nonempty target before importing the dump. Major/minor upgrades need a separately tested migration.
+
+## Add MongoDB and connect an application
+
+1. Select **New resource → MongoDB** in the same project/environment as the application.
+2. Cloudrail pins MongoDB 8.0.29, generates encrypted root credentials, attaches `/data/db` and deploys it on the private network.
+3. Open **Settings → Connect an application**, select the web application and keep `MONGO_URL` as the connection variable.
+4. Redeploy the application to receive the private connection string.
+
+MongoDB logical backups can run while the database is active. Restore requires a fresh empty MongoDB 8.0.29 target; Cloudrail rejects a target with existing collections before importing the archive. Version upgrades need a separately tested migration.
 
 ## Connect an S3-compatible bucket
 

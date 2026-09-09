@@ -67,14 +67,15 @@ async function mockWorkspace(page: import('@playwright/test').Page, savedLayouts
     if (url.pathname === '/api/projects/project-1/databases' && request.method() === 'POST') {
       const body = request.postDataJSON() as {name:string;environment:string;template:string};
       savedCreates.push(body);
-      const mysql = body.template === 'mysql';
-      const id = mysql ? 'mysql-1' : 'redis-1';
-      const version = mysql ? '8.4.7' : '8.2.2';
-      const port = mysql ? 3306 : 6379;
-      const mountPath = mysql ? '/var/lib/mysql' : '/data';
-      const service = { id, projectId: 'project-1', name: body.name, environment: body.environment, host: '', url: '', activeId: '', desiredState: 'running', resourceKind: 'database', workloadMode: 'web', template: body.template, templateVersion: version, createdAt: '2026-09-09T00:00:00Z', settings: { kind: body.template, memoryMB: mysql ? 512 : 128, cpuMillis: 1000, mountPath, volumeName: id + '-data', network: 'cloudrail' } };
+      const config = body.template === 'mysql'
+        ? { id: 'mysql-1', version: '8.4.7', port: 3306, mountPath: '/var/lib/mysql', memoryMB: 512, x: 1120 }
+        : body.template === 'mongo'
+          ? { id: 'mongo-1', version: '8.0.29', port: 27017, mountPath: '/data/db', memoryMB: 512, x: 1350 }
+          : { id: 'redis-1', version: '8.2.2', port: 6379, mountPath: '/data', memoryMB: 128, x: 890 };
+      const { id, version, port, mountPath } = config;
+      const service = { id, projectId: 'project-1', name: body.name, environment: body.environment, host: '', url: '', activeId: '', desiredState: 'running', resourceKind: 'database', workloadMode: 'web', template: body.template, templateVersion: version, createdAt: '2026-09-09T00:00:00Z', settings: { kind: body.template, memoryMB: config.memoryMB, cpuMillis: 1000, mountPath, volumeName: id + '-data', network: 'cloudrail' } };
       workspaceState.services.push(service);
-      canvas.resources.push({ key: 'service:' + id, id, kind: 'database', name: body.name, status: 'queued', workloadMode: 'web', sourceType: 'template', template: body.template, templateVersion: version, privateAddress: `db-${id}:${port}`, position: { x: mysql ? 1120 : 890, y: 340 } });
+      canvas.resources.push({ key: 'service:' + id, id, kind: 'database', name: body.name, status: 'queued', workloadMode: 'web', sourceType: 'template', template: body.template, templateVersion: version, privateAddress: `db-${id}:${port}`, position: { x: config.x, y: 340 } });
       return route.fulfill({ status: 201, json: service });
     }
     if (url.pathname === '/api/projects/project-1/volumes' && request.method() === 'POST') {
@@ -208,6 +209,22 @@ test('canvas exposes resources, connections, creation and saved layout', async (
   await expect(page.getByLabel('Connection variable name')).toHaveValue('MYSQL_URL');
   await expect(page.getByText('MySQL logical backups run while the database is running.')).toBeVisible();
   expect(savedCreates.at(-1)).toEqual({ name: 'orders-db', environment: 'production', template: 'mysql' });
+  await page.getByLabel('Close service details').click();
+
+  await page.keyboard.press('Control+K');
+  const mongoOption = page.getByRole('dialog', { name: 'Add to your canvas' }).getByRole('button', { name: /MongoDB/ });
+  await expect(mongoOption).toBeEnabled();
+  await mongoOption.click();
+  const mongoDialog = page.getByRole('dialog', { name: 'MongoDB' });
+  await expect(mongoDialog.getByText('MongoDB database')).toBeVisible();
+  await mongoDialog.getByLabel('Resource name').fill('catalog-db');
+  await mongoDialog.getByRole('button', { name: 'Create resource', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'catalog-db resource' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'catalog-db details' })).toContainText('Private MongoDB · db-mongo-1:27017');
+  await page.getByRole('tab', { name: 'Settings' }).click();
+  await expect(page.getByLabel('Connection variable name')).toHaveValue('MONGO_URL');
+  await expect(page.getByText('MongoDB logical backups run while the database is running.')).toBeVisible();
+  expect(savedCreates.at(-1)).toEqual({ name: 'catalog-db', environment: 'production', template: 'mongo' });
   await page.getByLabel('Close service details').click();
 
   await page.keyboard.press('Control+K');

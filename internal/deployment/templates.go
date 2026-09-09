@@ -7,6 +7,7 @@ import (
 
 const RedisImage = "redis@sha256:59b6e694653476de2c992937ebe1c64182af4728e54bb49e9b7a6c26614d8933"
 const MySQLImage = "mysql@sha256:0426ec38c7a10aa45ba383887df7878f74ee70e2fd589c7b69207f3577901903"
+const MongoImage = "mongo@sha256:02a0cc7939f5ed38f30f9bc714ef5f682d49baf9350c54acf302ce833087fe8a"
 
 type DataTemplate struct {
 	Key         string `json:"key"`
@@ -41,6 +42,11 @@ var dataTemplateCatalog = []dataTemplateDefinition{
 		host := "db-" + serviceID
 		return map[string]string{"MYSQL_ROOT_PASSWORD": rootPassword, "MYSQL_DATABASE": "app", "MYSQL_USER": "app", "MYSQL_PASSWORD": password, "MYSQL_URL": fmt.Sprintf("mysql://app:%s@%s:3306/app", password, host)}
 	}},
+	{DataTemplate: DataTemplate{Key: "mongo", Version: "8.0.29", Name: "MongoDB", Description: "Document database with persistent storage", Port: 27017, MountPath: "/data/db", MemoryMB: 512}, Image: MongoImage, Kind: "mongo", Variables: func(serviceID string) map[string]string {
+		password := ID() + ID()
+		host := "db-" + serviceID
+		return map[string]string{"MONGO_INITDB_ROOT_USERNAME": "root", "MONGO_INITDB_ROOT_PASSWORD": password, "MONGO_INITDB_DATABASE": "app", "MONGO_URL": fmt.Sprintf("mongodb://root:%s@%s:27017/app?authSource=admin", password, host)}
+	}},
 }
 
 func DataTemplates() []DataTemplate {
@@ -65,4 +71,6 @@ func dataTemplate(key, version string) (dataTemplateDefinition, error) {
 	return dataTemplateDefinition{}, errors.New("unknown or unsupported data template version")
 }
 
-func IsDataKind(kind string) bool { return kind == "postgres" || kind == "redis" || kind == "mysql" }
+func IsDataKind(kind string) bool {
+	return kind == "postgres" || kind == "redis" || kind == "mysql" || kind == "mongo"
+}
