@@ -1,8 +1,8 @@
 # Linode public pilot
 
-Status, 2026-09-09: preparation, public control-plane install and Railway-inspired canvas update are complete on target `172.104.38.63`. The 4 GB Singapore Linode runs Ubuntu 24.04.4 x86-64 with 2 CPU and a 79 GiB root disk. A dedicated root SSH identity was authorized and verified against the console-published host fingerprint. Cloud Firewall allows TCP 22/80/443 with default inbound drop. Docker 29.8.0/API 1.56 and Compose 5.5.1 are installed.
+Status, 2026-09-11: preparation, public control-plane install and Railway-inspired canvas update completed on target `172.104.38.63`. The 48-hour observation window elapsed, but the observer could not reach dashboard/app HTTPS or SSH during the final 12 hours of sampled checks. The successful-observation gate therefore remains open pending host/network recovery and a clean rerun. The 4 GB Singapore Linode was last measured running Ubuntu 24.04.4 x86-64 with 2 CPU and a 79 GiB root disk. A dedicated root SSH identity was authorized and verified against the console-published host fingerprint. Cloud Firewall was configured to allow TCP 22/80/443 with default inbound drop. Docker 29.8.0/API 1.56 and Compose 5.5.1 were installed.
 
-Exact alpha.4 commit `302aec491fc33fd8a0ef5216b33856d899e5cb5f` passed the original installer preflight. The guarded updater then moved the live checkout to verified main commit `c15158aaef06adc3eb1e76b3ed035991b3c5825a`, retaining the owner, session, database and active workload. The dashboard at `https://console.172-104-38-63.sslip.io` returned HTTP/2 200 with a trusted Let's Encrypt YR1 certificate and exposed the project canvas/resource palette in an authenticated browser. A public Railpack sample remains active at `https://037b9c4141bba7f16d897963.apps.172-104-38-63.sslip.io`; its response still carries deployment `00ce3a973726fcfac2e49c17`. A verified 503 MiB cold backup restored successfully on a separate empty Linode and accepted a new deployment. User UX acceptance, a new versioned release, GitHub App delivery, certificate renewal and the 48-hour observation remain pending.
+Exact alpha.4 commit `302aec491fc33fd8a0ef5216b33856d899e5cb5f` passed the original installer preflight. The guarded updater then moved the live checkout to verified main commit `c15158aaef06adc3eb1e76b3ed035991b3c5825a`, retaining the owner, session, database and active workload. Before the later reachability failure, the dashboard at `https://console.172-104-38-63.sslip.io` returned HTTP/2 200 with a trusted Let's Encrypt YR1 certificate and exposed the project canvas/resource palette in an authenticated browser. The Railpack sample at `https://037b9c4141bba7f16d897963.apps.172-104-38-63.sslip.io` returned deployment `00ce3a973726fcfac2e49c17`. A verified 503 MiB cold backup restored successfully on a separate empty Linode and accepted a new deployment. User UX acceptance, a new versioned release, GitHub App delivery, certificate renewal, actual billing evidence and a successful replacement observation remain pending.
 
 ## Access handoff
 
@@ -37,7 +37,18 @@ Both dashboard `A` and wildcard application `A` records must resolve directly to
 5. [x] Deploy the selected app; prove its HTTP response and failed-deploy traffic preservation.
 6. [x] Reboot; verify identity, routes, owner session and active application.
 7. [x] Export a cold backup off-server, restore to a separate empty host, then deploy again.
-8. [ ] Rehearse update/recovery and observe at least 48 hours including a build/update; record resource use, transfer, availability and the actual Linode charge separately from estimates.
+8. [ ] Rehearse update/recovery and observe at least 48 hours including a build/update; record resource use, transfer, availability and the actual Linode charge separately from estimates. The elapsed window and sampled failure are recorded below, but final availability and actual charge evidence did not pass.
+
+## 48-hour observation outcome — 2026-09-11
+
+The measured window ran from `2026-09-09T03:30:04Z` through `2026-09-11T03:38:37Z`, totaling 48 hours 8 minutes. The guarded control-plane update at `2026-09-09T03:43:13Z` occurred inside this window. Raw HTTP and host snapshots are retained only in ignored `.data/linode-pilot` evidence; no credential or private host record is published.
+
+- At the start, dashboard and application returned HTTP/2 200, the application header selected deployment `00ce3a973726fcfac2e49c17`, all seven Docker containers were running, root disk use was 8.9 GiB of 79 GiB (12%), and the host reported 700 MiB used with 3,214 MiB available RAM.
+- At `2026-09-10T09:33:52Z`, 30 hours 3 minutes into the window, dashboard and application still returned HTTP/2 200 with the same deployment header and body. Root disk use was 9.3 GiB (13%), host memory was 785 MiB used with 3,130 MiB available, swap remained unused, and the seven container memory readings totaled about 166 MiB. Container network counters were captured as operational evidence, but they are not provider transfer or billing totals.
+- At `2026-09-10T15:36Z`, 36 hours 6 minutes into the window, dashboard HTTPS, application HTTPS and SSH all timed out. The same result repeated at `2026-09-10T21:37Z` and at the final `2026-09-11T03:38Z` observation. DNS continued resolving the pilot hostname to `172.104.38.63`. These probes establish observer-side unavailability; without SSH or an authenticated Linode status view they do not distinguish a powered-off host from firewall or provider-network failure.
+- The Linode billing page required a fresh account login during the final check, so no authenticated charge or invoice amount was available to record. No estimate is presented as an actual charge.
+
+The elapsed-time requirement was measured, but the Phase 6.3 exit did not pass. Recover or verify the Linode, confirm the same deployment/data, capture authenticated billing evidence, then restart a clean observation window.
 
 ## Recorded workload and recovery evidence
 

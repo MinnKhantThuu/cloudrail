@@ -1,4 +1,4 @@
-# Current verification — 2026-09-09
+# Current verification — 2026-09-11
 
 This record separates implemented/local behavior from account-bound production checks. Historical Phase 1 evidence remains in [verification.md](verification.md). The canonical completion tracker is [ROADMAP.md](ROADMAP.md).
 
@@ -6,7 +6,13 @@ This record separates implemented/local behavior from account-bound production c
 
 The public Linode was updated with the guarded maintenance workflow from the packaged alpha.4 checkout to verified main commit `c15158aaef06adc3eb1e76b3ed035991b3c5825a`. The update saved recovery record `.data/updates/20260909T034313Z-6f1ade5a`, rebuilt the control services and returned both server and agent healthy. It retained the owner/session data and the active application deployment `00ce3a973726fcfac2e49c17`.
 
-Fresh public checks returned HTTP/2 200 from the dashboard and sample application. Authenticated API checks returned one project, two services, one deployment, an online node and two resources on the production canvas. A real browser reload showed the pan/zoom project canvas and the complete create palette for GitHub, Docker, empty service, worker, cron, PostgreSQL, Redis, MySQL, MongoDB, volume and S3-compatible bucket resources. This is current public deployment evidence; user UX acceptance and a versioned post-alpha.4 release remain separate.
+Fresh public checks on 2026-09-09 returned HTTP/2 200 from the dashboard and sample application. Authenticated API checks returned one project, two services, one deployment, an online node and two resources on the production canvas. A real browser reload showed the pan/zoom project canvas and the complete create palette for GitHub, Docker, empty service, worker, cron, PostgreSQL, Redis, MySQL, MongoDB, volume and S3-compatible bucket resources. This is public deployment evidence from before the later observation outage; user UX acceptance and a versioned post-alpha.4 release remain separate.
+
+## Linode 48-hour observation — final result 2026-09-11
+
+The observation ran for 48 hours 8 minutes from `2026-09-09T03:30:04Z`. It included the guarded update at `2026-09-09T03:43:13Z`. The initial and 30-hour samples returned dashboard/application HTTP/2 200 with active deployment `00ce3a973726fcfac2e49c17`; all seven containers were running. Over those samples root use moved from 8.9 GiB (12%) to 9.3 GiB (13%), used host memory from 700 MiB to 785 MiB, available memory from 3,214 MiB to 3,130 MiB, and swap stayed unused. At the 30-hour sample, container memory readings totaled about 166 MiB.
+
+The 36-hour, 42-hour and final 48-hour samples could not connect to either HTTPS endpoint or SSH; all timed out while DNS still resolved to `172.104.38.63`. This is a failed availability observation and does not identify whether the cause was host power, firewall or provider networking. The final Linode billing view required a fresh account login, so no authenticated actual-charge evidence was available. Phase 6.3 requires host/network recovery, state verification, an actual billing record and a clean replacement observation before it can pass.
 
 ## Recorded local evidence
 
@@ -145,7 +151,7 @@ The local 30 GB Docker VM approached capacity during source builds. Only Cloudra
 
 ## Unverified external gates
 
-Real GitHub App installation/push delivery; ACME renewal; clean public installation on arm64; owner final UX review; 48-hour billing/resource observation; and the optional AWS provider path remain unverified. Public DNS, first ACME issuance, clean Ubuntu 24.04 amd64 installation, owner secure-session use, public workload deployment, reboot recovery and real separate-host recovery passed on the selected Linode pilot. Consult [GitHub Actions](https://github.com/MinnKhantThuu/cloudrail/actions/workflows/verify.yml) for hosted CI results and [release gates](release.md) for the remaining scope.
+Real GitHub App installation/push delivery; ACME renewal; clean public installation on arm64; owner final UX review; a successful 48-hour billing/resource observation; and the optional AWS provider path remain unverified. The first 48-hour window elapsed but failed availability at its 36-hour, 42-hour and final samples, and no authenticated Linode charge was available. Public DNS, first ACME issuance, clean Ubuntu 24.04 amd64 installation, owner secure-session use, public workload deployment, reboot recovery and real separate-host recovery had passed before that outage. Consult [GitHub Actions](https://github.com/MinnKhantThuu/cloudrail/actions/workflows/verify.yml) for hosted CI results and [release gates](release.md) for the remaining scope.
 
 ## Public repository and fresh-runner verification
 
